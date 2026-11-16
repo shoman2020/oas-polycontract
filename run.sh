@@ -3,7 +3,17 @@ set -euo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-compose=(docker compose -f docker-compose.yml)
+if docker compose version >/dev/null 2>&1; then
+  compose=(docker compose -f docker-compose.yml)
+elif command -v docker-compose >/dev/null 2>&1; then
+  # Homebrew installs Compose as a standalone CLI and plugin directory.
+  compose=(docker-compose -f docker-compose.yml)
+else
+  echo "Docker Compose is required (docker compose or docker-compose)." >&2
+  exit 1
+fi
+
+"${compose[@]}" config --quiet
 
 cleanup() {
   "${compose[@]}" down --remove-orphans || true

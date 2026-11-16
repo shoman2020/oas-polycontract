@@ -15,8 +15,8 @@ contribution guidance, code ownership, a Spectral ruleset, and a breaking
 change script. The root Product Catalog API has no implementation yet, so
 root provider tests, language client suites, fuzzing, and the full project
 pipeline are still future work. The demo pipeline has been added to local
-Compose and GitHub Actions, but has not yet been executed; see
-[`ROADMAP.md`](ROADMAP.md) for phase status and known gaps.
+Compose and GitHub Actions. CI runs the demo on Ubuntu and macOS; see
+[`ROADMAP.md`](ROADMAP.md) for phase status and remaining coverage.
 
 ## Run the demo pipeline
 
@@ -33,7 +33,13 @@ HTML reports are written under `demo/build/reports/specmatic/`.
 
 The same command runs in GitHub Actions through
 `.github/workflows/contract.yml`. The workflow currently covers the demo
-slice only.
+slice on Ubuntu 26.04 and macOS 15 Intel. The macOS job starts Colima to run
+the same Docker Compose pipeline.
+
+GitHub Actions also runs CodeQL, secret scanning, dependency and configuration
+scans, and PR dependency review. Trivy scans the app container image on
+Ubuntu. Dependabot checks GitHub Actions, Docker images, and npm dependencies
+weekly.
 
 ## Run the services by hand
 
@@ -67,3 +73,10 @@ WireMock's request journal shows the app's call to `/inventory/demo-sku`.
 
 See [`ROADMAP.md`](ROADMAP.md) for the full phase plan and
 [`CONTRIBUTING.md`](CONTRIBUTING.md) before changing a contract.
+
+## Feedback and bug reports
+
+Have a feature idea or found a bug? [Open an issue](https://github.com/shoman2020/oas-polycontract/issues).
+For bugs, include steps to reproduce, the expected and actual results, and
+relevant logs or environment details. Contributions are welcome; see
+[`CONTRIBUTING.md`](CONTRIBUTING.md).
