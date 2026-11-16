@@ -18,9 +18,9 @@ source of truth.
 
 | Area | Status | What exists and what remains |
 |---|---|---|
-| Demo | Implemented; CI coverage is expanding | Product API, two OpenAPI contracts, WireMock mapping, Specmatic checks, and an integration test are in `demo/`. The Ubuntu run passed. The new macOS run is pending. |
+| Demo | Implemented; Ubuntu CI | Product API, two OpenAPI contracts, WireMock mapping, Specmatic checks, and an integration test are in `demo/`. |
 | Specmatic | Demo provider and downstream checks pass on Ubuntu | Consumer Smart Mock tests and example validation remain. The provider's 404 and 502 scenarios are skipped because they lack examples. |
-| CI pipeline | Cross-platform workflow added | `bash ./run.sh` passed on Ubuntu 26.04 and macOS 15 Intel. The current macOS 15 Apple Silicon run is pending. |
+| CI pipeline | Ubuntu CI; macOS local support | GitHub Actions runs on Ubuntu. `run.sh` supports macOS local use with Docker Desktop or Colima. |
 | Security | Core scans pass; image scan remediation is in progress | CodeQL, Gitleaks, the filesystem scan, and app image scan passed. Trivy flagged base OS packages and unused Pebble in WireMock; Specmatic image scan is pending. |
 | Root scaffold | Contract and governance files exist; runtime work remains | The Product Catalog contract and baseline, Spectral ruleset, and breaking-change script are present. There is no root API implementation. The root gates, client suites, fuzzing, and debug layer remain future work. |
 | MCP integration | Considered; not implemented | Proposed options and boundaries are recorded below. MCP will remain optional and outside CI's source of truth. |
@@ -32,7 +32,8 @@ source of truth.
 | Date | Progress | Result |
 |---|---|---|
 | 16 Nov 2026 | Ran the demo pipeline on Ubuntu 26.04.1 and upgraded checkout to Node 24. | Passed in [GitHub Actions](https://github.com/shoman2020/oas-polycontract/actions/runs/43870308370); the Node 20 and `ubuntu-latest` warnings are gone. |
-| 16 Nov 2026 | Added an Ubuntu/macOS runner matrix and Colima setup. Made `run.sh` accept both Compose CLI forms. | Ubuntu and macOS 15 Intel passed in [the first matrix run](https://github.com/shoman2020/oas-polycontract/actions/runs/43875479362); the Apple Silicon run is pending. |
+| 16 Nov 2026 | Added an Ubuntu/macOS runner matrix and Colima setup. Made `run.sh` accept both Compose CLI forms. | Ubuntu and macOS passed in the initial matrix. macOS was later removed from CI per project scope; local support remains. |
+| 16 Nov 2026 | Consolidated README and documented contract formats plus native test stacks for Rust, Go, Python, JavaScript, TypeScript, Java, and C#. | Migration guidance is documented; language suites still need implementation. |
 | 16 Nov 2026 | Added CodeQL, Gitleaks, Trivy, Dependency Review, and weekly Dependabot checks. | CodeQL, Gitleaks, the filesystem scan, and app image scan passed. WireMock's image includes vulnerable OS packages and an unused Pebble binary; the demo now builds a patched, reduced image. |
 | 16 Nov 2026 | Dependabot merged [Specmatic 2.56.1](https://github.com/shoman2020/oas-polycontract/commit/2c02b375dd12c79800426ff7adabb3bafef9316d) and [Node 26](https://github.com/shoman2020/oas-polycontract/commit/fe29b278e8c8d47d6627b33a829d06d446198887). | The demo and image scan use the updated versions. |
 | 16 Nov 2026 | Recorded MCP options and added a README issue-reporting link. | Design only; no MCP server or client added. |
@@ -168,7 +169,7 @@ what this does and doesn't unblock.
 - [x] **Lint** - add a Spectral ruleset under `gates/lint/.spectral.yaml` (start with `extends: ["spectral:oas"]`, then layer your own house rules). Added; not yet run in CI or against a live `npx spectral` install (no network in this environment - see the review note below).
 - [x] **Breaking-change check** - add `oasdiff breaking openapi/openapi.base.yaml openapi/openapi.yaml` as a required check. Added as `gates/breaking-change/check.sh`; not yet wired into `run.sh`/CI, and not run - no `oasdiff` binary or network to fetch it in this sandbox.
 - [ ] **Drift / fuzz check** - add a Schemathesis run against a live or staged instance of the API; this is the step that actually proves the implementation still matches the spec, not just that the spec is well-formed.
-- [x] **Demo contract checks** - Specmatic checks the demo provider and WireMock inventory stub against their OpenAPI contracts. The Ubuntu Actions run passed. The provider's 404 and 502 scenarios remain skipped until examples are added; macOS validation is pending.
+- [x] **Demo contract checks** - Specmatic checks the demo provider and WireMock inventory stub against their OpenAPI contracts. The Ubuntu Actions run passed. The provider's 404 and 502 scenarios remain skipped until examples are added.
 - [ ] **Root contract gate** - decide whether Specmatic is the required root provider gate, and add it after the root contract and app exist.
 - [ ] **Behavioral backward-compatibility check (optional)** - `specmatic backward-compatibility-check` is a slower, more thorough alternative to `oasdiff breaking`: it stubs the new spec and replays tests generated from the old one, so it catches some things (e.g. discriminator/subtype changes) a structural diff won't.
 - [ ] Wire whichever of these are in use as required CI checks before touching the language-specific clients - there's no point writing test suites against a contract nothing is enforcing yet.
@@ -186,11 +187,16 @@ gate checks provider conformance against `openapi/openapi.yaml`; client suites
 should focus on behavior that the schema cannot express instead of duplicating
 the same status and shape assertions in every language.
 
-- [ ] `clients/java` - REST Assured for behavior tests; add response-schema validation only where that client suite owns the contract assertion.
-- [ ] `clients/python` - Pytest + Requests for functional tests; keep Schemathesis in the dedicated fuzz gate.
-- [ ] `clients/js` - Playwright or Supertest for behavior tests; use `jest-openapi` only if this suite owns a schema assertion.
-- [ ] Each client reads `openapi/openapi.yaml` directly - never a copy, never a hand-maintained second schema.
+- [ ] Add starter suites for Rust (`cargo test`/`reqwest`), Go (`testing`/`net/http`/`kin-openapi`), Python (`pytest`/Schemathesis), JavaScript (`node:test` or Jest), TypeScript (Vitest/Jest), Java (JUnit/REST Assured), and C# (xUnit/`HttpClient`). Validate wire responses against the canonical OAS at runtime; generated types alone are compile-time checks.
+- [ ] Provide migration steps from Postman/Bruno requests and assertions into each native suite. Keep business assertions in code and remove duplicate status/schema assertions once OAS validation covers them.
+- [ ] Every suite consumes `openapi/openapi.yaml` directly or generated artifacts reproducibly from it - never a hand-maintained schema copy.
 - [ ] Add a small code-based consumer example that tests its behavior against a Specmatic Smart Mock built from the same OAS.
+
+## Contract format and protocol scope
+
+- [x] Document that OpenAPI covers HTTP interfaces and JSON/XML media types.
+- [x] Route WebSocket and event protocols such as Kafka, MQTT, and AMQP to AsyncAPI; route gRPC to Protobuf service definitions and GraphQL to SDL.
+- [ ] Add representative AsyncAPI (WebSocket/Kafka) and gRPC/GraphQL examples with validation gates when the project adds those interface types.
 
 ## Phase 4 - Debugging layer (Swagger UI + mock server, generated and disposable)
 
@@ -218,13 +224,14 @@ gate on.
 
 - [x] Add a focused `docker-compose.yml` and `run.sh` for the demo app, WireMock dependency, integration check, and Specmatic checks. Add healthchecks so dependent services wait until ready.
 - [x] Build the WireMock demo image from the official image, update OS packages, remove its unused Pebble binary, and run it as non-root.
-- [x] Add Ubuntu 26.04 and macOS 15 Apple Silicon CI runners. Set up Colima on macOS and support both Compose CLI forms in `run.sh`. The Apple Silicon run is pending.
+- [x] Support macOS locally via Docker Desktop or Colima and both Compose CLI forms in `run.sh`.
+- [x] Run GitHub Actions on Ubuntu only; macOS is not a CI runner.
 - [ ] Expand Compose to wire the root app, all three client suites, governance gates, and selected debug services.
 - [ ] Extend `run.sh` to run the complete suite in sequence and tear down even when a gate fails - see the Docker section below.
 
 ## Phase 7 - CI
 
-- [x] The demo `.github/workflows/contract.yml` invokes `bash ./run.sh` on Ubuntu and macOS.
+- [x] The demo `.github/workflows/contract.yml` invokes `bash ./run.sh` on Ubuntu. macOS remains supported for local runs.
 - [x] Add CodeQL, Gitleaks, Trivy, and Dependency Review checks. Pin actions to commit SHAs and configure weekly Dependabot updates. CodeQL, Gitleaks, filesystem, and app image scans passed; WireMock and Specmatic image scans are in progress.
 - [ ] Extend the workflow to the complete Compose suite and require lint, compatibility, client, and fuzz checks on the default branch.
 
@@ -438,7 +445,7 @@ the business rule - made it into actual test code.
 
 ## Integration demo - Specmatic and WireMock
 
-**Status:** `bash ./run.sh` passed on Ubuntu 26.04.1. The new macOS matrix run is pending.
+**Status:** `bash ./run.sh` passed on Ubuntu 26.04.1 and macOS Intel. GitHub Actions now runs this demo on Ubuntu; macOS stays supported for local runs.
 
 The `demo/` directory is a runnable example of the contract-testing flow.
 It contains a small product API, an OpenAPI contract for that API, and a

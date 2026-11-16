@@ -19,27 +19,10 @@ jobs:
       matrix:
         runner:
           - ubuntu-26.04
-          - macos-15
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Set up Docker on macOS
-        if: runner.os == 'macOS'
-        run: |
-          brew install colima docker docker-compose
-          colima start --runtime docker --cpus 4 --memory 8 --disk 30
-
-          for attempt in {1..30}; do
-            if docker info >/dev/null 2>&1; then
-              exit 0
-            fi
-            sleep 2
-          done
-
-          echo "Docker did not become ready on the Colima VM" >&2
-          docker info
 
       - name: Check shell syntax
         run: bash -n run.sh
@@ -48,7 +31,7 @@ jobs:
         run: bash ./run.sh
 
       - name: Scan application container image
-        if: always() && runner.os == 'Linux'
+        if: always()
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: oas-polycontract-app:latest
@@ -57,9 +40,8 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
-
       - name: Scan WireMock container image
-        if: always() && runner.os == 'Linux'
+        if: always()
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: oas-polycontract-wiremock:latest
@@ -70,7 +52,7 @@ jobs:
           exit-code: "1"
 
       - name: Scan Specmatic container image
-        if: always() && runner.os == 'Linux'
+        if: always()
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: specmatic/specmatic:2.56.1
@@ -80,9 +62,3 @@ jobs:
           ignore-unfixed: true
           exit-code: "1"
 
-      - name: Stop Colima
-        if: always() && runner.os == 'macOS'
-        run: |
-          if command -v colima >/dev/null 2>&1; then
-            colima stop || true
-          fi
