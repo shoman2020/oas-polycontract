@@ -11,7 +11,7 @@ WORKDIR /workspace
 RUN chown app:app /workspace
 COPY --chown=app:app go.mod .
 USER app
-RUN go mod download
+RUN go mod download all
 COPY --chown=app:app . .
 CMD ["go", "test", "-v", "./..."]
 
