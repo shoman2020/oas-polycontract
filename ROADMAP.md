@@ -22,7 +22,7 @@ source of truth.
 | Mock data | Specmatic mock examples and dictionary added | Contract examples define common responses, an external example defines a VIP response, and a dictionary supplies fallback values. `run.sh` validates external examples; the optional mock profile has not yet been run. |
 | Specmatic | Demo provider/downstream tests and external-example validation added | Consumer Smart Mock tests remain. Provider 404/502 scenarios are skipped until examples are added. The mock-data profile and new examples are awaiting the current CI run. |
 | CI pipeline | Ubuntu CI; macOS local support | GitHub Actions runs on Ubuntu. `run.sh` supports macOS local use with Docker Desktop or Colima. |
-| Security | Core scans pass; image scan remediation is in progress | CodeQL, Gitleaks, the filesystem scan, and app image scan passed. Trivy flagged base OS packages and unused Pebble in WireMock; Specmatic image scan is pending. |
+| Security | Core scans pass; Specmatic image scan fix is pending CI | CodeQL, Gitleaks, filesystem, app, and WireMock scans passed. Trivy failed on Specmatic 2.56.1's bundled Guava CVE-2026-102554; the project now pins 2.56.3, which updates bundled Guava. |
 | Root scaffold | Contract and governance files exist; runtime work remains | The Product Catalog contract and baseline, Spectral ruleset, and breaking-change script are present. There is no root API implementation. The root gates, client suites, fuzzing, and debug layer remain future work. |
 | MCP integration | Considered; not implemented | Proposed options and boundaries are recorded below. MCP will remain optional and outside CI's source of truth. |
 | Legacy migration | Conditional | No legacy collection was supplied. Phase 5 applies only if the root API later follows Path A. |
@@ -38,6 +38,7 @@ source of truth.
 | 16 Nov 2026 | Added OAS inline examples, a Specmatic external VIP scenario, a domain dictionary, and an optional Specmatic mock profile. | Exact requests have stable responses; unmatched requests use schema-valid dictionary values. Local mock profile validation remains. |
 | 16 Nov 2026 | Added CodeQL, Gitleaks, Trivy, Dependency Review, and weekly Dependabot checks. | CodeQL, Gitleaks, the filesystem scan, and app image scan passed. WireMock's image includes vulnerable OS packages and an unused Pebble binary; the demo now builds a patched, reduced image. |
 | 16 Nov 2026 | Dependabot merged [Specmatic 2.56.1](https://github.com/shoman2020/oas-polycontract/commit/2c02b375dd12c79800426ff7adabb3bafef9316d) and [Node 26](https://github.com/shoman2020/oas-polycontract/commit/fe29b278e8c8d47d6627b33a829d06d446198887). | The demo and image scan use the updated versions. |
+| 16 Nov 2026 | Upgraded all Specmatic images to 2.56.3 after Trivy flagged bundled Guava in 2.56.1. | Upstream 2.56.3 changelog reports the bundled Guava security update; the pipeline scan will verify the image. |
 | 16 Nov 2026 | Recorded MCP options and added a README issue-reporting link. | Design only; no MCP server or client added. |
 
 The checklist below tracks implementation. This table records what CI has

@@ -52,7 +52,7 @@ services:
     profiles: [test]
 
   specmatic-provider:
-    image: specmatic/specmatic:2.56.1
+    image: specmatic/specmatic:2.56.3
     working_dir: /usr/src/app
     command: ["test", "openapi.yaml", "--testBaseURL=http://app:8080"]
     volumes:
@@ -63,7 +63,7 @@ services:
     profiles: [test]
 
   specmatic-examples-validate:
-    image: specmatic/specmatic:2.56.1
+    image: specmatic/specmatic:2.56.3
     working_dir: /usr/src/app
     command: ["examples", "validate", "--spec-file", "openapi.yaml"]
     volumes:
@@ -71,7 +71,7 @@ services:
     profiles: [test]
 
   specmatic-downstream:
-    image: specmatic/specmatic:2.56.1
+    image: specmatic/specmatic:2.56.3
     working_dir: /usr/src/app
     command: ["test", "openapi.yaml", "--testBaseURL=http://wiremock:8080"]
     volumes:
@@ -82,7 +82,7 @@ services:
     profiles: [test]
 
   specmatic-mock:
-    image: specmatic/specmatic:2.56.1
+    image: specmatic/specmatic:2.56.3
     working_dir: /usr/src/app
     command: ["mock", "openapi.yaml"]
     volumes:
