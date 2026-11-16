@@ -32,11 +32,18 @@ async fn product_response_matches_openapi_contract() -> Result<(), Box<dyn std::
     let schema_pointer = schema_ref.strip_prefix('#').expect("expected an internal schema reference");
     let schema = spec.pointer(schema_pointer).expect("referenced OAS schema must exist");
     let validator = validator_for(schema)?;
-    validator.validate(&body)?;
+    let validation_errors: Vec<String> = validator
+        .iter_errors(&body)
+        .map(|error| error.to_string())
+        .collect();
+    assert!(
+        validation_errors.is_empty(),
+        "response does not match OAS schema: {}",
+        validation_errors.join("; ")
+    );
 
     assert_eq!(body["sku"], "demo-sku");
     assert_eq!(body["available"], 7);
     println!("OAS validation passed: GET /products/demo-sku -> {status}");
     Ok(())
 }
-

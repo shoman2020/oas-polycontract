@@ -16,7 +16,7 @@ One role owns the contract. Clear ownership means less maintenance and more trus
 | Provider and consumer contract roles | Specmatic provider verification targets the running app; JavaScript and Playwright consumer suites target the Specmatic Smart Mock | The shared provider OAS drives both examples. This is consumer-side development against a contract-derived mock, not a separately published consumer-owned CDC artifact. Runtime verification awaits CI. |
 | Protocol coverage | AsyncAPI examples for WebSocket and Kafka, with a separate Spectral ruleset | Contract examples only; no event service or broker is part of the demo. |
 | Debug layer | Optional Swagger UI and Prism Compose services use the root contract | Local profile exists; environment-specific host URLs still need deployment configuration. |
-| CI and security | Ubuntu contract workflow; CodeQL, Gitleaks, Trivy, Dependency Review, and Dependabot | Security run [43935878355](https://github.com/shoman2020/oas-polycontract/actions/runs/43935878355) passed. Contract run [43943834022](https://github.com/shoman2020/oas-polycontract/actions/runs/43943834022) passed version loading and built the app, then Compose could not resolve `specmatic-mock` while building the Playwright consumer target because its profile was inactive. The runner now enables `test` and `mock` profiles for build and consumer run. Branch protection is a repository setting. |
+| CI and security | Ubuntu contract workflow; CodeQL, Gitleaks, Trivy, Dependency Review, and Dependabot | Contract run [43944423021](https://github.com/shoman2020/oas-polycontract/actions/runs/43944423021) passed contract lint, Compose image builds, WireMock, Specmatic, Schemathesis, and image scans, then stopped compiling the Rust response validator (`E0515`). The test now owns validation messages as strings; rerun CI. |
 | Dependency reproducibility | Direct package versions and container/tool versions are pinned | Most language projects do not yet commit transitive lockfiles. Add native lockfiles after the first green pipeline run, then enforce locked installs. |
 | Migration | No legacy Postman or Bruno collection was supplied | Phase 5 is not applicable unless one is provided. |
 | Scaffolder | Not implemented | Phase 9 remains open until the end-to-end pipeline is stable. |
@@ -135,7 +135,7 @@ These are the current gaps, in execution order. “Implemented” means files an
 
 | Priority | Gap | Status | Acceptance signal |
 |---|---|---|---|
-| P0 | Run the expanded contract and security workflows on this implementation | In progress; run 43943834022 reached Compose builds and exposed an inactive mock profile while building the Playwright consumer target | All applicable contract jobs and image/filesystem scans pass; verify all seven language clients, Playwright live-provider and mock-consumer examples, and record a full green run. |
+| P0 | Run the expanded contract and security workflows on this implementation | In progress; run 43944423021 reached the Rust client suite and failed compilation with `E0515` | All applicable contract jobs and image/filesystem scans pass; verify all seven language clients, Playwright live-provider and mock-consumer examples, and record a full green run. |
 | P1 | Make language dependency installs reproducible | Needed | Commit JS/TS package locks, `Cargo.lock`, Go module sums, a hash-locked Python requirements file, and NuGet lock files; lock Maven dependency resolution. Use lock-enforcing installs in the container builds. |
 | P1 | Require contract and security checks before merge | Repository configuration needed | GitHub branch protection requires the named checks. This setting is managed outside this repository. |
 | P2 | Decide whether the root Product Catalog OAS remains contract-only | Decision needed | If it stays a scaffold, keep provider checks on the demo OAS. If a root provider is added, add provider and client examples against the root contract. |
@@ -163,6 +163,7 @@ These are the current gaps, in execution order. “Implemented” means files an
 | 16 Nov 2026 | Added Playwright APIRequestContext examples for live-provider integration and Specmatic Smart Mock consumer testing; wired both targets into Compose and `run.sh`. Clarified Specmatic provider versus consumer-side roles and added the eighth test image to the architecture docs. | Implemented; compile and runtime results await CI. |
 | 16 Nov 2026 | Contract run [43943340330](https://github.com/shoman2020/oas-polycontract/actions/runs/43943340330) stopped at the version-loading step because Windows CRLF endings in `.github/versions.env` were parsed as a Bash command. | Normalized `.github/versions.env` and `run.sh` to LF; rerun the workflow to verify the pipeline and Playwright suites. |
 | 16 Nov 2026 | Contract run [43943834022](https://github.com/shoman2020/oas-polycontract/actions/runs/43943834022) passed version loading and built the app, then Compose reported `no such service: specmatic-mock` while building the Playwright consumer test. | Enabled the `test` and `mock` profiles during the relevant build and consumer run; rerun CI. |
+| 16 Nov 2026 | Contract run [43944423021](https://github.com/shoman2020/oas-polycontract/actions/runs/43944423021) passed the mock profile build, provider checks, fuzzing, and image scans, then Rust failed to compile because schema errors borrowed the response body. | Collect schema validation errors into owned strings, then rerun CI and continue through the remaining language clients. |
 
 ## Run and expected result
 
@@ -181,4 +182,3 @@ The run lints contracts, checks compatibility, builds the demo and client test i
 5. Add event runtime tests and deployed debug URLs only when the services and environments exist.
 6. Start Phase 9 after a green, reproducible end-to-end pipeline.
 7. Keep MCP optional and outside CI's contract source of truth.
-
