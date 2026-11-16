@@ -33,7 +33,7 @@ HTML reports are written under `demo/build/reports/specmatic/`.
 
 The same command runs in GitHub Actions through
 `.github/workflows/contract.yml`. The workflow currently covers the demo
-slice on Ubuntu 26.04 and macOS 15 Intel. The macOS job starts Colima to run
+slice on Ubuntu 26.04 and macOS 15 Apple Silicon. The macOS job starts Colima to run
 the same Docker Compose pipeline.
 
 GitHub Actions also runs CodeQL, secret scanning, dependency and configuration

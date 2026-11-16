@@ -20,7 +20,7 @@ source of truth.
 |---|---|---|
 | Demo | Implemented; CI coverage is expanding | Product API, two OpenAPI contracts, WireMock mapping, Specmatic checks, and an integration test are in `demo/`. The Ubuntu run passed. The new macOS run is pending. |
 | Specmatic | Demo provider and downstream checks pass on Ubuntu | Consumer Smart Mock tests and example validation remain. The provider's 404 and 502 scenarios are skipped because they lack examples. |
-| CI pipeline | Cross-platform workflow added | `bash ./run.sh` passed on Ubuntu 26.04. macOS 15 Intel is still running setup. |
+| CI pipeline | Cross-platform workflow added | `bash ./run.sh` passed on Ubuntu 26.04. The macOS 15 Apple Silicon runner is still pending. |
 | Security | Initial scans found issues; fixes are in progress | CodeQL and Gitleaks passed. Trivy flagged outdated npm packages in the app image and a missing non-root user; WireMock and Specmatic image scans were skipped after the first failure. |
 | Root scaffold | Contract and governance files exist; runtime work remains | The Product Catalog contract and baseline, Spectral ruleset, and breaking-change script are present. There is no root API implementation. The root gates, client suites, fuzzing, and debug layer remain future work. |
 | MCP integration | Considered; not implemented | Proposed options and boundaries are recorded below. MCP will remain optional and outside CI's source of truth. |
@@ -216,7 +216,7 @@ gate on.
 ## Phase 6 - Containerize everything
 
 - [x] Add a focused `docker-compose.yml` and `run.sh` for the demo app, WireMock dependency, integration check, and Specmatic checks. Add healthchecks so dependent services wait until ready.
-- [x] Add Ubuntu 26.04 and macOS 15 Intel CI runners. Set up Colima on macOS and support both Compose CLI forms in `run.sh`. The first cross-platform run is pending.
+- [x] Add Ubuntu 26.04 and macOS 15 Apple Silicon CI runners. Set up Colima on macOS and support both Compose CLI forms in `run.sh`. The first Apple Silicon run is pending.
 - [ ] Expand Compose to wire the root app, all three client suites, governance gates, and selected debug services.
 - [ ] Extend `run.sh` to run the complete suite in sequence and tear down even when a gate fails - see the Docker section below.
 
