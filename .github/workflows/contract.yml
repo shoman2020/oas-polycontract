@@ -10,10 +10,10 @@ permissions:
 
 jobs:
   contract-examples:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Run the local contract pipeline
         run: bash ./run.sh
