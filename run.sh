@@ -30,3 +30,4 @@ trap cleanup EXIT
 # Check the WireMock stub itself and then the app that consumes that stub.
 "${compose[@]}" run --rm specmatic-downstream
 "${compose[@]}" run --rm specmatic-provider
+"${compose[@]}" run --rm specmatic-examples-validate

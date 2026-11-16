@@ -1,0 +1,13 @@
+Product:
+  available:
+    - 0
+    - 1
+    - 4
+    - 9
+  sku:
+    - mock-sku-blue
+    - mock-sku-green
+    - mock-sku-red
+Error:
+  message:
+    - Product is unavailable in this mock dataset

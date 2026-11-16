@@ -1,0 +1,13 @@
+{
+  "http-request": {
+    "method": "GET",
+    "path": "/products/vip-sku"
+  },
+  "http-response": {
+    "status": 200,
+    "body": {
+      "sku": "vip-sku",
+      "available": 25
+    }
+  }
+}

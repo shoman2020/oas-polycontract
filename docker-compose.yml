@@ -62,6 +62,14 @@ services:
         condition: service_healthy
     profiles: [test]
 
+  specmatic-examples-validate:
+    image: specmatic/specmatic:2.56.1
+    working_dir: /usr/src/app
+    command: ["examples", "validate", "--spec-file", "openapi.yaml"]
+    volumes:
+      - ./demo:/usr/src/app
+    profiles: [test]
+
   specmatic-downstream:
     image: specmatic/specmatic:2.56.1
     working_dir: /usr/src/app
@@ -72,3 +80,13 @@ services:
       wiremock:
         condition: service_healthy
     profiles: [test]
+
+  specmatic-mock:
+    image: specmatic/specmatic:2.56.1
+    working_dir: /usr/src/app
+    command: ["mock", "openapi.yaml"]
+    volumes:
+      - ./demo:/usr/src/app
+    ports:
+      - "9000:9000"
+    profiles: [mock]

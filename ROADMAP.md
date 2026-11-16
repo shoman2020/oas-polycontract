@@ -19,6 +19,7 @@ source of truth.
 | Area | Status | What exists and what remains |
 |---|---|---|
 | Demo | Implemented; Ubuntu CI | Product API, two OpenAPI contracts, WireMock mapping, Specmatic checks, and an integration test are in `demo/`. |
+| Mock data | Specmatic mock examples and dictionary added | Contract examples define common responses, an external example defines a VIP response, and a dictionary supplies fallback values. `run.sh` validates external examples; the optional mock profile has not yet been run. |
 | Specmatic | Demo provider and downstream checks pass on Ubuntu | Consumer Smart Mock tests and example validation remain. The provider's 404 and 502 scenarios are skipped because they lack examples. |
 | CI pipeline | Ubuntu CI; macOS local support | GitHub Actions runs on Ubuntu. `run.sh` supports macOS local use with Docker Desktop or Colima. |
 | Security | Core scans pass; image scan remediation is in progress | CodeQL, Gitleaks, the filesystem scan, and app image scan passed. Trivy flagged base OS packages and unused Pebble in WireMock; Specmatic image scan is pending. |
@@ -34,6 +35,7 @@ source of truth.
 | 16 Nov 2026 | Ran the demo pipeline on Ubuntu 26.04.1 and upgraded checkout to Node 24. | Passed in [GitHub Actions](https://github.com/shoman2020/oas-polycontract/actions/runs/43870308370); the Node 20 and `ubuntu-latest` warnings are gone. |
 | 16 Nov 2026 | Added an Ubuntu/macOS runner matrix and Colima setup. Made `run.sh` accept both Compose CLI forms. | Ubuntu and macOS passed in the initial matrix. macOS was later removed from CI per project scope; local support remains. |
 | 16 Nov 2026 | Consolidated README and documented contract formats plus native test stacks for Rust, Go, Python, JavaScript, TypeScript, Java, and C#. | Migration guidance is documented; language suites still need implementation. |
+| 16 Nov 2026 | Added OAS inline examples, a Specmatic external VIP scenario, a domain dictionary, and an optional Specmatic mock profile. | Exact requests have stable responses; unmatched requests use schema-valid dictionary values. Local mock profile validation remains. |
 | 16 Nov 2026 | Added CodeQL, Gitleaks, Trivy, Dependency Review, and weekly Dependabot checks. | CodeQL, Gitleaks, the filesystem scan, and app image scan passed. WireMock's image includes vulnerable OS packages and an unused Pebble binary; the demo now builds a patched, reduced image. |
 | 16 Nov 2026 | Dependabot merged [Specmatic 2.56.1](https://github.com/shoman2020/oas-polycontract/commit/2c02b375dd12c79800426ff7adabb3bafef9316d) and [Node 26](https://github.com/shoman2020/oas-polycontract/commit/fe29b278e8c8d47d6627b33a829d06d446198887). | The demo and image scan use the updated versions. |
 | 16 Nov 2026 | Recorded MCP options and added a README issue-reporting link. | Design only; no MCP server or client added. |
@@ -198,6 +200,14 @@ the same status and shape assertions in every language.
 - [x] Document OpenAPI coverage for HTTP and JSON/XML, AsyncAPI for WebSocket and broker protocols (Kafka, MQTT, AMQP, NATS), Protobuf/gRPC, GraphQL SDL, and WSDL/SOAP.
 - [ ] Add sample AsyncAPI contracts for WebSocket and Kafka and run protocol-specific lint/compatibility checks when the project adds event interfaces.
 - [ ] Add gRPC, GraphQL, and SOAP samples only when there is an implementation to exercise; keep their gates separate from the OpenAPI HTTP pipeline.
+
+## Mock data and generated examples
+
+- [x] Use inline OAS examples for common, reviewable response scenarios.
+- [x] Add Specmatic external examples for deterministic request-specific responses and a dictionary for domain-shaped fallback values.
+- [x] Document AI-assisted fixture drafting as an offline authoring aid. Generated examples must be reviewed, schema-validated, and committed; tests and mock startup must not depend on a live model.
+- [ ] Run the optional `mock` Compose profile and assert the OAS-inline example, external example, and dictionary fallback behavior.
+- [x] Add external example validation to `run.sh` and the contract CI path.
 
 ## Phase 4 - Debugging layer (Swagger UI + mock server, generated and disposable)
 
