@@ -7,7 +7,7 @@
   "statements": [
     {
       "vulnerability": {
-        "name": "GHSA-xxph-c9ww-hj94"
+        "name": "CVE-2026-102554"
       },
       "products": [
         {
