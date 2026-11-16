@@ -20,7 +20,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-"${compose[@]}" build app wiremock-integration-test
+"${compose[@]}" build app wiremock wiremock-integration-test
 "${compose[@]}" up -d wiremock app
 
 # This service waits for both endpoints, exercises the app, and verifies the

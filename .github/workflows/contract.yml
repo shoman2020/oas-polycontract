@@ -48,7 +48,7 @@ jobs:
         run: bash ./run.sh
 
       - name: Scan application container image
-        if: runner.os == 'Linux'
+        if: always() && runner.os == 'Linux'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: oas-polycontract-app:latest
@@ -59,10 +59,10 @@ jobs:
           exit-code: "1"
 
       - name: Scan WireMock container image
-        if: runner.os == 'Linux'
+        if: always() && runner.os == 'Linux'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: wiremock/wiremock:3.13.2
+          image-ref: oas-polycontract-wiremock:latest
           format: table
           vuln-type: os,library
           severity: HIGH,CRITICAL
@@ -70,10 +70,10 @@ jobs:
           exit-code: "1"
 
       - name: Scan Specmatic container image
-        if: runner.os == 'Linux'
+        if: always() && runner.os == 'Linux'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: specmatic/specmatic:2.51.1
+          image-ref: specmatic/specmatic:2.56.1
           format: table
           vuln-type: os,library
           severity: HIGH,CRITICAL

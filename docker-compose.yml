@@ -1,6 +1,8 @@
 services:
   wiremock:
-    image: wiremock/wiremock:3.13.2
+    image: oas-polycontract-wiremock:latest
+    build:
+      context: ./demo/wiremock
     command: ["--global-response-templating"]
     ports:
       - "8081:8080"

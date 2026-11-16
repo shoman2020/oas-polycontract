@@ -64,6 +64,8 @@ WireMock's request journal shows the app's call to `/inventory/demo-sku`.
 - `demo/downstream/openapi.yaml` describes its inventory dependency, and
   `demo/downstream/wiremock/mappings/` contains the WireMock stub validated
   against that contract.
+- `demo/wiremock/Dockerfile` extends the official WireMock image, updates its
+  base packages, removes the unused Pebble utility, and runs as a non-root user.
 - `demo/app/server.mjs` is a minimal Node.js reference implementation.
 - `demo/app/tests/wiremock.integration.mjs` checks the app response and
   confirms WireMock received the expected downstream request.
