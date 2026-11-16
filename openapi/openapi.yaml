@@ -1,0 +1,145 @@
+openapi: 3.0.3
+info:
+  title: Product Catalog API
+  version: 1.0.0
+  description: >
+    Canonical contract for the Product Catalog API. This is the one
+    hand-edited source of truth for this API boundary (see the guiding
+    rule in ROADMAP.md). Generated clients, Specmatic mocks, the Bruno
+    debug collection, and Swagger UI all derive from or validate against
+    this file — none of them is a second source of truth for it.
+servers:
+  - url: http://localhost:8080
+    description: Local / CI
+paths:
+  /healthz:
+    get:
+      operationId: getHealth
+      summary: Liveness check
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+  /products:
+    get:
+      operationId: listProducts
+      summary: List products
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: A page of products
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductPage"
+    post:
+      operationId: createProduct
+      summary: Create a product
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewProduct"
+      responses:
+        "201":
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "400":
+          description: The request body failed validation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /products/{sku}:
+    get:
+      operationId: getProduct
+      summary: Get a product by SKU
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+          example: demo-sku
+      responses:
+        "200":
+          description: Product found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: No product exists for that SKU
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    Health:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          example: ok
+    Product:
+      type: object
+      required: [sku, name, available]
+      properties:
+        sku:
+          type: string
+        name:
+          type: string
+        available:
+          type: integer
+          minimum: 0
+    NewProduct:
+      type: object
+      required: [sku, name]
+      properties:
+        sku:
+          type: string
+        name:
+          type: string
+        available:
+          type: integer
+          minimum: 0
+          default: 0
+    ProductPage:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/Product"
+        total:
+          type: integer
+          minimum: 0
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string

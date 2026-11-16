@@ -1,0 +1,7 @@
+# Generated Specmatic reports
+demo/build/
+
+# Local environment files
+.env
+.env.*
+!.env.example

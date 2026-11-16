@@ -1,0 +1,45 @@
+# Phase 2 lint gate. Start from Spectral's own OAS ruleset, then layer the
+# house rules below. Run against any contract in the repo, e.g.:
+#
+#   npx @stoplight/spectral-cli lint demo/openapi.yaml \
+#     --ruleset gates/lint/.spectral.yaml
+#   npx @stoplight/spectral-cli lint demo/downstream/openapi.yaml \
+#     --ruleset gates/lint/.spectral.yaml
+#
+#   npx @stoplight/spectral-cli lint openapi/openapi.yaml \
+#     --ruleset gates/lint/.spectral.yaml
+#
+# Not yet run in CI, or at all in this sandbox (no network to npx it) —
+# see ROADMAP.md Phase 2.
+
+extends: ["spectral:oas"]
+
+rules:
+  house-operation-must-have-operationId:
+    description: >
+      Every operation needs an operationId so generated clients, Bruno's
+      imported collection, and debugging tools get a stable method name
+      instead of an auto-generated one.
+    severity: error
+    given: "$.paths[*][get,post,put,patch,delete]"
+    then:
+      field: operationId
+      function: truthy
+
+  house-response-must-have-description:
+    description: Every response must have a human-readable description.
+    severity: error
+    given: "$.paths[*][*].responses[*]"
+    then:
+      field: description
+      function: truthy
+
+  house-info-description-required:
+    description: >
+      The info object must describe what the API does, not just repeat
+      its title.
+    severity: warn
+    given: "$.info"
+    then:
+      field: description
+      function: truthy

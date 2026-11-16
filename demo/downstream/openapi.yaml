@@ -1,0 +1,43 @@
+openapi: 3.0.3
+info:
+  title: Inventory API
+  version: 1.0.0
+  description: >
+    Downstream inventory contract. This is the app's one dependency;
+    WireMock's mapping under wiremock/mappings is checked against this
+    contract by the specmatic-downstream service.
+paths:
+  /inventory/{sku}:
+    get:
+      summary: Get inventory availability for a SKU
+      operationId: getInventory
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+          example: demo-sku
+      responses:
+        "200":
+          description: Inventory record found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inventory"
+              examples:
+                demo:
+                  value:
+                    sku: demo-sku
+                    available: 7
+components:
+  schemas:
+    Inventory:
+      type: object
+      required: [sku, available]
+      properties:
+        sku:
+          type: string
+        available:
+          type: integer
+          minimum: 0

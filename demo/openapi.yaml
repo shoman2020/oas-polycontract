@@ -1,0 +1,76 @@
+openapi: 3.0.3
+info:
+  title: Product API
+  version: 1.0.0
+  description: >
+    Demo provider API. Serves product details by looking up availability
+    from a downstream inventory service (see demo/downstream/openapi.yaml).
+paths:
+  /healthz:
+    get:
+      summary: Liveness check
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /products/{sku}:
+    get:
+      summary: Get a product by SKU
+      operationId: getProduct
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+          example: demo-sku
+      responses:
+        "200":
+          description: Product found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+              examples:
+                demo:
+                  value:
+                    sku: demo-sku
+                    available: 7
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: Inventory service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    Product:
+      type: object
+      required: [sku, available]
+      properties:
+        sku:
+          type: string
+        available:
+          type: integer
+          minimum: 0
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string

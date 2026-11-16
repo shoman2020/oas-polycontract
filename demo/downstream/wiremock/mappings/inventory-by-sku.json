@@ -1,0 +1,15 @@
+{
+  "name": "inventory by SKU",
+  "request": {
+    "method": "GET",
+    "urlPathTemplate": "/inventory/{sku}"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "body": "{\"sku\":\"{{request.path.sku}}\",\"available\":7}",
+    "transformers": ["response-template"]
+  }
+}
