@@ -71,7 +71,7 @@ docker compose --env-file .github/versions.env --profile test run --rm specmatic
 
 ```sh
 docker compose --env-file .github/versions.env --profile mock up -d specmatic-mock
-docker compose --env-file .github/versions.env build specmatic-mock-integration-test playwright-consumer-test
+docker compose --env-file .github/versions.env --profile test --profile mock build specmatic-mock-integration-test playwright-consumer-test
 docker compose --env-file .github/versions.env --profile test --profile mock run --rm specmatic-mock-integration-test
 docker compose --env-file .github/versions.env --profile test --profile mock run --rm playwright-consumer-test
 ```
