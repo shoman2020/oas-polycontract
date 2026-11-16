@@ -25,6 +25,10 @@ const server = http.createServer(async (req, res) => {
         `${INVENTORY_URL}/inventory/${encodeURIComponent(sku)}`
       );
       if (!upstream.ok) {
+        if (upstream.status >= 500) {
+          sendJson(res, 502, { message: "Inventory service unavailable" });
+          return;
+        }
         sendJson(res, 404, { message: `No inventory record for ${sku}` });
         return;
       }

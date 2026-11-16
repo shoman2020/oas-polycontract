@@ -1,0 +1,12 @@
+{
+  "name": "oas-polycontract-js-client",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@oaverify/core": "7.3.1",
+    "@oaverify/syntax": "7.3.1"
+  }
+}

@@ -1,0 +1,46 @@
+asyncapi: 2.6.0
+info:
+  title: Product Availability WebSocket API
+  version: 1.0.0
+  description: Contract example for real-time product availability updates over WebSocket.
+  contact:
+    name: SHIFT-LEFT.NL and Ahmed Abdelwahab
+    url: https://github.com/shoman2020/oas-polycontract/issues
+servers:
+  local:
+    url: localhost:8083
+    protocol: ws
+    description: Local development endpoint (example contract; no server is included).
+defaultContentType: application/json
+channels:
+  /products/{sku}/availability:
+    parameters:
+      sku:
+        description: Product SKU to subscribe to.
+        schema:
+          type: string
+    publish:
+      operationId: publishAvailabilityUpdates
+      summary: Publish availability updates for one product.
+      message:
+        $ref: "#/components/messages/AvailabilityChanged"
+components:
+  messages:
+    AvailabilityChanged:
+      name: AvailabilityChanged
+      title: Product availability changed
+      payload:
+        $ref: "#/components/schemas/Availability"
+  schemas:
+    Availability:
+      type: object
+      required: [sku, available, updatedAt]
+      properties:
+        sku:
+          type: string
+        available:
+          type: integer
+          minimum: 0
+        updatedAt:
+          type: string
+          format: date-time

@@ -1,5 +1,13 @@
 # Generated Specmatic reports
 demo/build/
+node_modules/
+**/target/
+clients/*/bin/
+**/obj/
+**/__pycache__/
+**/.pytest_cache/
+**/.venv/
+.coverage
 
 # Local environment files
 .env

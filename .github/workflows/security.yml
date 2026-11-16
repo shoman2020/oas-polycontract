@@ -13,7 +13,25 @@ permissions:
 
 jobs:
   codeql:
-    name: CodeQL
+    name: CodeQL (${{ matrix.language }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: actions
+            build-mode: none
+          - language: csharp
+            build-mode: none
+          - language: go
+            build-mode: autobuild
+          - language: java-kotlin
+            build-mode: none
+          - language: javascript-typescript
+            build-mode: none
+          - language: python
+            build-mode: none
+          - language: rust
+            build-mode: none
     runs-on: ubuntu-26.04
     timeout-minutes: 20
     permissions:
@@ -30,7 +48,8 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@33d7b85da1a04171e211befe2c739303b9a4c066 # v4.39.3
         with:
-          languages: javascript-typescript
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
           queries: security-extended
 
       - name: Analyze code
@@ -63,6 +82,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Load pinned scanner version
+        run: |
+          source .github/versions.env
+          echo "TRIVY_VERSION=$TRIVY_VERSION" >> "$GITHUB_ENV"
+
       - name: Scan dependencies, secrets, and configuration
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
@@ -72,6 +96,8 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
+          version: v${{ env.TRIVY_VERSION }}
+          trivy-config: .github/trivy.yaml
 
   dependency-review:
     name: Dependency review

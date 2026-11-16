@@ -1,4 +1,5 @@
-FROM node:26-alpine
+ARG NODE_VERSION=26
+FROM node:${NODE_VERSION}-alpine
 
 WORKDIR /app
 COPY --chown=node:node package.json ./package.json

@@ -1,0 +1,17 @@
+{
+  "name": "inventory unavailable",
+  "priority": 1,
+  "request": {
+    "method": "GET",
+    "urlPath": "/inventory/unavailable-sku"
+  },
+  "response": {
+    "status": 503,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "message": "Inventory service unavailable"
+    }
+  }
+}

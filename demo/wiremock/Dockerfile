@@ -1,4 +1,5 @@
-FROM wiremock/wiremock:3.13.2-3
+ARG WIREMOCK_VERSION=3.13.2-3
+FROM wiremock/wiremock:${WIREMOCK_VERSION}
 
 USER root
 

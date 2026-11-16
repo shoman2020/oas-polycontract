@@ -1,0 +1,3 @@
+vulnerability:
+  vex:
+    - .github/security/specmatic.openvex.json

@@ -1,0 +1,12 @@
+{
+  "http-request": {
+    "method": "GET",
+    "path": "/products/unavailable-sku"
+  },
+  "http-response": {
+    "status": 502,
+    "body": {
+      "message": "Inventory service unavailable"
+    }
+  }
+}

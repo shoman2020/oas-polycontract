@@ -20,12 +20,19 @@ jobs:
         runner:
           - ubuntu-26.04
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Check shell syntax
         run: bash -n run.sh
+
+      - name: Load pinned scanner version
+        run: |
+          source .github/versions.env
+          echo "TRIVY_VERSION=$TRIVY_VERSION" >> "$GITHUB_ENV"
+          echo "SPECMATIC_VERSION=$SPECMATIC_VERSION" >> "$GITHUB_ENV"
 
       - name: Run the local contract pipeline
         run: bash ./run.sh
@@ -40,6 +47,8 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
+          version: v${{ env.TRIVY_VERSION }}
+          trivy-config: .github/trivy.yaml
       - name: Scan WireMock container image
         if: always()
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -50,15 +59,18 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
+          version: v${{ env.TRIVY_VERSION }}
+          trivy-config: .github/trivy.yaml
 
       - name: Scan Specmatic container image
         if: always()
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: specmatic/specmatic:2.56.3
+          image-ref: specmatic/specmatic:${{ env.SPECMATIC_VERSION }}
           format: table
           vuln-type: os,library
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
-
+          version: v${{ env.TRIVY_VERSION }}
+          trivy-config: .github/trivy.yaml

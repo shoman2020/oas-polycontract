@@ -24,3 +24,73 @@ updates:
     directory: /demo/app
     schedule:
       interval: weekly
+
+  - package-ecosystem: npm
+    directory: /clients/js
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: npm
+    directory: /clients/ts
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: gomod
+    directory: /clients/go
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: cargo
+    directory: /clients/rust
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: pip
+    directory: /clients/python
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: maven
+    directory: /clients/java
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: nuget
+    directory: /clients/csharp
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /clients/rust
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /clients/go
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /clients/python
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /clients/js
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /clients/ts
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /clients/java
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker
+    directory: /clients/csharp
+    schedule:
+      interval: weekly

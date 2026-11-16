@@ -1,0 +1,12 @@
+{
+  "http-request": {
+    "method": "GET",
+    "path": "/products/not-found-sku"
+  },
+  "http-response": {
+    "status": 404,
+    "body": {
+      "message": "No inventory record for not-found-sku"
+    }
+  }
+}

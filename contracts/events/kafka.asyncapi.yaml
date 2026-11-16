@@ -1,0 +1,42 @@
+asyncapi: 2.6.0
+info:
+  title: Product Availability Kafka API
+  version: 1.0.0
+  description: Contract example for product availability events published to Kafka.
+  contact:
+    name: SHIFT-LEFT.NL and Ahmed Abdelwahab
+    url: https://github.com/shoman2020/oas-polycontract/issues
+servers:
+  local:
+    url: localhost:9092
+    protocol: kafka
+    protocolVersion: "3.7.0"
+    description: Local development broker (example contract; no broker is included).
+defaultContentType: application/json
+channels:
+  products.availability:
+    publish:
+      operationId: publishAvailabilityChanged
+      summary: Publish an availability update.
+      message:
+        $ref: "#/components/messages/AvailabilityChanged"
+components:
+  messages:
+    AvailabilityChanged:
+      name: AvailabilityChanged
+      title: Product availability changed
+      payload:
+        $ref: "#/components/schemas/Availability"
+  schemas:
+    Availability:
+      type: object
+      required: [sku, available, updatedAt]
+      properties:
+        sku:
+          type: string
+        available:
+          type: integer
+          minimum: 0
+        updatedAt:
+          type: string
+          format: date-time

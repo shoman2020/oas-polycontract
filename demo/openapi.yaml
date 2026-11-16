@@ -55,12 +55,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+              examples:
+                missing:
+                  value:
+                    message: No inventory record for not-found-sku
         "502":
           description: Inventory service unavailable
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+              examples:
+                unavailable:
+                  value:
+                    message: Inventory service unavailable
 components:
   schemas:
     Product:

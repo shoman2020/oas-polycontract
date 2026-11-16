@@ -1,18 +1,44 @@
 # oas-polycontract
 
-One hand-edited contract per API boundary. Test code in each language. Validate every request and response against the contract, and keep business assertions in the language-native suite.
+One hand-edited contract per API boundary. Native test suites validate live HTTP responses against that contract, while Specmatic checks provider and consumer behavior. The same command runs the examples locally and in CI.
 
 ## Quick start
 
-Requirements: Docker Engine and Docker Compose v2. From the repository root:
+Requirements: Docker Engine and Docker Compose. From the repository root:
 
 ```sh
 bash ./run.sh
 ```
 
-On macOS, use Docker Desktop or Colima with the Docker CLI and Compose installed; the script works locally. Windows users can run it through WSL or Git Bash. The pipeline builds the demo app and patched WireMock image, checks the downstream call, runs provider and downstream Specmatic tests, validates external examples, then removes the containers.
+On macOS, use Docker Desktop or Colima with Docker and Compose installed. Windows users can run it through WSL or Git Bash. The pipeline lints all OpenAPI contracts, checks the root compatibility baseline, builds the demo and seven native clients, verifies WireMock, runs Specmatic provider/downstream tests, fuzzes the running demo, validates each response against the demo OAS, and checks Smart Mock examples and dictionary fallbacks.
 
-GitHub Actions runs the same pipeline on Ubuntu. macOS is supported for local runs and is not a CI runner. Security workflows run CodeQL, Gitleaks, Trivy, and pull request dependency review.
+GitHub Actions runs the same pipeline on Ubuntu. macOS is supported for local runs and is not a CI runner. Security workflows run CodeQL, Gitleaks, Trivy, and pull request dependency review. Runtime, image, and scanner versions are pinned in [`.github/versions.env`](.github/versions.env); Dependabot checks language package manifests weekly.
+
+## Project landscape
+
+Each API boundary has its own hand-edited contract. Tests, mocks, and debug views consume that contract; they do not become competing specifications.
+
+| Boundary | Contract | Implementation or consumer | Checks |
+|---|---|---|---|
+| Product Catalog scaffold | [`openapi/openapi.yaml`](openapi/openapi.yaml) | No provider is included yet | Spectral, root baseline compatibility, Swagger UI, Prism |
+| Runnable Product API | [`demo/openapi.yaml`](demo/openapi.yaml) | Node.js provider in `demo/app/` | Spectral, Specmatic provider, Schemathesis, seven native clients, Smart Mock |
+| Inventory dependency | [`demo/downstream/openapi.yaml`](demo/downstream/openapi.yaml) | WireMock mappings in `demo/downstream/wiremock/` | Specmatic downstream validation and app integration assertions |
+| Product events | `contracts/events/*.asyncapi.yaml` | No broker or event provider is included | AsyncAPI Spectral ruleset |
+
+`run.sh` coordinates the applicable gates and examples through Compose. GitHub Actions calls the same entry point on Ubuntu. The root Catalog contract is a design scaffold; the demo Product API is the live service used by the client examples. Keep those roles distinct when adding tests.
+
+```mermaid
+flowchart LR
+  Root[Root Product Catalog OAS] --> RootGates[Spectral and oasdiff]
+  Root --> Debug[Swagger UI and Prism]
+  Product[Demo Product OAS] --> Provider[Specmatic provider]
+  Product --> Clients[Seven language clients]
+  Product --> Mock[Specmatic Smart Mock]
+  Product --> App[Node Product API]
+  Inventory[Inventory OAS] --> WireMock[WireMock mappings]
+  App --> WireMock
+  Events[WebSocket and Kafka AsyncAPI] --> EventLint[Spectral AsyncAPI]
+```
 
 ## Contract formats and protocols
 
@@ -28,21 +54,25 @@ Choose the contract standard by interface. `.json`, `.yaml`, and `.yml` are docu
 
 OpenAPI describes HTTP request/response APIs; it does not define Kafka topics or WebSocket message flows. Use one canonical contract per interface, validate it with tools that understand that standard, and link related contracts when a service exposes HTTP and event interfaces. Do not force every protocol into an OpenAPI file.
 
+[`contracts/events/`](contracts/events/) contains linted AsyncAPI examples for WebSocket and Kafka. They document message shapes only; no WebSocket server or Kafka broker is included in this demo.
+
 ## Language-native integration tests
 
-The migration path is: inventory existing requests and assertions, map operations and schemas to OAS, hand-review the contract, then port behavioral assertions into the selected language suite. The OAS remains the shared validation source. Choose a native framework and add a schema validator or generated types from the committed OAS; generated artifacts are disposable and checked for drift in CI.
+The migration path is: inventory existing requests and assertions, map operations and schemas to OAS, hand-review the contract, then port only business assertions into the selected language suite. The OAS remains the shared validation source. Runtime response validators enforce status, media type, and schema before test code checks behavior.
 
-| Language | Suggested test stack | Contract validation approach |
+The runnable suites live in [`clients/`](clients/). Each makes a real HTTP request to the demo API, validates the status, media type, and response body against `demo/openapi.yaml`, then keeps one business assertion in test code. The root Product Catalog contract is a separate scaffold and currently has no service implementation; root-level tests do not target it.
+
+| Language | Native test stack | OAS response validator |
 |---|---|---|
-| Rust | `cargo test` + `reqwest` | Generate typed clients/models from OAS with `oapi-codegen` alternatives such as `progenitor`; validate responses against OAS schemas where runtime validation is required. |
-| Go | `testing` + `net/http` | Generate clients with `oapi-codegen`; use `kin-openapi` request/response validation. |
-| Python | `pytest` + `requests` | Use Schemathesis for OAS-driven cases and Hypothesis; keep business assertions in pytest. |
-| JavaScript | `node:test` or Jest + `fetch` | Use generated client/types and an OpenAPI response validator such as `jest-openapi`. |
-| TypeScript | Vitest/Jest + `fetch` | Generate typed clients with `openapi-typescript`; validate runtime responses with an OAS validator. Types alone do not validate wire data. |
-| Java | JUnit + REST Assured | Use `swagger-request-validator` with REST Assured or generated Java models. |
-| C# | xUnit + `HttpClient` | Generate client/models with NSwag and validate responses against OAS schemas. |
+| Rust | `cargo test` + `reqwest` | `jsonschema` with the response schema resolved from the OAS |
+| Go | `testing` + `net/http` | `kin-openapi` request routing and `ValidateResponse` |
+| Python | `pytest` + `requests` | `openapi-core` Requests adapters |
+| JavaScript | Node `node:test` + `fetch` | `@oaverify/core` and YAML loader |
+| TypeScript | Vitest + `fetch` | `@oaverify/core` and YAML loader; `tsc` runs first |
+| Java | JUnit + REST Assured | Atlassian OpenAPI Request Validator filter |
+| C# | xUnit + `HttpClient` | `NJsonSchema` using the response schema read from OAS YAML |
 
-These are recommended starting points, not yet implemented suites. The runnable reference is the Node demo with Specmatic provider/downstream checks and a WireMock integration test. See [`ROADMAP.md`](ROADMAP.md) for planned client starters and current phase status.
+The JavaScript suite also runs against Specmatic's Smart Mock as a consumer example. The test keeps its business assertion in JavaScript; the validator confirms the response contract. Migration notes and representative output are in [`clients/README.md`](clients/README.md).
 
 ## Mock data patterns
 
@@ -52,18 +82,48 @@ The demo's Specmatic mock has three data sources, ordered by intent:
 2. **Named datasets:** files under [`demo/openapi_examples/`](demo/openapi_examples/) pair a concrete request with its deterministic response. The `vip-sku` request always returns the checked-in VIP response.
 3. **Domain-shaped fallback:** [`demo/openapi_dictionary.yaml`](demo/openapi_dictionary.yaml) supplies meaningful values when the mock has no matching example. Dictionary lists are sampled pseudo-randomly, so don't use them when a test needs a specific response.
 
-Start the standalone mock with `docker compose --profile mock up specmatic-mock`; it listens on `http://localhost:9000`. The normal `bash ./run.sh` pipeline runs the real demo provider, validates external example files, and does not start this optional mock.
+`bash ./run.sh` starts the Smart Mock and asserts the inline example, external VIP example, and dictionary-backed fallback. To keep the mock running for manual exploration, use `docker compose --profile mock up specmatic-mock`; it listens on `http://localhost:9000`.
 
 AI can help draft realistic, varied mock datasets from schemas and approved domain vocabulary. Review and validate generated data, remove secrets and personal data, then commit fixtures or dictionaries. Do not make live AI generation part of the contract or a deterministic CI test. See [Specmatic dictionaries](https://docs.specmatic.io/features/dictionary.html), [external examples](https://docs.specmatic.io/features/external_examples.html), and [service virtualization](https://docs.specmatic.io/spec_driven_api_development/service_virtualization).
 
-## Repository map
+## Project structure
 
-- `openapi/`: root Product Catalog contract and compatibility baseline.
-- `demo/`: runnable Node provider, demo OAS, downstream OAS, WireMock stub, and WireMock image.
-- `clients/`: language-specific test suites (planned).
-- `gates/`: lint and compatibility checks.
-- `docker-compose.yml` and `run.sh`: local demo pipeline entry point.
-- `.github/workflows/`: contract and security CI.
+```text
+oas-polycontract/
+|-- openapi/
+|   |-- openapi.yaml                 # Root Product Catalog OAS (hand-edited)
+|   `-- openapi.base.yaml            # Compatibility baseline
+|-- contracts/events/                # AsyncAPI WebSocket and Kafka examples
+|-- demo/
+|   |-- openapi.yaml                 # Runnable Product API contract
+|   |-- openapi_examples/            # Deterministic Specmatic request/response data
+|   |-- openapi_dictionary.yaml      # Domain-shaped fallback values for Smart Mock
+|   |-- app/                         # Node provider and integration assertions
+|   |-- downstream/
+|   |   |-- openapi.yaml             # Inventory dependency contract
+|   |   `-- wiremock/                # Dependency stubs checked against that contract
+|   `-- wiremock/                    # Patched WireMock container definition
+|-- clients/
+|   |-- rust/
+|   |-- go/
+|   |-- python/
+|   |-- js/
+|   |-- ts/
+|   |-- java/
+|   |-- csharp/                      # Native integration tests
+|   `-- README.md                    # Migration steps and sample test output
+|-- gates/
+|   |-- lint/                        # OpenAPI and AsyncAPI Spectral rules
+|   `-- breaking-change/             # Root OAS compatibility check
+|-- .github/
+|   |-- workflows/                  # Contract pipeline and security scans
+|   |-- security/                    # Specmatic OpenVEX assessment
+|   `-- versions.env                 # Runtime, tool, image, and scanner pins
+|-- docker-compose.yml               # Demo services, clients, and optional profiles
+`-- run.sh                           # Local and CI pipeline entry point
+```
+
+The `debug` profile serves Swagger UI on `http://localhost:8082` and Prism on `http://localhost:4010` from the root contract. The `mock` profile starts Specmatic Smart Mock on `http://localhost:9000`. Edit OAS server URLs for deployed environments. These profiles support manual exploration and do not replace the contract test pipeline.
 
 ## Contribute
 

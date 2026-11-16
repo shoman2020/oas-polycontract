@@ -4,6 +4,7 @@
     "method": "GET",
     "urlPathTemplate": "/inventory/{sku}"
   },
+  "priority": 10,
   "response": {
     "status": 200,
     "headers": {

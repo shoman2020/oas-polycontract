@@ -1,0 +1,15 @@
+{
+  "name": "oas-polycontract-ts-client",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@oaverify/core": "7.3.1",
+    "@oaverify/syntax": "7.3.1",
+    "@types/node": "26.6.6",
+    "typescript": "7.0.2",
+    "vitest": "5.1.0"
+  }
+}

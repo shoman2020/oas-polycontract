@@ -1,0 +1,17 @@
+{
+  "name": "inventory not found",
+  "priority": 1,
+  "request": {
+    "method": "GET",
+    "urlPath": "/inventory/not-found-sku"
+  },
+  "response": {
+    "status": 404,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "message": "No inventory record for not-found-sku"
+    }
+  }
+}
