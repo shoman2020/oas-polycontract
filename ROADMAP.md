@@ -194,9 +194,10 @@ the same status and shape assertions in every language.
 
 ## Contract format and protocol scope
 
-- [x] Document that OpenAPI covers HTTP interfaces and JSON/XML media types.
-- [x] Route WebSocket and event protocols such as Kafka, MQTT, and AMQP to AsyncAPI; route gRPC to Protobuf service definitions and GraphQL to SDL.
-- [ ] Add representative AsyncAPI (WebSocket/Kafka) and gRPC/GraphQL examples with validation gates when the project adds those interface types.
+- [x] Document the difference between OAS file encodings (`.json`, `.yaml`, `.yml`), HTTP transport, and payload media types.
+- [x] Document OpenAPI coverage for HTTP and JSON/XML, AsyncAPI for WebSocket and broker protocols (Kafka, MQTT, AMQP, NATS), Protobuf/gRPC, GraphQL SDL, and WSDL/SOAP.
+- [ ] Add sample AsyncAPI contracts for WebSocket and Kafka and run protocol-specific lint/compatibility checks when the project adds event interfaces.
+- [ ] Add gRPC, GraphQL, and SOAP samples only when there is an implementation to exercise; keep their gates separate from the OpenAPI HTTP pipeline.
 
 ## Phase 4 - Debugging layer (Swagger UI + mock server, generated and disposable)
 

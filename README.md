@@ -16,7 +16,17 @@ GitHub Actions runs the same pipeline on Ubuntu. macOS is supported for local ru
 
 ## Contract formats and protocols
 
-OpenAPI describes HTTP APIs and payload formats, including JSON and XML. It does not define WebSocket or Kafka contracts. Use AsyncAPI for WebSocket, Kafka, MQTT, AMQP, and other event-driven interfaces; use Protocol Buffers and gRPC service definitions for gRPC; use GraphQL SDL for GraphQL. Keep one canonical contract per interface and validate it with tools that understand that format. Link related contracts when an API spans HTTP and events.
+Choose the contract standard by interface. `.json`, `.yaml`, and `.yml` are document encodings; they do not identify the protocol. The contract content type and transport are separate choices.
+
+| Interface | Contract standard | Payload or wire formats |
+|---|---|---|
+| HTTP APIs | OpenAPI (OAS) | JSON (`application/json`), XML (`application/xml`), form and multipart data, text, and binary media types as described per operation. |
+| WebSockets and event-driven APIs | AsyncAPI | JSON, XML, Avro, or Protobuf messages over WebSocket, Kafka, MQTT, AMQP, NATS, and supported brokers. |
+| gRPC | Protocol Buffers service definitions | Protobuf messages over HTTP/2. |
+| GraphQL | GraphQL SDL | GraphQL operations over HTTP; subscriptions may use WebSocket or SSE transports. |
+| SOAP | WSDL | XML messages, commonly over HTTP. |
+
+OpenAPI describes HTTP request/response APIs; it does not define Kafka topics or WebSocket message flows. Use one canonical contract per interface, validate it with tools that understand that standard, and link related contracts when a service exposes HTTP and event interfaces. Do not force every protocol into an OpenAPI file.
 
 ## Language-native integration tests
 
