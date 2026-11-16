@@ -20,8 +20,8 @@ source of truth.
 |---|---|---|
 | Demo | Implemented; CI coverage is expanding | Product API, two OpenAPI contracts, WireMock mapping, Specmatic checks, and an integration test are in `demo/`. The Ubuntu run passed. The new macOS run is pending. |
 | Specmatic | Demo provider and downstream checks pass on Ubuntu | Consumer Smart Mock tests and example validation remain. The provider's 404 and 502 scenarios are skipped because they lack examples. |
-| CI pipeline | Cross-platform workflow added | The workflow runs `bash ./run.sh` on Ubuntu 26.04 and macOS 15 Intel. macOS uses Colima. The first matrix run is pending. |
-| Security | Checks added; first run pending | CodeQL, Gitleaks, Trivy filesystem and container scans, Dependency Review, pinned actions, and weekly Dependabot updates are configured. |
+| CI pipeline | Cross-platform workflow added | `bash ./run.sh` passed on Ubuntu 26.04. macOS 15 Intel is still running setup. |
+| Security | Initial scans found issues; fixes are in progress | CodeQL and Gitleaks passed. Trivy flagged outdated npm packages in the app image and a missing non-root user; WireMock and Specmatic image scans were skipped after the first failure. |
 | Root scaffold | Contract and governance files exist; runtime work remains | The Product Catalog contract and baseline, Spectral ruleset, and breaking-change script are present. There is no root API implementation. The root gates, client suites, fuzzing, and debug layer remain future work. |
 | MCP integration | Considered; not implemented | Proposed options and boundaries are recorded below. MCP will remain optional and outside CI's source of truth. |
 | Legacy migration | Conditional | No legacy collection was supplied. Phase 5 applies only if the root API later follows Path A. |
@@ -32,8 +32,8 @@ source of truth.
 | Date | Progress | Result |
 |---|---|---|
 | 16 Nov 2026 | Ran the demo pipeline on Ubuntu 26.04.1 and upgraded checkout to Node 24. | Passed in [GitHub Actions](https://github.com/shoman2020/oas-polycontract/actions/runs/43870308370); the Node 20 and `ubuntu-latest` warnings are gone. |
-| 16 Nov 2026 | Added an Ubuntu/macOS runner matrix and Colima setup. Made `run.sh` accept both Compose CLI forms. | First cross-platform run pending. |
-| 16 Nov 2026 | Added code, secret, dependency, configuration, and container-image security checks. | First security run pending. |
+| 16 Nov 2026 | Added an Ubuntu/macOS runner matrix and Colima setup. Made `run.sh` accept both Compose CLI forms. | Ubuntu `run.sh` passed in [the new run](https://github.com/shoman2020/oas-polycontract/actions/runs/43875479362); macOS is still setting up. |
+| 16 Nov 2026 | Added CodeQL, Gitleaks, Trivy, Dependency Review, and weekly Dependabot checks. | CodeQL and Gitleaks passed. Trivy reported npm vulnerabilities and a root-user configuration issue; fixes and reruns are pending. |
 | 16 Nov 2026 | Recorded MCP options and added a README issue-reporting link. | Design only; no MCP server or client added. |
 
 The checklist below tracks implementation. This table records what CI has
