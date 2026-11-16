@@ -10,13 +10,13 @@ One role owns the contract. Clear ownership means less maintenance and more trus
 
 | Area | Implementation | Verification or remaining work |
 |---|---|---|
-| Runnable demo | Node Product API, inventory dependency, WireMock, Specmatic provider and downstream tests, success and error examples | Latest contract run stopped during Java image build because the Maven 3.10.1 Docker tag was unavailable; the pin now targets the published 3.10.0 image. |
+| Runnable demo | Node Product API, inventory dependency, WireMock, Specmatic provider and downstream tests, success and error examples | Maven image pin is fixed. The next run reached C# image build and found a duplicate `app` user in Microsoft's .NET SDK image; Dockerfile now uses the built-in non-root user. |
 | Governance | Spectral for OAS and AsyncAPI, oasdiff against the root baseline, Schemathesis against the live demo | New gates await CI execution. The root Product Catalog contract has no provider implementation. |
 | Language clients | Rust, Go, Python, JavaScript, TypeScript, Java, and C# integration tests read the demo OAS and validate actual responses | Compile and runtime results await CI; local environment has no Docker or the other language toolchains. |
 | Consumer mock | JavaScript test exercises Specmatic Smart Mock; mock integration checks inline, VIP external, and dictionary fallback values | New assertions await CI. |
 | Protocol coverage | AsyncAPI examples for WebSocket and Kafka, with a separate Spectral ruleset | Contract examples only; no event service or broker is part of the demo. |
 | Debug layer | Optional Swagger UI and Prism Compose services use the root contract | Local profile exists; environment-specific host URLs still need deployment configuration. |
-| CI and security | Ubuntu contract workflow; CodeQL, Gitleaks, Trivy, Dependency Review, and Dependabot | Security workflow passed on commit `2dc51dd`. Contract workflow failed at the Java image pull because the Maven 3.10.1 tag was unavailable; pin corrected to published Maven 3.10.0 image. Rerun the contract suite. Branch protection is a repository setting. |
+| CI and security | Ubuntu contract workflow; CodeQL, Gitleaks, Trivy, Dependency Review, and Dependabot | Security workflow passed on commit `2dc51dd`. The latest contract run failed while creating a duplicate `app` user in the .NET SDK image; Dockerfile fixed to use its built-in user. Rerun the contract suite. Branch protection is a repository setting. |
 | Dependency reproducibility | Direct package versions and container/tool versions are pinned | Most language projects do not yet commit transitive lockfiles. Add native lockfiles after the first green pipeline run, then enforce locked installs. |
 | Migration | No legacy Postman or Bruno collection was supplied | Phase 5 is not applicable unless one is provided. |
 | Scaffolder | Not implemented | Phase 9 remains open until the end-to-end pipeline is stable. |
@@ -99,7 +99,7 @@ Not applicable with the supplied project: no legacy collection was provided. If 
 - [x] Compose the demo, seven language suites, governance checks, fuzzing, and mock assertions.
 - [x] Have `run.sh` execute the full applicable suite and always tear down containers on success or failure.
 - [x] Keep GitHub Actions on Ubuntu; support Docker Desktop or Colima on macOS for local runs.
-- [ ] Confirm the full clean-checkout run in CI. The latest attempt stopped while pulling the Java builder image, before compiling the seven client suites.
+- [ ] Confirm the full clean-checkout run in CI. The latest attempt reached C# image build after fixing the Maven tag, then stopped at a duplicate .NET `app` user. The Dockerfile fix is ready for a fresh run.
 
 ### Phase 7 — CI and security
 
@@ -150,6 +150,7 @@ These are the current gaps, in execution order. “Implemented” means files an
 | 16 Nov 2026 | The expanded filesystem scan in security run [43931893077](https://github.com/shoman2020/oas-polycontract/actions/runs/43931893077) flagged all seven client test images for running as root. | Added dedicated non-root users and writable test directories to the seven client images. Rerun the scan to confirm. |
 | 16 Nov 2026 | The contract build showed that the .NET runtime patch version is not an SDK image tag; Specmatic's scan loaded VEX but reported the CVE because its name used a GHSA alias. | Updated the SDK pin to 10.0.404 and normalized the VEX vulnerability name to CVE-2026-102554. The next CI run will verify both fixes. |
 | 16 Nov 2026 | Security run [43933329040](https://github.com/shoman2020/oas-polycontract/actions/runs/43933329040) passed. Contract run [43933329023](https://github.com/shoman2020/oas-polycontract/actions/runs/43933329023) passed all three image scans, including the Specmatic VEX disposition, but could not find `maven:3.10.1-eclipse-temurin-25`. | Set `MAVEN_VERSION=3.10.0`, the current published Maven image tag compatible with Java 25. Re-run the contract workflow to exercise builds and contract checks. |
+| 16 Nov 2026 | Contract run [43934287219](https://github.com/shoman2020/oas-polycontract/actions/runs/43934287219) used the corrected Maven image and reached the C# image build, where `useradd` conflicted with the .NET SDK image's built-in `app` account. | Removed duplicate account creation; the C# test image now uses Microsoft's built-in non-root account. Re-run the contract workflow. |
 
 ## Run and expected result
 
