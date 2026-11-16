@@ -20,7 +20,7 @@ source of truth.
 |---|---|---|
 | Demo | Implemented; Ubuntu CI | Product API, two OpenAPI contracts, WireMock mapping, Specmatic checks, and an integration test are in `demo/`. |
 | Mock data | Specmatic mock examples and dictionary added | Contract examples define common responses, an external example defines a VIP response, and a dictionary supplies fallback values. `run.sh` validates external examples; the optional mock profile has not yet been run. |
-| Specmatic | Demo provider and downstream checks pass on Ubuntu | Consumer Smart Mock tests and example validation remain. The provider's 404 and 502 scenarios are skipped because they lack examples. |
+| Specmatic | Demo provider/downstream tests and external-example validation added | Consumer Smart Mock tests remain. Provider 404/502 scenarios are skipped until examples are added. The mock-data profile and new examples are awaiting the current CI run. |
 | CI pipeline | Ubuntu CI; macOS local support | GitHub Actions runs on Ubuntu. `run.sh` supports macOS local use with Docker Desktop or Colima. |
 | Security | Core scans pass; image scan remediation is in progress | CodeQL, Gitleaks, the filesystem scan, and app image scan passed. Trivy flagged base OS packages and unused Pebble in WireMock; Specmatic image scan is pending. |
 | Root scaffold | Contract and governance files exist; runtime work remains | The Product Catalog contract and baseline, Spectral ruleset, and breaking-change script are present. There is no root API implementation. The root gates, client suites, fuzzing, and debug layer remain future work. |
