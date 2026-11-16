@@ -21,7 +21,7 @@ source of truth.
 | Demo | Implemented; CI coverage is expanding | Product API, two OpenAPI contracts, WireMock mapping, Specmatic checks, and an integration test are in `demo/`. The Ubuntu run passed. The new macOS run is pending. |
 | Specmatic | Demo provider and downstream checks pass on Ubuntu | Consumer Smart Mock tests and example validation remain. The provider's 404 and 502 scenarios are skipped because they lack examples. |
 | CI pipeline | Cross-platform workflow added | `bash ./run.sh` passed on Ubuntu 26.04. The macOS 15 Apple Silicon runner is still pending. |
-| Security | Initial scans found issues; fixes are in progress | CodeQL and Gitleaks passed. Trivy flagged outdated npm packages in the app image and a missing non-root user; WireMock and Specmatic image scans were skipped after the first failure. |
+| Security | Core scans pass; image scan remediation is in progress | CodeQL, Gitleaks, and the filesystem scan passed. Trivy still flags npm packages in the app image; WireMock and Specmatic image scans await an app-image pass. |
 | Root scaffold | Contract and governance files exist; runtime work remains | The Product Catalog contract and baseline, Spectral ruleset, and breaking-change script are present. There is no root API implementation. The root gates, client suites, fuzzing, and debug layer remain future work. |
 | MCP integration | Considered; not implemented | Proposed options and boundaries are recorded below. MCP will remain optional and outside CI's source of truth. |
 | Legacy migration | Conditional | No legacy collection was supplied. Phase 5 applies only if the root API later follows Path A. |
@@ -33,7 +33,7 @@ source of truth.
 |---|---|---|
 | 16 Nov 2026 | Ran the demo pipeline on Ubuntu 26.04.1 and upgraded checkout to Node 24. | Passed in [GitHub Actions](https://github.com/shoman2020/oas-polycontract/actions/runs/43870308370); the Node 20 and `ubuntu-latest` warnings are gone. |
 | 16 Nov 2026 | Added an Ubuntu/macOS runner matrix and Colima setup. Made `run.sh` accept both Compose CLI forms. | Ubuntu `run.sh` passed in [the new run](https://github.com/shoman2020/oas-polycontract/actions/runs/43875479362); macOS is still setting up. |
-| 16 Nov 2026 | Added CodeQL, Gitleaks, Trivy, Dependency Review, and weekly Dependabot checks. | CodeQL and Gitleaks passed. Trivy reported npm vulnerabilities and a root-user configuration issue; fixes and reruns are pending. |
+| 16 Nov 2026 | Added CodeQL, Gitleaks, Trivy, Dependency Review, and weekly Dependabot checks. | CodeQL, Gitleaks, and the filesystem scan passed. The app image still includes vulnerable npm packages; the unused package managers are being removed before rerunning image scans. |
 | 16 Nov 2026 | Recorded MCP options and added a README issue-reporting link. | Design only; no MCP server or client added. |
 
 The checklist below tracks implementation. This table records what CI has
@@ -216,14 +216,14 @@ gate on.
 ## Phase 6 - Containerize everything
 
 - [x] Add a focused `docker-compose.yml` and `run.sh` for the demo app, WireMock dependency, integration check, and Specmatic checks. Add healthchecks so dependent services wait until ready.
-- [x] Add Ubuntu 26.04 and macOS 15 Apple Silicon CI runners. Set up Colima on macOS and support both Compose CLI forms in `run.sh`. The first Apple Silicon run is pending.
+- [x] Add Ubuntu 26.04 and macOS 15 Apple Silicon CI runners. Set up Colima on macOS and support both Compose CLI forms in `run.sh`. The Apple Silicon run is pending.
 - [ ] Expand Compose to wire the root app, all three client suites, governance gates, and selected debug services.
 - [ ] Extend `run.sh` to run the complete suite in sequence and tear down even when a gate fails - see the Docker section below.
 
 ## Phase 7 - CI
 
 - [x] The demo `.github/workflows/contract.yml` invokes `bash ./run.sh` on Ubuntu and macOS.
-- [x] Add CodeQL, Gitleaks, Trivy, and Dependency Review checks. Pin actions to commit SHAs and configure weekly Dependabot updates. First security run is pending.
+- [x] Add CodeQL, Gitleaks, Trivy, and Dependency Review checks. Pin actions to commit SHAs and configure weekly Dependabot updates. CodeQL, Gitleaks, and the filesystem scan passed; container scans are being resolved.
 - [ ] Extend the workflow to the complete Compose suite and require lint, compatibility, client, and fuzz checks on the default branch.
 
 ## Phase 8 - Docs
@@ -231,7 +231,7 @@ gate on.
 - [x] Root `README.md` documents the demo flow and `bash ./run.sh` quick start.
 - [x] `README.md` invites feature requests and bug reports through GitHub Issues.
 - [ ] Complete the full-project README with the OAS to gates to clients to debug-layer diagram and full suite quick start.
-- [x] `CONTRIBUTING.md`: the one rule from the top of this file - the spec is hand-edited, nothing downstream is.
+- [x] `CONTRIBUTING.md`: one role owns the contract; downstream work follows from it.
 
 ## Phase 9 - Boilerplate CLI (so another team can reuse this without copy-pasting)
 
