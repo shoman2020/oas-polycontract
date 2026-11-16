@@ -16,7 +16,7 @@ One role owns the contract. Clear ownership means less maintenance and more trus
 | Consumer mock | JavaScript test exercises Specmatic Smart Mock; mock integration checks inline, VIP external, and dictionary fallback values | New assertions await CI. |
 | Protocol coverage | AsyncAPI examples for WebSocket and Kafka, with a separate Spectral ruleset | Contract examples only; no event service or broker is part of the demo. |
 | Debug layer | Optional Swagger UI and Prism Compose services use the root contract | Local profile exists; environment-specific host URLs still need deployment configuration. |
-| CI and security | Ubuntu contract workflow; CodeQL, Gitleaks, Trivy, Dependency Review, and Dependabot | The previous demo pipeline passed, but its Specmatic Trivy scan failed: the workflow did not pass the checked-in VEX config. This version passes the config and uses Specmatic 2.56.3; verify the new scan and expanded pipeline. Branch protection is still a repository setting. |
+| CI and security | Ubuntu contract workflow; CodeQL, Gitleaks, Trivy, Dependency Review, and Dependabot | The previous Specmatic scan failed because the VEX config was not passed. The new filesystem scan also found root-user client images. The workflow now passes the VEX config, and all seven clients use non-root users; updated scans are pending. Branch protection is a repository setting. |
 | Dependency reproducibility | Direct package versions and container/tool versions are pinned | Most language projects do not yet commit transitive lockfiles. Add native lockfiles after the first green pipeline run, then enforce locked installs. |
 | Migration | No legacy Postman or Bruno collection was supplied | Phase 5 is not applicable unless one is provided. |
 | Scaffolder | Not implemented | Phase 9 remains open until the end-to-end pipeline is stable. |
@@ -147,6 +147,7 @@ These are the current gaps, in execution order. “Implemented” means files an
 | 16 Nov 2026 | Added an ordered gap register and acceptance signals for CI verification, dependency locks, branch protection, and conditional phases. | Done; open items remain listed above. |
 | 16 Nov 2026 | Expanded CodeQL to all seven client languages and GitHub Actions, with separate build-mode settings. | Implemented; workflow results are pending. |
 | 16 Nov 2026 | Reviewed contract run [43884547902](https://github.com/shoman2020/oas-polycontract/actions/runs/43884547902): the app and WireMock image scans passed, while Specmatic's bundled Guava finding failed the scan because the VEX config was not passed. | Added the `trivy-config` input to the contract workflow; the revised scan still needs a run. |
+| 16 Nov 2026 | The expanded filesystem scan in security run [43931893077](https://github.com/shoman2020/oas-polycontract/actions/runs/43931893077) flagged all seven client test images for running as root. | Added dedicated non-root users and writable test directories to the seven client images. Rerun the scan to confirm. |
 
 ## Run and expected result
 

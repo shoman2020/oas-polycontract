@@ -1,6 +1,14 @@
 ARG DOTNET_VERSION=10.0.15
 FROM mcr.microsoft.com/dotnet/sdk:${DOTNET_VERSION}
 
+RUN useradd --system --uid 10001 --create-home app
+
+ENV HOME=/home/app \
+    DOTNET_CLI_HOME=/home/app/.dotnet \
+    NUGET_PACKAGES=/home/app/.nuget/packages
+
 WORKDIR /workspace
-COPY . .
+RUN chown app:app /workspace
+COPY --chown=app:app . .
+USER app
 CMD ["dotnet", "test", "--logger", "console;verbosity=normal"]

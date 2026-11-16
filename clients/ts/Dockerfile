@@ -2,7 +2,9 @@ ARG NODE_VERSION=26
 FROM node:${NODE_VERSION}-alpine
 
 WORKDIR /workspace
-COPY package.json .
+RUN chown node:node /workspace
+COPY --chown=node:node package.json .
+USER node
 RUN npm install --no-audit --no-fund
-COPY . .
+COPY --chown=node:node . .
 CMD ["sh", "-c", "npx tsc --noEmit && npm test"]
