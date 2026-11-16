@@ -31,3 +31,4 @@ const fallback = await generated.json();
 assert.ok(["mock-sku-blue", "mock-sku-green", "mock-sku-red"].includes(fallback.sku));
 assert.ok([0, 1, 4, 9].includes(fallback.available));
 console.log(`dictionary fallback: GET /products/not-in-examples -> 200, sku=${fallback.sku}, available=${fallback.available}`);
+

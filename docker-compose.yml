@@ -227,6 +227,40 @@ services:
         condition: service_healthy
     profiles: [test]
 
+  playwright-contract-test:
+    image: oas-polycontract-playwright:local
+    build:
+      context: ./clients/playwright
+      args:
+        NODE_VERSION: ${NODE_VERSION:?Set NODE_VERSION in .github/versions.env}
+    command: ["npm", "run", "test:provider"]
+    environment:
+      API_BASE_URL: http://app:8080
+      OPENAPI_SPEC: /contracts/openapi.yaml
+    volumes:
+      - ./demo:/contracts:ro
+    depends_on:
+      app:
+        condition: service_healthy
+    profiles: [test]
+
+  playwright-consumer-test:
+    image: oas-polycontract-playwright:local
+    build:
+      context: ./clients/playwright
+      args:
+        NODE_VERSION: ${NODE_VERSION:?Set NODE_VERSION in .github/versions.env}
+    command: ["npm", "run", "test:consumer"]
+    environment:
+      API_BASE_URL: http://specmatic-mock:9000
+      OPENAPI_SPEC: /contracts/openapi.yaml
+    volumes:
+      - ./demo:/contracts:ro
+    depends_on:
+      specmatic-mock:
+        condition: service_started
+    profiles: [test]
+
   java-contract-test:
     build:
       context: ./clients/java
@@ -276,3 +310,4 @@ services:
     volumes:
       - ./openapi:/spec:ro
     profiles: [debug]
+

@@ -1,0 +1,18 @@
+{
+  "name": "oas-polycontract-playwright-api-client",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test --config=playwright.config.mjs",
+    "test:provider": "playwright test --config=playwright.config.mjs contract.spec.mjs",
+    "test:consumer": "playwright test --config=playwright.config.mjs consumer-contract.spec.mjs"
+  },
+  "dependencies": {
+    "@oaverify/core": "7.3.1",
+    "@oaverify/syntax": "7.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0"
+  }
+}
+

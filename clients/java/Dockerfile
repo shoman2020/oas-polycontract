@@ -12,3 +12,4 @@ COPY --chown=app:app pom.xml .
 COPY --chown=app:app src ./src
 USER app
 CMD ["mvn", "-B", "test"]
+

@@ -74,3 +74,4 @@ jobs:
           exit-code: "1"
           version: v${{ env.TRIVY_VERSION }}
           trivy-config: .github/trivy.yaml
+

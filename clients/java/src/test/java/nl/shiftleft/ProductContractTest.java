@@ -1,6 +1,5 @@
 package nl.shiftleft;
 
-import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.equalTo;
 
 import com.atlassian.oai.validator.restassured.OpenApiValidationFilter;
@@ -13,11 +12,8 @@ class ProductContractTest {
         String specUrl = Path.of(System.getenv("OPENAPI_SPEC")).toUri().toURL().toString();
         OpenApiValidationFilter validation = new OpenApiValidationFilter(specUrl);
 
-        given()
-            .baseUri(System.getenv("API_BASE_URL"))
-            .filter(validation)
-        .when()
-            .get("/products/demo-sku")
+        ProductApiClient api = new ProductApiClient(System.getenv("API_BASE_URL"), validation);
+        api.getProduct("demo-sku")
         .then()
             .statusCode(200)
             .body("sku", equalTo("demo-sku"))
@@ -26,3 +22,4 @@ class ProductContractTest {
         System.out.println("OAS validation passed: GET /products/demo-sku -> 200");
     }
 }
+

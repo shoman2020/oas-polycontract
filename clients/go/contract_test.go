@@ -1,9 +1,8 @@
-package contract_test
+package contract
 
 import (
 	"context"
 	"io"
-	"net/http"
 	"os"
 	"testing"
 
@@ -27,20 +26,21 @@ func TestProductResponseMatchesOpenAPIContract(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	request, err := http.NewRequest(http.MethodGet, os.Getenv("API_BASE_URL")+"/products/demo-sku", nil)
+	client, err := NewProductAPIClient(os.Getenv("API_BASE_URL"))
 	if err != nil {
 		t.Fatal(err)
 	}
+	response, err := client.GetProduct(ctx, "demo-sku")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	request := response.Request
 	route, pathParams, err := router.FindRoute(request)
 	if err != nil {
 		t.Fatalf("operation not found in OAS: %v", err)
 	}
 
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer response.Body.Close()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -61,3 +61,4 @@ func TestProductResponseMatchesOpenAPIContract(t *testing.T) {
 
 	t.Logf("OAS validation passed: GET /products/demo-sku -> %d", response.StatusCode)
 }
+

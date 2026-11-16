@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import http from "node:http";
 
 const APP_URL = process.env.APP_URL ?? "http://localhost:8080";
 const WIREMOCK_URL = process.env.WIREMOCK_URL ?? "http://localhost:8081";
@@ -17,8 +18,26 @@ async function waitForOk(url, attempts = 20, delayMs = 500) {
   throw new Error(`Timed out waiting for ${url}`);
 }
 
+function sendTrace(url) {
+  return new Promise((resolve, reject) => {
+    const request = http.request(url, { method: "TRACE" }, (response) => {
+      let body = "";
+      response.setEncoding("utf8");
+      response.on("data", (chunk) => { body += chunk; });
+      response.on("end", () => resolve({ response, body: JSON.parse(body) }));
+    });
+    request.on("error", reject);
+    request.end();
+  });
+}
+
 async function main() {
   await waitForOk(`${APP_URL}/healthz`);
+
+  const unsupported = await sendTrace(`${APP_URL}/healthz`);
+  assert.equal(unsupported.response.statusCode, 405, "known routes must reject unsupported methods with 405");
+  assert.equal(unsupported.response.headers.allow, "GET");
+  assert.deepEqual(unsupported.body, { message: "Method not allowed" });
 
   const productRes = await fetch(`${APP_URL}/products/${SKU}`);
   assert.equal(productRes.status, 200, "expected 200 from /products/{sku}");
@@ -44,10 +63,11 @@ async function main() {
   );
   assert.ok(matched, "expected WireMock journal to contain the app's inventory call");
 
-  console.log("wiremock integration checks passed: 200, 404, and 502");
+  console.log("API and WireMock checks passed: 200, 404, 405, and 502");
 }
 
 main().catch((err) => {
   console.error(err);
   process.exitCode = 1;
 });
+

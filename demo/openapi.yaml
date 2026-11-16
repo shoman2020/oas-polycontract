@@ -22,6 +22,17 @@ paths:
                   status:
                     type: string
                     example: ok
+        "405":
+          description: The route does not allow the requested HTTP method
+          headers:
+            Allow:
+              schema:
+                type: string
+              description: Allowed HTTP methods for the route
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /products/{sku}:
     get:
       summary: Get a product by SKU
@@ -59,6 +70,12 @@ paths:
                 missing:
                   value:
                     message: No inventory record for not-found-sku
+        "400":
+          description: The SKU path segment has invalid percent encoding
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
         "502":
           description: Inventory service unavailable
           content:
@@ -69,6 +86,17 @@ paths:
                 unavailable:
                   value:
                     message: Inventory service unavailable
+        "405":
+          description: The route does not allow the requested HTTP method
+          headers:
+            Allow:
+              schema:
+                type: string
+              description: Allowed HTTP methods for the route
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
 components:
   schemas:
     Product:
@@ -86,3 +114,4 @@ components:
       properties:
         message:
           type: string
+

@@ -19,3 +19,4 @@ Hand-edit the contract. Generate or validate everything downstream from it.
 - Update `info.version` in the same commit as the contract. Move `openapi/openapi.base.yaml` only when cutting a release.
 
 See [`ROADMAP.md`](ROADMAP.md) for project status and remaining work.
+

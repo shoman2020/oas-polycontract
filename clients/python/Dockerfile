@@ -10,3 +10,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY --chown=app:app . .
 USER app
 CMD ["pytest", "-v", "-s"]
+

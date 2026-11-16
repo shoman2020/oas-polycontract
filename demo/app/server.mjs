@@ -1,48 +1,101 @@
 import http from "node:http";
+import { pathToFileURL } from "node:url";
 
-const PORT = process.env.PORT ?? "8080";
-const INVENTORY_URL = process.env.INVENTORY_URL ?? "http://localhost:8081";
+const DEFAULT_PORT = 8080;
+const DEFAULT_INVENTORY_URL = "http://localhost:8081";
+const DEFAULT_REQUEST_TIMEOUT_MS = 5000;
 
-function sendJson(res, status, body) {
-  const payload = JSON.stringify(body);
-  res.writeHead(status, { "Content-Type": "application/json" });
-  res.end(payload);
+function sendJson(response, status, body, headers = {}) {
+  response.writeHead(status, {
+    "Content-Type": "application/json",
+    ...headers,
+  });
+  response.end(JSON.stringify(body));
 }
 
-const server = http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host}`);
+function matchRoute(pathname) {
+  if (pathname === "/healthz") return { name: "health" };
 
-  if (req.method === "GET" && url.pathname === "/healthz") {
-    sendJson(res, 200, { status: "ok" });
+  const product = pathname.match(/^\/products\/([^/]+)$/);
+  return product ? { name: "product", encodedSku: product[1] } : null;
+}
+
+async function handleRequest(request, response, dependencies) {
+  const url = new URL(request.url ?? "/", "http://localhost");
+  const route = matchRoute(url.pathname);
+
+  if (!route) {
+    sendJson(response, 404, { message: "Not found" });
     return;
   }
 
-  const match = url.pathname.match(/^\/products\/([^/]+)$/);
-  if (req.method === "GET" && match) {
-    const sku = decodeURIComponent(match[1]);
-    try {
-      const upstream = await fetch(
-        `${INVENTORY_URL}/inventory/${encodeURIComponent(sku)}`
-      );
-      if (!upstream.ok) {
-        if (upstream.status >= 500) {
-          sendJson(res, 502, { message: "Inventory service unavailable" });
-          return;
-        }
-        sendJson(res, 404, { message: `No inventory record for ${sku}` });
-        return;
+  if (request.method !== "GET") {
+    sendJson(response, 405, { message: "Method not allowed" }, { Allow: "GET" });
+    return;
+  }
+
+  if (route.name === "health") {
+    sendJson(response, 200, { status: "ok" });
+    return;
+  }
+
+  let sku;
+  try {
+    sku = decodeURIComponent(route.encodedSku);
+  } catch {
+    sendJson(response, 400, { message: "Invalid SKU encoding" });
+    return;
+  }
+
+  try {
+    const upstream = await dependencies.fetchImpl(
+      `${dependencies.inventoryUrl}/inventory/${encodeURIComponent(sku)}`,
+      { signal: AbortSignal.timeout(dependencies.requestTimeoutMs) },
+    );
+
+    if (!upstream.ok) {
+      if (upstream.status >= 500) {
+        sendJson(response, 502, { message: "Inventory service unavailable" });
+      } else {
+        sendJson(response, 404, { message: `No inventory record for ${sku}` });
       }
-      const inventory = await upstream.json();
-      sendJson(res, 200, { sku: inventory.sku, available: inventory.available });
-    } catch {
-      sendJson(res, 502, { message: "Inventory service unavailable" });
+      return;
     }
-    return;
+
+    const inventory = await upstream.json();
+    sendJson(response, 200, {
+      sku: inventory.sku,
+      available: inventory.available,
+    });
+  } catch {
+    sendJson(response, 502, { message: "Inventory service unavailable" });
   }
+}
 
-  sendJson(res, 404, { message: "Not found" });
-});
+export function createApp({
+  inventoryUrl = process.env.INVENTORY_URL ?? DEFAULT_INVENTORY_URL,
+  fetchImpl = fetch,
+  requestTimeoutMs = DEFAULT_REQUEST_TIMEOUT_MS,
+} = {}) {
+  const dependencies = { inventoryUrl, fetchImpl, requestTimeoutMs };
+  return http.createServer((request, response) => {
+    void handleRequest(request, response, dependencies).catch(() => {
+      if (!response.headersSent) {
+        sendJson(response, 500, { message: "Internal server error" });
+      } else {
+        response.destroy();
+      }
+    });
+  });
+}
 
-server.listen(Number(PORT), () => {
-  console.log(`demo app listening on ${PORT}, inventory at ${INVENTORY_URL}`);
-});
+const isMainModule = process.argv[1]
+  && import.meta.url === pathToFileURL(process.argv[1]).href;
+
+if (isMainModule) {
+  const port = Number(process.env.PORT ?? DEFAULT_PORT);
+  createApp().listen(port, () => {
+    console.log(`demo app listening on ${port}`);
+  });
+}
+

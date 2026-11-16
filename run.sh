@@ -31,10 +31,11 @@ echo "==> Linting OpenAPI contracts"
 echo "==> Checking root contract compatibility"
 "${compose[@]}" run --rm oasdiff
 
-echo "==> Building demo and language-native test clients"
+echo "==> Building demo, language-native clients, and Playwright API suites"
 "${compose[@]}" build app wiremock wiremock-integration-test
 "${compose[@]}" build rust-contract-test go-contract-test python-contract-test \
-  js-contract-test ts-contract-test java-contract-test csharp-contract-test
+  js-contract-test ts-contract-test playwright-contract-test playwright-consumer-test \
+  java-contract-test csharp-contract-test
 "${compose[@]}" up -d wiremock app
 
 # This service waits for both endpoints, exercises the app, and verifies the
@@ -49,18 +50,22 @@ echo "==> Building demo and language-native test clients"
 echo "==> Fuzzing the running demo against its OAS"
 "${compose[@]}" run --rm schemathesis
 
-echo "==> Running language-native OAS integration suites"
+echo "==> Running language-native and Playwright OAS integration suites"
 "${compose[@]}" run --rm rust-contract-test
 "${compose[@]}" run --rm go-contract-test
 "${compose[@]}" run --rm python-contract-test
 "${compose[@]}" run --rm js-contract-test
 "${compose[@]}" run --rm ts-contract-test
+"${compose[@]}" run --rm playwright-contract-test
 "${compose[@]}" run --rm java-contract-test
 "${compose[@]}" run --rm csharp-contract-test
 
 echo "==> Checking Specmatic examples and dictionary-backed mock responses"
 "${compose[@]}" --profile mock up -d specmatic-mock
 "${compose[@]}" run --rm specmatic-mock-integration-test
+echo "==> Running JavaScript and Playwright consumer suites against the Specmatic Smart Mock"
 "${compose[@]}" run --rm -e API_BASE_URL=http://specmatic-mock:9000 js-contract-test
+"${compose[@]}" run --rm playwright-consumer-test
 
 echo "==> Contract pipeline passed"
+

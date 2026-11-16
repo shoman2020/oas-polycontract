@@ -10,13 +10,13 @@ One role owns the contract. Clear ownership means less maintenance and more trus
 
 | Area | Implementation | Verification or remaining work |
 |---|---|---|
-| Runnable demo | Node Product API, inventory dependency, WireMock, Specmatic provider and downstream tests, success and error examples | Maven and .NET image issues are fixed. The latest build reached Rust and found a removed `reqwest` feature; dependency pin and feature updated to the current 0.13.5 API. |
-| Governance | Spectral for OAS and AsyncAPI, oasdiff against the root baseline, Schemathesis against the live demo | New gates await CI execution. The root Product Catalog contract has no provider implementation. |
-| Language clients | Rust, Go, Python, JavaScript, TypeScript, Java, and C# integration tests read the demo OAS and validate actual responses | Latest run reached Rust dependency resolution and stopped on the removed `rustls-tls` feature; updated to `reqwest` 0.13.5 with `rustls`. Compile and runtime results still await CI. |
-| Consumer mock | JavaScript test exercises Specmatic Smart Mock; mock integration checks inline, VIP external, and dictionary fallback values | New assertions await CI. |
+| Runnable demo | Node Product API, inventory dependency, WireMock, Specmatic provider and downstream tests, success and error examples | Run 439358 built the app and seven language-client images; WireMock integration and Specmatic passed. Schemathesis found a `TRACE /healthz` response mismatch. The app and OAS now specify `405` for unsupported methods; verify in a fresh run. |
+| Governance | Spectral for OAS and AsyncAPI, oasdiff against the root baseline, Schemathesis against the live demo | Lint, compatibility, WireMock and Specmatic checks passed in run 439358. Schemathesis correctly exposed the undeclared-method behavior; the `405` fix is implemented and awaits CI. The root Product Catalog contract has no provider implementation. |
+| Language and API test clients | Rust, Go, Python, JavaScript, TypeScript, Java, and C# suites plus Playwright APIRequestContext read the demo OAS | All seven language images built, but the pipeline stopped at Schemathesis before client tests. The native suites use language-idiomatic API client objects; Playwright now has distinct provider and Smart Mock consumer examples. Compile and runtime results await the next run. |
+| Provider and consumer contract roles | Specmatic provider verification targets the running app; JavaScript and Playwright consumer suites target the Specmatic Smart Mock | The shared provider OAS drives both examples. This is consumer-side development against a contract-derived mock, not a separately published consumer-owned CDC artifact. Runtime verification awaits CI. |
 | Protocol coverage | AsyncAPI examples for WebSocket and Kafka, with a separate Spectral ruleset | Contract examples only; no event service or broker is part of the demo. |
 | Debug layer | Optional Swagger UI and Prism Compose services use the root contract | Local profile exists; environment-specific host URLs still need deployment configuration. |
-| CI and security | Ubuntu contract workflow; CodeQL, Gitleaks, Trivy, Dependency Review, and Dependabot | Security workflow passed on commit `1aad32c`. The latest contract run reached Rust image build and failed dependency resolution; `reqwest` feature and patch pin are corrected. Rerun the contract suite. Branch protection is a repository setting. |
+| CI and security | Ubuntu contract workflow; CodeQL, Gitleaks, Trivy, Dependency Review, and Dependabot | Security run [43935878355](https://github.com/shoman2020/oas-polycontract/actions/runs/43935878355) passed. Contract run [43935878603](https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603) built all test images and reached fuzzing; its `405` response finding is fixed in code and needs a rerun. Branch protection is a repository setting. |
 | Dependency reproducibility | Direct package versions and container/tool versions are pinned | Most language projects do not yet commit transitive lockfiles. Add native lockfiles after the first green pipeline run, then enforce locked installs. |
 | Migration | No legacy Postman or Bruno collection was supplied | Phase 5 is not applicable unless one is provided. |
 | Scaffolder | Not implemented | Phase 9 remains open until the end-to-end pipeline is stable. |
@@ -28,14 +28,16 @@ One role owns the contract. Clear ownership means less maintenance and more trus
 flowchart LR
     OAS[Hand-edited OAS] --> Lint[Spectral lint]
     OAS --> Compat[oasdiff baseline]
-    OAS --> Specmatic[Provider and Smart Mock]
-    OAS --> Clients[Seven native test clients]
+    OAS --> Specmatic[Provider verification and Smart Mock]
+    OAS --> Clients[Seven languages and Playwright API]
     OAS --> Fuzz[Schemathesis against demo]
     OAS --> Debug[Swagger UI and Prism]
     Downstream[Inventory OAS] --> WireMock[WireMock stub validation]
 ```
 
-The repository has two distinct HTTP contracts. `openapi/openapi.yaml` is the root Product Catalog scaffold and its baseline; it has no server. `demo/openapi.yaml` is exercised by the demo app and all seven language clients. `demo/downstream/openapi.yaml` describes the app's WireMock-backed inventory dependency.
+The repository has two distinct HTTP contracts. `openapi/openapi.yaml` is the root Product Catalog scaffold and its baseline; it has no server. `demo/openapi.yaml` is exercised by the demo app, seven language-native suites, and Playwright API tests. `demo/downstream/openapi.yaml` describes the app's WireMock-backed inventory dependency.
+
+Specmatic roles are separate: `specmatic-provider` runs contract-derived requests against the healthy app; `specmatic-mock` serves the same OAS for JavaScript and Playwright consumer-side tests. Those client suites also run against the live app as API integration tests. The mock-backed example demonstrates consumer development against a shared provider contract, not a separate consumer-owned CDC contract.
 
 ## Phases
 
@@ -56,6 +58,7 @@ The repository has two distinct HTTP contracts. `openapi/openapi.yaml` is the ro
 - [x] Compare the root contract with its committed baseline using oasdiff.
 - [x] Run Schemathesis against the live demo service.
 - [x] Test the demo provider and WireMock dependency with Specmatic, including deterministic 404 and 502 examples.
+- [x] Return a declared `405 Method Not Allowed` with `Allow: GET` for unsupported methods on known routes; add the response to the demo OAS.
 - [ ] Run the expanded gates in CI and configure branch protection to require them.
 - [ ] Keep Specmatic behavioral backward-compatibility checking optional; it overlaps the structural oasdiff gate and is not needed for this single baseline.
 - [ ] Add a root provider check only if a root API implementation is created.
@@ -64,9 +67,12 @@ The repository has two distinct HTTP contracts. `openapi/openapi.yaml` is the ro
 
 - [x] Add runtime OAS response validation and a business assertion in Rust (`reqwest` + `jsonschema`), Go (`net/http` + `kin-openapi`), Python (`pytest` + `openapi-core`), JavaScript (`node:test` + `@oaverify`), TypeScript (Vitest + `@oaverify`), Java (JUnit + REST Assured validator), and C# (xUnit + `NJsonSchema`).
 - [x] Read the committed `demo/openapi.yaml` directly; do not maintain duplicate schemas or treat generated types as wire validation.
+- [x] Encapsulate HTTP setup in idiomatic API client objects for all seven languages; keep OAS validation and business assertions distinct where the native framework supports it.
 - [x] Add a JavaScript consumer example against the Smart Mock.
+- [x] Add Playwright APIRequestContext provider integration and Smart Mock consumer examples; no browser binary is needed for API-only tests.
+- [x] Keep provider verification, consumer-side mock tests, and live-server API integration suites distinct in the README and runnable examples.
 - [x] Document how to port requests and assertions from Postman or Bruno in [`clients/README.md`](clients/README.md).
-- [ ] Confirm all seven suites pass in the expanded pipeline.
+- [ ] Confirm all seven language suites and both Playwright targets pass in the expanded pipeline.
 
 ### Protocol scope
 
@@ -96,10 +102,10 @@ Not applicable with the supplied project: no legacy collection was provided. If 
 ### Phase 6 — Compose and local run
 
 - [x] Parameterize runtime and tool image versions in `.github/versions.env`; pin language dependencies in native manifests.
-- [x] Compose the demo, seven language suites, governance checks, fuzzing, and mock assertions.
+- [x] Compose the demo, seven language suites, Playwright provider and consumer tests, governance checks, fuzzing, and mock assertions.
 - [x] Have `run.sh` execute the full applicable suite and always tear down containers on success or failure.
 - [x] Keep GitHub Actions on Ubuntu; support Docker Desktop or Colima on macOS for local runs.
-- [ ] Confirm the full clean-checkout run in CI. The latest attempt passed the Maven and C# image builds, then stopped because `reqwest` 0.13.4 no longer exposes `rustls-tls`. Updated to `reqwest` 0.13.5 and `rustls`; the next run will verify all suites.
+- [ ] Confirm the full clean-checkout run in CI. The last run built all images and passed provider/dependency checks, then stopped at Schemathesis' unsupported-method assertion.
 
 ### Phase 7 — CI and security
 
@@ -115,6 +121,7 @@ Not applicable with the supplied project: no legacy collection was provided. If 
 - [x] Consolidate the README around the contract flow, runnable example, native suites, protocol scope, mock data, and contribution path.
 - [x] Document the example output and migration workflow.
 - [x] Keep roadmap status aligned with implementation and verification state.
+- [x] Add the animated project flow, application-server test topology, stateless/stateful guidance, and a measured CI performance snapshot.
 
 ### Phase 9 — Reusable scaffolder
 
@@ -128,7 +135,7 @@ These are the current gaps, in execution order. “Implemented” means files an
 
 | Priority | Gap | Status | Acceptance signal |
 |---|---|---|---|
-| P0 | Run the expanded contract and security workflows on this implementation | Implemented; fresh run pending | All applicable contract jobs and image/filesystem scans pass; fixes and results are recorded here. |
+| P0 | Run the expanded contract and security workflows on this implementation | In progress; latest contract run reached Schemathesis before the latest fixes and Playwright addition | All applicable contract jobs and image/filesystem scans pass; verify all seven language clients, Playwright live-provider and mock-consumer examples, and record a full green run. |
 | P1 | Make language dependency installs reproducible | Needed | Commit JS/TS package locks, `Cargo.lock`, Go module sums, a hash-locked Python requirements file, and NuGet lock files; lock Maven dependency resolution. Use lock-enforcing installs in the container builds. |
 | P1 | Require contract and security checks before merge | Repository configuration needed | GitHub branch protection requires the named checks. This setting is managed outside this repository. |
 | P2 | Decide whether the root Product Catalog OAS remains contract-only | Decision needed | If it stays a scaffold, keep provider checks on the demo OAS. If a root provider is added, add provider and client examples against the root contract. |
@@ -152,6 +159,8 @@ These are the current gaps, in execution order. “Implemented” means files an
 | 16 Nov 2026 | Security run [43933329040](https://github.com/shoman2020/oas-polycontract/actions/runs/43933329040) passed. Contract run [43933329023](https://github.com/shoman2020/oas-polycontract/actions/runs/43933329023) passed all three image scans, including the Specmatic VEX disposition, but could not find `maven:3.10.1-eclipse-temurin-25`. | Set `MAVEN_VERSION=3.10.0`, the current published Maven image tag compatible with Java 25. Re-run the contract workflow to exercise builds and contract checks. |
 | 16 Nov 2026 | Contract run [43934287219](https://github.com/shoman2020/oas-polycontract/actions/runs/43934287219) used the corrected Maven image and reached the C# image build, where `useradd` conflicted with the .NET SDK image's built-in `app` account. | Removed duplicate account creation; the C# test image now uses Microsoft's built-in non-root account. Re-run the contract workflow. |
 | 16 Nov 2026 | Contract run [43935112208](https://github.com/shoman2020/oas-polycontract/actions/runs/43935112208) passed Maven and C# image builds, then failed Rust dependency resolution because `reqwest` 0.13.4 removed the `rustls-tls` feature. | Pinned the current `reqwest` 0.13.5 and switched to its `rustls` feature. Re-run the contract workflow. |
+| 16 Nov 2026 | Contract run [43935878603](https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603) passed image builds, WireMock integration, Specmatic provider/downstream checks, and example validation. Schemathesis generated 115 cases in 2.07s and found that `TRACE /healthz` returned 404 instead of 405. Security run [43935878355](https://github.com/shoman2020/oas-polycontract/actions/runs/43935878355) passed. | Added method-aware routing, declared `405` responses and `Allow: GET`, and an integration assertion. Refactored all seven client suites around their language's API client object and documented the live-app versus Smart Mock topology. Rerun the pipeline; client suites were not reached in that run. |
+| 16 Nov 2026 | Added Playwright APIRequestContext examples for live-provider integration and Specmatic Smart Mock consumer testing; wired both targets into Compose and `run.sh`. Clarified Specmatic provider versus consumer-side roles and added the eighth test image to the architecture docs. | Implemented; compile and runtime results await CI. |
 
 ## Run and expected result
 
@@ -159,7 +168,7 @@ These are the current gaps, in execution order. “Implemented” means files an
 bash ./run.sh
 ```
 
-The run lints contracts, checks compatibility, builds the demo and clients, tests WireMock and Specmatic, fuzzes the demo, validates responses in each language, and exercises the Smart Mock data sources. Language-specific output examples are in [`clients/README.md`](clients/README.md). CI output is the verification record; a local run requires Docker and Compose.
+The run lints contracts, checks compatibility, builds the demo and client test images, tests WireMock and Specmatic, fuzzes the demo, validates live responses in seven languages and Playwright, then runs JavaScript and Playwright consumer tests against the Smart Mock. Language-specific output examples are in [`clients/README.md`](clients/README.md). CI output is the verification record; a local run requires Docker and Compose.
 
 ## Recommendations
 
@@ -170,3 +179,4 @@ The run lints contracts, checks compatibility, builds the demo and clients, test
 5. Add event runtime tests and deployed debug URLs only when the services and environments exist.
 6. Start Phase 9 after a green, reproducible end-to-end pipeline.
 7. Keep MCP optional and outside CI's contract source of truth.
+

@@ -11,3 +11,4 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 USER 10001:10001
+

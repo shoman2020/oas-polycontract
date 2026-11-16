@@ -14,3 +14,4 @@ USER app
 RUN go mod download
 COPY --chown=app:app . .
 CMD ["go", "test", "-v", "./..."]
+

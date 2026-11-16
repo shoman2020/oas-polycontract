@@ -1,21 +1,28 @@
 use jsonschema::validator_for;
+use oas_polycontract_rust_client::ProductApiClient;
 use serde_json::Value;
 use std::{env, fs};
 
 #[tokio::test]
 async fn product_response_matches_openapi_contract() -> Result<(), Box<dyn std::error::Error>> {
-    let base_url = env::var("API_BASE_URL")?;
+    let client = ProductApiClient::new(env::var("API_BASE_URL")?)?;
     let spec_path = env::var("OPENAPI_SPEC")?;
     let spec_text = fs::read_to_string(spec_path)?;
     let spec: Value = serde_yaml_ng::from_str(&spec_text)?;
 
-    let response = reqwest::get(format!("{base_url}/products/demo-sku")).await?;
+    let response = client.get_product("demo-sku").await?;
     let status = response.status().as_u16();
     assert!(
         spec.pointer(&format!("/paths/~1products~1{{sku}}/get/responses/{status}")).is_some(),
         "HTTP {status} is not declared for GET /products/{{sku}}"
     );
-    assert_eq!(response.headers().get("content-type").and_then(|h| h.to_str().ok()), Some("application/json"));
+    assert_eq!(
+        response
+            .headers()
+            .get("content-type")
+            .and_then(|header| header.to_str().ok()),
+        Some("application/json")
+    );
 
     let body: Value = response.json().await?;
     let schema_ref = spec
@@ -32,3 +39,4 @@ async fn product_response_matches_openapi_contract() -> Result<(), Box<dyn std::
     println!("OAS validation passed: GET /products/demo-sku -> {status}");
     Ok(())
 }
+

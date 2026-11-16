@@ -12,3 +12,4 @@ COPY --chown=app:app . .
 USER app
 RUN cargo fetch
 CMD ["cargo", "test", "--", "--nocapture"]
+
