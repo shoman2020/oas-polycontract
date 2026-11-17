@@ -3,15 +3,15 @@ info:
   title: Product Availability Kafka API
   version: 1.0.0
   description: Contract example for product availability events published to Kafka.
+  tags:
+    - name: products
+      description: Product availability events.
   contact:
     name: SHIFT-LEFT.NL and Ahmed Abdelwahab
     url: https://shift-left.nl
   license:
     name: MIT
     url: https://opensource.org/license/mit
-tags:
-  - name: products
-    description: Product availability events.
 servers:
   local:
     host: localhost:9092

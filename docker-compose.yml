@@ -126,9 +126,9 @@ services:
     image: stoplight/spectral:${SPECTRAL_VERSION:?Set SPECTRAL_VERSION in .github/versions.env}
     entrypoint: ["/bin/sh", "-c"]
     environment:
-      # Spectral 6.17.0 still emits Node's deprecated builtin punycode warning.
-      # Filter only DEP0040; leave other runtime warnings visible.
-      NODE_OPTIONS: --disable-warning=DEP0040
+      # The official Spectral image emits Node deprecation notices upstream.
+      # Suppress that category only in these lint containers.
+      NODE_OPTIONS: --no-deprecation
     command:
       - >-
         spectral lint --ruleset /repo/gates/lint/.spectral.yaml
@@ -144,7 +144,7 @@ services:
     image: stoplight/spectral:${SPECTRAL_VERSION:?Set SPECTRAL_VERSION in .github/versions.env}
     entrypoint: ["/bin/sh", "-c"]
     environment:
-      NODE_OPTIONS: --disable-warning=DEP0040
+      NODE_OPTIONS: --no-deprecation
     command:
       - >-
         spectral lint --ruleset /repo/gates/lint/.spectral-asyncapi.yaml

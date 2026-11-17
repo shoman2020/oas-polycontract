@@ -3,15 +3,15 @@ info:
   title: Product Availability WebSocket API
   version: 1.0.0
   description: Contract example for real-time product availability updates over WebSocket.
+  tags:
+    - name: products
+      description: Product availability events.
   contact:
     name: SHIFT-LEFT.NL and Ahmed Abdelwahab
     url: https://shift-left.nl
   license:
     name: MIT
     url: https://opensource.org/license/mit
-tags:
-  - name: products
-    description: Product availability events.
 servers:
   local:
     host: localhost:8083
@@ -24,8 +24,7 @@ channels:
     parameters:
       sku:
         description: Product SKU to subscribe to.
-        schema:
-          type: string
+        examples: [SKU-42]
     messages:
       availabilityChanged:
         $ref: "#/components/messages/AvailabilityChanged"
