@@ -195,6 +195,7 @@ function checkPipelineServices(services) {
 function checkDependencyLocks() {
   const cargoLock = readRepositoryFile('clients/rust/Cargo.lock');
   const goSum = readRepositoryFile('clients/go/go.sum');
+  const goMod = readRepositoryFile('clients/go/go.mod');
   const nugetLock = JSON.parse(readRepositoryFile('clients/csharp/packages.lock.json'));
   const rustDockerfile = readRepositoryFile('clients/rust/Dockerfile');
   const goDockerfile = readRepositoryFile('clients/go/Dockerfile');
@@ -204,6 +205,14 @@ function checkDependencyLocks() {
     [cargoLock.includes('version = 4') && cargoLock.includes('name = "reqwest"\nversion = "0.13.5"'), 'Rust lockfile must record reqwest 0.13.5'],
     [rustDockerfile.includes('cargo fetch --locked') && rustDockerfile.includes('"test", "--locked"'), 'Rust image must fetch and test with --locked'],
     [/^github\.com\/getkin\/kin-openapi v0\.153\.0 h1:/m.test(goSum), 'Go checksum must record kin-openapi 0.153.0'],
+    [[
+      'github.com/go-openapi/jsonpointer v0.22.5 // indirect',
+      'github.com/go-openapi/swag/jsonname v0.25.5 // indirect',
+      'github.com/gorilla/mux v1.8.0 // indirect',
+      'github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect',
+      'go.yaml.in/yaml/v4 v4.0.0 // indirect',
+      'golang.org/x/text v0.14.0 // indirect',
+    ].every((dependency) => goMod.includes(dependency)), 'Go module file must pin the tidied indirect requirements'],
     [goDockerfile.includes('go mod download') && goDockerfile.includes('"-mod=readonly"'), 'Go image must download modules and test read-only'],
     [Boolean(nugetLock.dependencies?.['net10.0']?.NJsonSchema?.resolved), 'NuGet lockfile must record resolved direct dependencies'],
     [csharpProject.includes('<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>') && csharpDockerfile.includes('--locked-mode') && csharpDockerfile.includes('--no-restore'), '.NET restore and test must enforce the committed lockfile'],
