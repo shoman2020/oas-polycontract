@@ -29,8 +29,8 @@ Each of the seven language-native API integration suites also runs the same crea
 Run the focused example with Docker Compose:
 
 ```sh
-docker compose --env-file .github/versions.env --profile test build stateful-app
-docker compose --env-file .github/versions.env --profile test run --rm stateful-schemathesis
+docker compose --env-file .github/versions.env --profile test --profile mock build stateful-app
+docker compose --env-file .github/versions.env --profile test --profile mock run --rm stateful-schemathesis
 ```
 
 ## Performance snapshot

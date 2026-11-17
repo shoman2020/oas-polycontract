@@ -256,10 +256,18 @@ def main():
         animation.append(slide)
         durations.append(slide_durations[index])
         next_slide = slides[(index + 1) % len(slides)]
-        for transition in slide_transition_frames(slide, next_slide):
+        for transition in slide_transition_frames(slide, next_slide, steps=4):
             animation.append(transition)
             durations.append(45)
 
+    gif_width = 900
+    gif_height = round(HEIGHT * gif_width / WIDTH)
+    animation = [frame.resize((gif_width, gif_height), Image.Resampling.LANCZOS) for frame in animation]
+    palette_source = Image.new("RGB", (gif_width, gif_height * len(animation)))
+    for index, frame in enumerate(animation):
+        palette_source.paste(frame, (0, index * gif_height))
+    palette = palette_source.quantize(colors=64, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+    animation = [frame.quantize(palette=palette, dither=Image.Dither.NONE) for frame in animation]
     animation[0].save(
         OUTPUT,
         save_all=True,
