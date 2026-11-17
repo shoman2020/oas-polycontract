@@ -6,10 +6,10 @@ One hand-edited contract per API boundary. Clear ownership means less maintenanc
 
 | Area | Current state | Gap |
 |---|---|---|
-| Runnable APIs | Product, Order, Inventory, WireMock, and Specmatic examples | Run [44081375236](https://github.com/shoman2020/oas-polycontract/actions/runs/44081375236) passed the Java build setup but failed dependency convergence on older Swagger and REST Assured transitives. This patch aligns those versions. |
-| Test roles | Specmatic provider targets the app; JS and Playwright consumers target Smart Mock; seven languages plus Playwright run API integration tests | Re-run CI after the Maven fix. Last full green run: [44052746009](https://github.com/shoman2020/oas-polycontract/actions/runs/44052746009). |
+| Runnable APIs | Product, Order, Inventory, WireMock, and Specmatic examples | Contract pipeline passed on [run 44110813231](https://github.com/shoman2020/oas-polycontract/actions/runs/44110813231), including all three container scans. |
+| Test roles | Specmatic provider targets the app; JS and Playwright consumers target Smart Mock; seven languages plus Playwright run API integration tests | Provider, consumer, stateful, and integration checks passed in the contract run. |
 | Contracts | OAS for HTTP, AsyncAPI examples for WebSocket and Kafka; Spectral, oasdiff, Schemathesis | Event examples have no live provider or broker. |
-| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot; OWASP SecureAI-Scan added to security.yml | GenAI scan awaits CI verification. It supports Python, JavaScript, and TypeScript; this demo has no AI runtime. |
+| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, and OWASP SecureAI-Scan | Security workflow [run 44110813201](https://github.com/shoman2020/oas-polycontract/actions/runs/44110813201) passed, including SecureAI-Scan. Its AI-specific rules cover Python, JavaScript, and TypeScript; this demo has no AI runtime. |
 | Showcase | Interactive contract, pipeline, workflow, test-role, and performance views | GitHub Pages is not enabled in repository settings. |
 | Reproducibility | npm and Python locks; Maven dependency and lifecycle plugin versions are explicitly managed | Add Rust Cargo.lock, Go go.sum, and C# NuGet lock mode; verify a clean run. |
 
@@ -60,7 +60,7 @@ Not applicable until a Postman or Bruno collection is provided. If supplied, map
 - [x] CodeQL for Rust, Go, Python, JS/TS, Java, C#, and Actions; Gitleaks and Trivy scans.
 - [x] Run Dependency Review on pull requests and Dependabot weekly.
 - [x] Add OWASP SecureAI-Scan with a high-severity gate and SARIF upload.
-- [ ] Verify the scan and Maven fix in a green contract/security run.
+- [x] Verify SecureAI-Scan and the Maven fix in green contract and security runs.
 
 ### Phase 8 — Documentation and evaluation
 - [x] Align README, client guide, project map, and test roles.
@@ -74,7 +74,8 @@ Not applicable until a Postman or Bruno collection is provided. If supplied, map
 - [ ] Commit Rust Cargo.lock and run cargo test --locked.
 - [ ] Commit Go go.sum and use read-only module builds.
 - [ ] Enable C# NuGet lock-file generation and locked restore.
-- [ ] Pass the full contract workflow from a clean checkout.
+- [x] Pass the full contract workflow, including app, WireMock, and Specmatic image scans.
+- [ ] Verify the workflow from a clean local checkout.
 
 ### Phase 10 — Merge policy
 - [ ] Require contract and security checks on pull requests.
@@ -97,12 +98,11 @@ Not applicable until a Postman or Bruno collection is provided. If supplied, map
 
 ## Remaining work
 
-1. Re-run CI to verify the Java fix and OWASP GenAI scan.
-2. Add Rust, Go, and C# dependency locks; pass the clean pipeline.
-3. Configure required GitHub checks and enable Pages.
-4. Collect performance samples before setting a regression threshold.
-5. Add event runtime checks only with a provider or broker; configure debug URLs when environments exist.
-6. Migrate legacy requests only when supplied. Keep MCP optional until a concrete use case exists.
+1. Add Rust, Go, and C# dependency locks; verify a clean checkout.
+2. Configure required GitHub checks and enable Pages.
+3. Collect performance samples before setting a regression threshold.
+4. Add event runtime checks only with a provider or broker; configure debug URLs when environments exist.
+5. Migrate legacy requests only when supplied. Keep MCP optional until a concrete use case exists.
 
 ## Package suitability
 
@@ -112,5 +112,5 @@ A create-polycontract npm CLI could follow if users need selective project gener
 
 ## Progress
 
-- 17 Nov: Commit 44bd1d9 passed the OWASP GenAI scan, other security jobs, and showcase deployment. Contract run 44081375236 passed plugin checks but failed on version splits in REST Assured, SLF4J, Commons IO, SnakeYAML, and related transitive dependencies. This patch manages those versions.
+- 17 Nov: Commit 44bd1d9 passed the OWASP GenAI scan, other security jobs, and showcase deployment. Commit baab726 aligned Maven dependency versions after contract run 44081375236 exposed convergence errors. Contract run [44110813231](https://github.com/shoman2020/oas-polycontract/actions/runs/44110813231) and security run [44110813201](https://github.com/shoman2020/oas-polycontract/actions/runs/44110813201) then passed. Repository evaluations passed 8/8 checks.
 - Earlier full green contract run: [44052746009](https://github.com/shoman2020/oas-polycontract/actions/runs/44052746009).
