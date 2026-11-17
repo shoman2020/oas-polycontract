@@ -14,7 +14,7 @@ Requirements: Docker Engine and Docker Compose. From the repository root:
 bash ./run.sh
 ```
 
-The runner lints OpenAPI and AsyncAPI contracts, checks compatibility, builds the demo and test clients, verifies WireMock and Specmatic behavior, runs stateless fuzzing and a separate linked-order stateful example, validates live responses with seven languages and Playwright, and exercises Smart Mock examples. It removes Compose containers when it exits.
+The runner lints OpenAPI and AsyncAPI contracts, checks compatibility, builds the demo and test clients, verifies WireMock and Specmatic behavior, runs stateless fuzzing and a separate linked-order stateful example, and validates live responses in Rust, Go, Python, JavaScript, TypeScript, Java, and C#. Playwright adds API provider and consumer examples. It also exercises Smart Mock examples and removes Compose containers when it exits.
 
 On macOS, use Docker Desktop or Colima with Docker and Compose installed. Windows users can use WSL or Git Bash. GitHub Actions runs the same pipeline on Ubuntu.
 
@@ -35,7 +35,7 @@ docker compose --env-file .github/versions.env --profile test --profile mock run
 
 ## Performance snapshot
 
-A cold Ubuntu CI sample built the app and seven client images in about **67 seconds**. Schemathesis generated **115 cases in 2.07 seconds**. The whole job took **2 minutes 44 seconds**, including image security scans. It caught an unsupported `TRACE /healthz` response before the language suites ran, so these are diagnostic measurements rather than a passing end-to-end benchmark. See [workflow run 43935878603](https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603). Warm-cache timings and a green full-suite run are still needed for a stable performance baseline.
+The latest full contract CI run passed in **5 minutes 14 seconds**, including API and contract checks, language suites, Playwright, and container image scans. An earlier cold run generated **115 Schemathesis cases in 2.07 seconds**, but failed on an unsupported-method response; that timing is diagnostic, not a passing benchmark. See the [passing contract run](https://github.com/shoman2020/oas-polycontract/actions/runs/44046941415) and [earlier diagnostic run](https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603). Repeated cold and warm-cache runs are needed for a stable baseline.
 
 Security workflows run CodeQL, Gitleaks, Trivy, and pull request dependency review. Runtime, image, and scanner versions are pinned in [`.github/versions.env`](.github/versions.env); Dependabot checks language package manifests weekly.
 
@@ -96,7 +96,7 @@ flowchart LR
   Root[Root Product Catalog OAS] --> RootGates[Spectral and oasdiff]
   Root --> Debug[Swagger UI and Prism]
   Product[Demo Product OAS] --> Provider[Specmatic provider verification]
-  Product --> Clients[Seven native language suites + Playwright]
+  Product --> Clients[Rust · Go · Python · JavaScript · TypeScript · Java · C#]
   Product --> Fuzz[Stateless Schemathesis fuzzing]
   Product --> Mock[Specmatic Smart Mock for consumers]
   Product --> App[Node Product API]
@@ -109,6 +109,12 @@ flowchart LR
   Events[WebSocket and Kafka AsyncAPI] --> EventLint[Spectral AsyncAPI]
   Stateful[Stateful Order OAS] --> StatefulTests[Stateful Schemathesis + seven languages]
   StatefulTests --> StatefulApp[In-memory Order API]
+  Compose[Docker Compose] --> App
+  Compose --> WireMock
+  Compose --> Provider
+  Compose --> Clients
+  Compose --> Fuzz
+  Compose --> StatefulTests
 ```
 
 ## Contract formats and protocols
