@@ -50,6 +50,10 @@ echo "==> Building demo, language-native clients, and Playwright API suites"
 echo "==> Fuzzing the running demo against its OAS"
 "${compose[@]}" run --rm schemathesis
 
+echo "==> Chaining linked order operations with stateful Schemathesis"
+"${compose[@]}" --profile test build stateful-app
+"${compose[@]}" --profile test run --rm stateful-schemathesis
+
 echo "==> Running language-native and Playwright OAS integration suites"
 "${compose[@]}" run --rm rust-contract-test
 "${compose[@]}" run --rm go-contract-test

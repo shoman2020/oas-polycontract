@@ -2,13 +2,11 @@ package contract
 
 import (
 	"context"
-	"io"
+	"encoding/json"
 	"os"
 	"testing"
 
 	"github.com/getkin/kin-openapi/openapi3"
-	"github.com/getkin/kin-openapi/openapi3filter"
-	"github.com/getkin/kin-openapi/routers/gorillamux"
 )
 
 func TestProductResponseMatchesOpenAPIContract(t *testing.T) {
@@ -21,11 +19,6 @@ func TestProductResponseMatchesOpenAPIContract(t *testing.T) {
 	if err := spec.Validate(ctx); err != nil {
 		t.Fatalf("invalid OpenAPI document: %v", err)
 	}
-	router, err := gorillamux.NewRouter(spec)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 	client, err := NewProductAPIClient(os.Getenv("API_BASE_URL"))
 	if err != nil {
 		t.Fatal(err)
@@ -35,28 +28,19 @@ func TestProductResponseMatchesOpenAPIContract(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer response.Body.Close()
-	request := response.Request
-	route, pathParams, err := router.FindRoute(request)
+	body, err := validateOpenAPIResponse(ctx, spec, response)
 	if err != nil {
-		t.Fatalf("operation not found in OAS: %v", err)
+		t.Fatalf("response does not match OAS: %v", err)
 	}
-
-	body, err := io.ReadAll(response.Body)
-	if err != nil {
+	var product struct {
+		SKU       string `json:"sku"`
+		Available int    `json:"available"`
+	}
+	if err := json.Unmarshal(body, &product); err != nil {
 		t.Fatal(err)
 	}
-	requestInput := &openapi3filter.RequestValidationInput{
-		Request: request, PathParams: pathParams, Route: route,
-	}
-	responseInput := &openapi3filter.ResponseValidationInput{
-		RequestValidationInput: requestInput,
-		Status: response.StatusCode,
-		Header: response.Header,
-		Options: &openapi3filter.Options{IncludeResponseStatus: true},
-	}
-	responseInput.SetBodyBytes(body)
-	if err := openapi3filter.ValidateResponse(ctx, responseInput); err != nil {
-		t.Fatalf("response does not match OAS: %v", err)
+	if product.SKU != "demo-sku" || product.Available != 7 {
+		t.Fatalf("unexpected product response: %+v", product)
 	}
 
 	t.Logf("OAS validation passed: GET /products/demo-sku -> %d", response.StatusCode)

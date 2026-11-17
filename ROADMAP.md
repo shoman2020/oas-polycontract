@@ -10,13 +10,13 @@ One role owns the contract. Clear ownership means less maintenance and more trus
 
 | Area | Implementation | Verification or remaining work |
 |---|---|---|
-| Runnable demo | Node Product API, inventory dependency, WireMock, Specmatic provider and downstream tests, success and error examples | Run 439358 built the app and seven language-client images; WireMock integration and Specmatic passed. Schemathesis found a `TRACE /healthz` response mismatch. The app and OAS now specify `405` for unsupported methods; verify in a fresh run. |
-| Governance | Spectral for OAS and AsyncAPI, oasdiff against the root baseline, Schemathesis against the live demo | Lint, compatibility, WireMock and Specmatic checks passed in run 439358. Schemathesis correctly exposed the undeclared-method behavior; the `405` fix is implemented and awaits CI. The root Product Catalog contract has no provider implementation. |
-| Language and API test clients | Rust, Go, Python, JavaScript, TypeScript, Java, and C# suites plus Playwright APIRequestContext read the demo OAS | Run 439581 passed the Rust suite, then Go failed because no `go.sum` contained the `kin-openapi` archive checksum. The Go image now downloads all module sums explicitly. Remaining language suites and both Playwright targets await a fresh run. |
+| Runnable demo | Product API, isolated linked Order API, inventory dependency, WireMock, Specmatic provider and downstream tests | Product checks passed in run 439601 through Rust; Go then reported that `go.mod` needed `go mod tidy`. The Go image now runs tidy after copying source. Stateful app, Schemathesis links, and lifecycle clients are implemented; full pipeline verification is pending. |
+| Governance | Spectral for OAS and AsyncAPI, oasdiff against the root baseline, stateless and stateful Schemathesis | Product lint, compatibility, WireMock, Specmatic, stateless fuzzing, and image scans passed in runs 439581/439601. Stateful OAS lint and stateful execution need verification on the next run. The root Product Catalog contract has no provider implementation. |
+| Language and API test clients | Rust, Go, Python, JavaScript, TypeScript, Java, and C# validate Product API and Order API responses; Playwright covers Product API | Product API Rust passed in run 439601 before Go's module error. Native lifecycle tests and Compose wiring for all seven languages are implemented; a complete run is pending. |
 | Provider and consumer contract roles | Specmatic provider verification targets the running app; JavaScript and Playwright consumer suites target the Specmatic Smart Mock | The shared provider OAS drives both examples. This is consumer-side development against a contract-derived mock, not a separately published consumer-owned CDC artifact. Runtime verification awaits CI. |
 | Protocol coverage | AsyncAPI examples for WebSocket and Kafka, with a separate Spectral ruleset | Contract examples only; no event service or broker is part of the demo. |
 | Debug layer | Optional Swagger UI and Prism Compose services use the root contract | Local profile exists; environment-specific host URLs still need deployment configuration. |
-| CI and security | Ubuntu contract workflow; CodeQL, Gitleaks, Trivy, Dependency Review, and Dependabot | Contract run [43958109468](https://github.com/shoman2020/oas-polycontract/actions/runs/43958109468) passed WireMock, Specmatic, Schemathesis, Rust, and all image scans, then stopped at Go because its module archive checksum was missing. The Go image now runs `go mod download all`; rerun CI to verify remaining clients. |
+| CI and security | Ubuntu contract workflow; CodeQL, Gitleaks, Trivy, Dependency Review, and Dependabot | Contract run [43960107981](https://github.com/shoman2020/oas-polycontract/actions/runs/43960107981) passed the earlier checks and Rust, then Go requested `go mod tidy`. The image now runs tidy; rerun CI to verify the Go fix, stateful example, remaining clients, and current scans. |
 | Dependency reproducibility | Direct package versions and container/tool versions are pinned | Most language projects do not yet commit transitive lockfiles. Add native lockfiles after the first green pipeline run, then enforce locked installs. |
 | Migration | No legacy Postman or Bruno collection was supplied | Phase 5 is not applicable unless one is provided. |
 | Scaffolder | Not implemented | Phase 9 remains open until the end-to-end pipeline is stable. |
@@ -57,6 +57,7 @@ Specmatic roles are separate: `specmatic-provider` runs contract-derived request
 - [x] Lint WebSocket and Kafka AsyncAPI examples with Spectral.
 - [x] Compare the root contract with its committed baseline using oasdiff.
 - [x] Run Schemathesis against the live demo service.
+- [x] Add a separate stateful Order API with linked OAS operations and run Schemathesis' stateful phase against it.
 - [x] Test the demo provider and WireMock dependency with Specmatic, including deterministic 404 and 502 examples.
 - [x] Return a declared `405 Method Not Allowed` with `Allow: GET` for unsupported methods on known routes; add the response to the demo OAS.
 - [ ] Run the expanded gates in CI and configure branch protection to require them.
@@ -70,9 +71,11 @@ Specmatic roles are separate: `specmatic-provider` runs contract-derived request
 - [x] Encapsulate HTTP setup in idiomatic API client objects for all seven languages; keep OAS validation and business assertions distinct where the native framework supports it.
 - [x] Add a JavaScript consumer example against the Smart Mock.
 - [x] Add Playwright APIRequestContext provider integration and Smart Mock consumer examples; no browser binary is needed for API-only tests.
+- [x] Add create/read/confirm/delete/post-delete-404 integration flows with OAS response validation in all seven native languages.
+- [x] Wire the separate stateful contract and provider into the seven language test containers.
 - [x] Keep provider verification, consumer-side mock tests, and live-server API integration suites distinct in the README and runnable examples.
 - [x] Document how to port requests and assertions from Postman or Bruno in [`clients/README.md`](clients/README.md).
-- [ ] Confirm all seven language suites and both Playwright targets pass in the expanded pipeline.
+- [ ] Confirm the stateful and Product API scenarios pass in all seven language suites and both Playwright targets pass in the expanded pipeline.
 
 ### Protocol scope
 
@@ -105,7 +108,7 @@ Not applicable with the supplied project: no legacy collection was provided. If 
 - [x] Compose the demo, seven language suites, Playwright provider and consumer tests, governance checks, fuzzing, and mock assertions.
 - [x] Have `run.sh` execute the full applicable suite and always tear down containers on success or failure.
 - [x] Keep GitHub Actions on Ubuntu; support Docker Desktop or Colima on macOS for local runs.
-- [ ] Confirm the full clean-checkout run in CI. The last run built all images and passed provider/dependency checks, then stopped at Schemathesis' unsupported-method assertion.
+- [ ] Confirm the full clean-checkout run in CI, including the stateful provider, Schemathesis phase, and all seven native lifecycle suites.
 
 ### Phase 7 — CI and security
 
@@ -135,7 +138,7 @@ These are the current gaps, in execution order. “Implemented” means files an
 
 | Priority | Gap | Status | Acceptance signal |
 |---|---|---|---|
-| P0 | Run the expanded contract and security workflows on this implementation | In progress; run 43944423021 reached the Rust client suite and failed compilation with `E0515` | All applicable contract jobs and image/filesystem scans pass; verify all seven language clients, Playwright live-provider and mock-consumer examples, and record a full green run. |
+| P0 | Run the expanded contract and security workflows on this implementation | In progress; run 43960107981 passed Rust and stopped at Go with `go: updates to go.mod needed; to update it: go mod tidy`. Stateful suites are implemented but not yet run in CI. | All applicable contract jobs and image/filesystem scans pass; verify stateful Schemathesis, all seven native language flows, Playwright provider and consumer examples, and record a full green run. |
 | P1 | Make language dependency installs reproducible | Needed | Commit JS/TS package locks, `Cargo.lock`, Go module sums, a hash-locked Python requirements file, and NuGet lock files; lock Maven dependency resolution. Use lock-enforcing installs in the container builds. |
 | P1 | Require contract and security checks before merge | Repository configuration needed | GitHub branch protection requires the named checks. This setting is managed outside this repository. |
 | P2 | Decide whether the root Product Catalog OAS remains contract-only | Decision needed | If it stays a scaffold, keep provider checks on the demo OAS. If a root provider is added, add provider and client examples against the root contract. |
@@ -166,6 +169,8 @@ These are the current gaps, in execution order. “Implemented” means files an
 | 16 Nov 2026 | Contract run [43944423021](https://github.com/shoman2020/oas-polycontract/actions/runs/43944423021) passed the mock profile build, provider checks, fuzzing, and image scans, then Rust failed to compile because schema errors borrowed the response body. | Collect schema validation errors into owned strings, then rerun CI and continue through the remaining language clients. |
 | 16 Nov 2026 | The pre-fix Rust test blob had mixed endings (1 CRLF and 41 LF), triggering GitHub's editor warning. | The Rust fix normalizes the file; .gitattributes now pins Rust and Markdown files to LF. |
 | 16 Nov 2026 | Contract run [43958109468](https://github.com/shoman2020/oas-polycontract/actions/runs/43958109468) passed through Rust, then Go failed because `go mod download` without module arguments did not add archive checksums to `go.sum`. | Changed the Go image to `go mod download all`, which populates those checksums before `go test`. Re-run CI to verify the Go fix and remaining clients. |
+| 16 Nov 2026 | The README project overview used abrupt image changes between its architecture, pipeline, fuzzing, and performance views. | The Pillow generator now creates separate slides with horizontal transitions; the README alt text describes the slideshow. |
+| 16 Nov 2026 | Contract run [43960107981](https://github.com/shoman2020/oas-polycontract/actions/runs/43960107981) passed Rust and stopped at Go because module metadata needed tidying. | The Go image now runs `go mod tidy`; stateful Order API integration tests are implemented and wired into all seven native language services. Push and verify the complete pipeline. |
 
 ## Run and expected result
 

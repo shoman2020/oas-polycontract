@@ -118,6 +118,7 @@ services:
         spectral lint --ruleset /repo/gates/lint/.spectral.yaml
         /repo/openapi/openapi.yaml
         /repo/demo/openapi.yaml
+        /repo/demo/stateful/openapi.yaml
         /repo/demo/downstream/openapi.yaml
     volumes:
       - ./:/repo:ro
@@ -152,6 +153,40 @@ services:
         condition: service_healthy
     profiles: [test]
 
+  stateful-app:
+    build:
+      context: ./demo/stateful
+      args:
+        NODE_VERSION: ${NODE_VERSION:?Set NODE_VERSION in .github/versions.env}
+    environment:
+      PORT: "8082"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8082/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 2s
+    profiles: [test]
+
+  stateful-schemathesis:
+    image: schemathesis/schemathesis:v${SCHEMATHESIS_VERSION:?Set SCHEMATHESIS_VERSION in .github/versions.env}
+    command:
+      - run
+      - /contracts/openapi.yaml
+      - --url=http://stateful-app:8082
+      - --phases
+      - stateful
+    volumes:
+      - ./demo/stateful:/contracts:ro
+    depends_on:
+      stateful-app:
+        condition: service_healthy
+    profiles: [test]
+
   rust-contract-test:
     build:
       context: ./clients/rust
@@ -160,10 +195,15 @@ services:
     environment:
       API_BASE_URL: http://app:8080
       OPENAPI_SPEC: /contracts/openapi.yaml
+      STATEFUL_API_BASE_URL: http://stateful-app:8082
+      STATEFUL_OPENAPI_SPEC: /stateful-contract/openapi.yaml
     volumes:
       - ./demo:/contracts:ro
+      - ./demo/stateful:/stateful-contract:ro
     depends_on:
       app:
+        condition: service_healthy
+      stateful-app:
         condition: service_healthy
     profiles: [test]
 
@@ -175,10 +215,15 @@ services:
     environment:
       API_BASE_URL: http://app:8080
       OPENAPI_SPEC: /contracts/openapi.yaml
+      STATEFUL_API_BASE_URL: http://stateful-app:8082
+      STATEFUL_OPENAPI_SPEC: /stateful-contract/openapi.yaml
     volumes:
       - ./demo:/contracts:ro
+      - ./demo/stateful:/stateful-contract:ro
     depends_on:
       app:
+        condition: service_healthy
+      stateful-app:
         condition: service_healthy
     profiles: [test]
 
@@ -190,10 +235,15 @@ services:
     environment:
       API_BASE_URL: http://app:8080
       OPENAPI_SPEC: /contracts/openapi.yaml
+      STATEFUL_API_BASE_URL: http://stateful-app:8082
+      STATEFUL_OPENAPI_SPEC: /stateful-contract/openapi.yaml
     volumes:
       - ./demo:/contracts:ro
+      - ./demo/stateful:/stateful-contract:ro
     depends_on:
       app:
+        condition: service_healthy
+      stateful-app:
         condition: service_healthy
     profiles: [test]
 
@@ -205,10 +255,15 @@ services:
     environment:
       API_BASE_URL: http://app:8080
       OPENAPI_SPEC: /contracts/openapi.yaml
+      STATEFUL_API_BASE_URL: http://stateful-app:8082
+      STATEFUL_OPENAPI_SPEC: /stateful-contract/openapi.yaml
     volumes:
       - ./demo:/contracts:ro
+      - ./demo/stateful:/stateful-contract:ro
     depends_on:
       app:
+        condition: service_healthy
+      stateful-app:
         condition: service_healthy
     profiles: [test]
 
@@ -220,10 +275,15 @@ services:
     environment:
       API_BASE_URL: http://app:8080
       OPENAPI_SPEC: /contracts/openapi.yaml
+      STATEFUL_API_BASE_URL: http://stateful-app:8082
+      STATEFUL_OPENAPI_SPEC: /stateful-contract/openapi.yaml
     volumes:
       - ./demo:/contracts:ro
+      - ./demo/stateful:/stateful-contract:ro
     depends_on:
       app:
+        condition: service_healthy
+      stateful-app:
         condition: service_healthy
     profiles: [test]
 
@@ -270,10 +330,15 @@ services:
     environment:
       API_BASE_URL: http://app:8080
       OPENAPI_SPEC: /contracts/openapi.yaml
+      STATEFUL_API_BASE_URL: http://stateful-app:8082
+      STATEFUL_OPENAPI_SPEC: /stateful-contract/openapi.yaml
     volumes:
       - ./demo:/contracts:ro
+      - ./demo/stateful:/stateful-contract:ro
     depends_on:
       app:
+        condition: service_healthy
+      stateful-app:
         condition: service_healthy
     profiles: [test]
 
@@ -285,10 +350,15 @@ services:
     environment:
       API_BASE_URL: http://app:8080
       OPENAPI_SPEC: /contracts/openapi.yaml
+      STATEFUL_API_BASE_URL: http://stateful-app:8082
+      STATEFUL_OPENAPI_SPEC: /stateful-contract/openapi.yaml
     volumes:
       - ./demo:/contracts:ro
+      - ./demo/stateful:/stateful-contract:ro
     depends_on:
       app:
+        condition: service_healthy
+      stateful-app:
         condition: service_healthy
     profiles: [test]
 

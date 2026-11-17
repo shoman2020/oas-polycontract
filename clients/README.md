@@ -1,7 +1,7 @@
 # Client suite migration guide
 
-All examples target the runnable Product API in `demo/` and read
-`demo/openapi.yaml` directly at test time. Seven suites use language-native
+The examples target the Product API and a separate stateful Order API in
+`demo/`, each with its own hand-edited OAS. Seven suites use language-native
 frameworks; Playwright adds a JavaScript `APIRequestContext` suite without
 launching a browser. Generated clients and model types are optional and do not
 replace runtime response validation.
@@ -17,20 +17,20 @@ replace runtime response validation.
 4. Remove status and body-shape assertions that OAS validation already checks.
    Keep business assertions in one native test suite.
 5. Run `bash ./run.sh`. It executes the seven language suites and Playwright
-   against the demo service. JavaScript and Playwright also target Specmatic's
+   against the Product API. JavaScript and Playwright also target Specmatic's
    Smart Mock for consumer-side examples using the same contract.
-6. The same command runs stateless Schemathesis fuzzing: generated requests are
-   independent and do not rely on data created by previous cases. Stateful
-   testing sequences related operations while preserving server state; the
-   current GET-only Product API has no create/read/update/delete lifecycle, so
-   that phase is not applicable yet.
+6. The same command runs stateless Schemathesis fuzzing, Schemathesis stateful
+   tests, and a native order lifecycle integration test in each of the seven
+   languages. The stateful tests use a separate in-memory Order API; the
+   Product API remains GET-only.
 
 ## What each test validates
 
 Each suite sends `GET /products/demo-sku`, validates the actual response
 status, content type, and JSON body with its language's OpenAPI-aware library,
-then checks the business result (`available` is 7). This keeps the contract
-assertion in the shared OAS while making the behavioral check explicit in code.
+then checks the business result (`available` is 7). It also creates an order,
+reads it, confirms it, deletes it, and verifies the next read returns `404`.
+Each lifecycle response is validated against `demo/stateful/openapi.yaml`.
 
 | Language or runner | Test entry point | OAS validation |
 |---|---|---|
@@ -84,5 +84,6 @@ Java       Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
 C#         Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1
 
 OAS validation passed: GET /products/demo-sku -> 200
+Stateful OAS validation passed: create -> read -> confirm -> delete -> 404
 ```
 

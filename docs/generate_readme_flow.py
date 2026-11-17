@@ -116,8 +116,8 @@ def architecture_frame(active_tick):
     checks = [
         ("Spectral + oasdiff", "Style, validity, breaking changes"),
         ("Specmatic + WireMock", "Provider, consumer mock, dependency"),
-        ("Schemathesis", "Stateless generated requests and coverage"),
-        ("Seven languages + Playwright", "Live API response validation + business rules"),
+        ("Schemathesis", "Stateless fuzzing + linked stateful order flows"),
+        ("Seven languages + Playwright", "Live API response and stateful lifecycle validation"),
     ]
     for i, (title, note) in enumerate(checks):
         y = 170 + i * 105
@@ -156,7 +156,7 @@ def pipeline_frame(active_step):
     image, draw = base("How the project runs", "One command runs the same containerized pipeline locally and in Ubuntu CI.", 2)
     steps = [
         "Lint OAS\nand AsyncAPI", "Check baseline\ncompatibility", "Build app\nand clients",
-        "WireMock +\nSpecmatic", "Stateless\nfuzzing", "Seven languages\n+ Playwright", "Smart Mock\nconsumer tests",
+        "WireMock +\nSpecmatic", "Stateless +\nstateful tests", "Seven languages\n+ Playwright", "Smart Mock\nconsumer tests",
     ]
     x0, y, w, gap = 52, 218, 154, 20
     for i, label in enumerate(steps):
@@ -178,8 +178,8 @@ def pipeline_frame(active_step):
     text(draw, (76, 528), "Provider, fuzz, and client tests call the healthy app; the consumer mock check is separate.", fill=MUTED, use_font=F_SMALL)
 
     rounded(draw, (824, 390, 1268, 546), fill="#101A2C")
-    text(draw, (850, 419), "STATELESS TODAY", fill=AMBER, use_font=F_SMALL)
-    wrapped(draw, (850, 445), "The demo exposes read-only GET operations with fixed inventory fixtures. No create/update/delete workflow exists, so stateful testing is not applicable yet.", 48, use_font=F_BODY)
+    text(draw, (850, 419), "STATELESS + STATEFUL", fill=AMBER, use_font=F_SMALL)
+    wrapped(draw, (850, 445), "Fuzz the read-only Product API independently. Follow OAS links through create, read, confirm, and delete on the separate in-memory Order API.", 48, use_font=F_BODY)
     phases(draw, 6)
     return image
 
@@ -192,7 +192,7 @@ def fuzz_frame(active):
          ["Run by `bash ./run.sh` after the provider starts", "Finds path, input, status, and schema gaps", "Latest measured sample: 115 cases in 2.07s"]),
         (682, 164, 1268, 570, "STATEFUL TESTING", AMBER,
          "A stateful suite follows related operations across one workflow and keeps the server state between requests.",
-         ["Example: create order → read order → cancel order", "Needs operations and links that express the lifecycle", "Current demo: not applicable; GET-only API"]),
+         ["Create → read → confirm → delete → verify 404", "OAS links pass returned IDs between operations", "Separate in-memory example; Product API stays GET-only"]),
     ]
     for i, (x1, y1, x2, y2, title, color, intro, bullets) in enumerate(boxes):
         rounded(draw, (x1, y1, x2, y2), fill=PANEL_ACTIVE if i == active else PANEL,
@@ -228,8 +228,18 @@ def performance_frame():
     return image
 
 
+def slide_transition_frames(current, following, steps=8):
+    """Yield frames that slide the current picture left and the next one in."""
+    for step in range(1, steps + 1):
+        offset = round(WIDTH * step / steps)
+        frame = Image.new("RGB", (WIDTH, HEIGHT), BG)
+        frame.paste(current, (-offset, 0))
+        frame.paste(following, (WIDTH - offset, 0))
+        yield frame
+
+
 def main():
-    frames = [
+    slides = [
         architecture_frame(0),
         pipeline_frame(2),
         fuzz_frame(0),
@@ -239,11 +249,22 @@ def main():
         fuzz_frame(1),
         architecture_frame(3),
     ]
-    frames[0].save(
+    slide_durations = [800, 850, 1000, 1100, 550, 550, 650, 550]
+    animation = []
+    durations = []
+    for index, slide in enumerate(slides):
+        animation.append(slide)
+        durations.append(slide_durations[index])
+        next_slide = slides[(index + 1) % len(slides)]
+        for transition in slide_transition_frames(slide, next_slide):
+            animation.append(transition)
+            durations.append(45)
+
+    animation[0].save(
         OUTPUT,
         save_all=True,
-        append_images=frames[1:],
-        duration=[900, 900, 1100, 1300, 650, 650, 750, 650],
+        append_images=animation[1:],
+        duration=durations,
         loop=0,
         optimize=True,
         disposal=2,

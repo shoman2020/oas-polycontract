@@ -10,8 +10,8 @@ ENV HOME=/home/app \
 WORKDIR /workspace
 RUN chown app:app /workspace
 COPY --chown=app:app go.mod .
-USER app
-RUN go mod download all
 COPY --chown=app:app . .
+USER app
+RUN go mod tidy
 CMD ["go", "test", "-v", "./..."]
 

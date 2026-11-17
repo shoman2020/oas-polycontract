@@ -2,7 +2,7 @@
 
 One hand-edited contract per API boundary. Native test suites validate live HTTP responses against that contract, while Specmatic checks provider and consumer behavior. The same command runs the examples locally and in CI.
 
-![Animated project flow: contracts, checks, phases, usage, fuzzing scope, and measured CI performance](docs/project-flow.gif)
+![Sliding project overview: contract flow, pipeline phases, stateless and stateful testing, and measured CI performance](docs/project-flow.gif)
 
 The animation shows how the contracts flow through the pipeline, which phases are implemented, how to start a run, and what the latest performance sample does and does not prove. See the [roadmap](ROADMAP.md) for detailed progress.
 
@@ -14,15 +14,24 @@ Requirements: Docker Engine and Docker Compose. From the repository root:
 bash ./run.sh
 ```
 
-The runner lints OpenAPI and AsyncAPI contracts, checks compatibility, builds the demo and test clients, verifies WireMock and Specmatic behavior, runs stateless fuzzing, validates live responses with seven languages and Playwright, and exercises Smart Mock examples. It removes Compose containers when it exits.
+The runner lints OpenAPI and AsyncAPI contracts, checks compatibility, builds the demo and test clients, verifies WireMock and Specmatic behavior, runs stateless fuzzing and a separate linked-order stateful example, validates live responses with seven languages and Playwright, and exercises Smart Mock examples. It removes Compose containers when it exits.
 
 On macOS, use Docker Desktop or Colima with Docker and Compose installed. Windows users can use WSL or Git Bash. GitHub Actions runs the same pipeline on Ubuntu.
 
 ## Fuzzing and stateful tests
 
-Schemathesis performs **stateless fuzzing** in `bash ./run.sh`: it generates independent requests from the OpenAPI contract, probes input boundaries, and checks the responses. Each case can run without depending on data created by an earlier case.
+Schemathesis performs **stateless fuzzing** against the GET-only Product API: it generates independent requests from the OpenAPI contract, probes input boundaries, and checks the responses. Each case can run without depending on data created by an earlier case.
 
-**Stateful testing** sequences related operations while keeping server state between requests, such as creating an order, reading it, and then cancelling it. The current Product API exposes read-only `GET` operations and uses fixed inventory fixtures, so there is no lifecycle to exercise; Schemathesis reports its stateful phase as not applicable. Add stateful coverage when a contract includes state-changing operations and links or fixtures that describe valid sequences.
+**Stateful testing** sequences related operations and reuses values returned by earlier requests. The Product API remains GET-only, so `run.sh` demonstrates stateful testing against a separate in-memory Order API in [`demo/stateful/`](demo/stateful/). Its OAS links let Schemathesis create an order, read or update it, delete it, and verify a later read returns `404`. The service is disposable and starts empty for each pipeline run.
+
+Each of the seven language-native API integration suites also runs the same create → read → confirm → delete → verify-404 lifecycle against that stateful service. Each response is validated against the stateful OAS.
+
+Run the focused example with Docker Compose:
+
+```sh
+docker compose --env-file .github/versions.env --profile test build stateful-app
+docker compose --env-file .github/versions.env --profile test run --rm stateful-schemathesis
+```
 
 ## Performance snapshot
 
@@ -38,6 +47,7 @@ Each API boundary has its own hand-edited contract. Tests, mocks, and debug view
 |---|---|---|---|
 | Product Catalog scaffold | [`openapi/openapi.yaml`](openapi/openapi.yaml) | No provider is included yet | Spectral, root baseline compatibility, Swagger UI, Prism |
 | Runnable Product API | [`demo/openapi.yaml`](demo/openapi.yaml) | Node.js provider in `demo/app/` | Spectral, Specmatic provider, Schemathesis, seven language suites, Playwright, Smart Mock |
+| Stateful order example | [`demo/stateful/openapi.yaml`](demo/stateful/openapi.yaml) | Isolated in-memory Node.js provider in `demo/stateful/` | Spectral, linked Schemathesis stateful phase, and seven native lifecycle integration tests |
 | Inventory dependency | [`demo/downstream/openapi.yaml`](demo/downstream/openapi.yaml) | WireMock mappings in `demo/downstream/wiremock/` | Specmatic downstream validation and app integration assertions |
 | Product events | `contracts/events/*.asyncapi.yaml` | No broker or event provider is included | AsyncAPI Spectral ruleset |
 
@@ -45,7 +55,9 @@ Each API boundary has its own hand-edited contract. Tests, mocks, and debug view
 
 ## What runs against the application server
 
-The runner starts the Node Product API and WireMock, then waits for their health checks before sending traffic. Specmatic provider verification, Schemathesis, all seven language-native suites, and the Playwright API suite call the app at `http://app:8080`. The app uses WireMock for inventory; consumer examples target a separate Smart Mock built from the same Product OAS.
+The runner starts the Node Product API and WireMock, then waits for their health checks before sending traffic. Specmatic provider verification, stateless Schemathesis, all seven language-native Product API suites, and the Playwright API suite call the app at `http://app:8080`. The app uses WireMock for inventory; consumer examples target a separate Smart Mock built from the same Product OAS.
+
+The stateful example runs against the separate `stateful-app` container at `http://stateful-app:8082`. Schemathesis and all seven language-native suites use it for the linked order lifecycle; it does not add state-changing operations to the Product API.
 
 ## Provider and consumer contract examples
 
@@ -54,6 +66,7 @@ The runner starts the Node Product API and WireMock, then waits for their health
 | Provider contract verification | Specmatic `test` → healthy Node API at `http://app:8080` | The provider's live responses comply with the shared OAS. |
 | Consumer-side contract example | JavaScript and Playwright → Specmatic Smart Mock at `http://specmatic-mock:9000` | Consumer requests and handling work against a mock generated from the provider OAS. |
 | API integration | Seven language suites and Playwright → healthy Node API | Real server responses pass OAS validation and an explicit business assertion. |
+| Stateful API integration | Seven language suites → isolated Order API | Each suite validates create, read, confirm, delete, and post-delete `404` responses against the stateful OAS. |
 
 Specmatic uses the same API specification to verify providers and create Smart Mocks for consumers ([contract testing](https://docs.specmatic.io/contract_driven_api_development/contract_testing), [service virtualization](https://docs.specmatic.io/contract_driven_api_development/service_virtualization)). This example shares the provider contract with consumers; it does not publish a separate consumer-owned CDC contract.
 
@@ -94,6 +107,8 @@ flowchart LR
   Inventory[Inventory OAS] --> WireMock[WireMock mappings]
   App --> WireMock
   Events[WebSocket and Kafka AsyncAPI] --> EventLint[Spectral AsyncAPI]
+  Stateful[Stateful Order OAS] --> StatefulTests[Stateful Schemathesis + seven languages]
+  StatefulTests --> StatefulApp[In-memory Order API]
 ```
 
 ## Contract formats and protocols

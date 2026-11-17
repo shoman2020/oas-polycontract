@@ -26,9 +26,6 @@ internal sealed class OpenApiResponseValidator
         string method)
     {
         var status = ((int)response.StatusCode).ToString(CultureInfo.InvariantCulture);
-        if (!string.Equals(response.Content.Headers.ContentType?.MediaType, "application/json", StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException("Response content type must be application/json");
-
         var responses = NodeAt(_spec, "paths", operationPath, method, "responses");
         var responseExists = responses.Children.Keys
             .OfType<YamlScalarNode>()
@@ -36,8 +33,18 @@ internal sealed class OpenApiResponseValidator
         if (!responseExists)
             throw new InvalidOperationException($"HTTP {status} is not declared for {method.ToUpperInvariant()} {operationPath}");
 
-        var schemaNode = NodeAt(_spec, "paths", operationPath, method, "responses", status,
-            "content", "application/json", "schema");
+        var responseNode = NodeAt(_spec, "paths", operationPath, method, "responses", status);
+        if (responseNode is not YamlMappingNode responseMap
+            || !responseMap.Children.TryGetValue(new YamlScalarNode("content"), out var contentNode))
+        {
+            if (!string.IsNullOrEmpty(body))
+                throw new InvalidOperationException($"HTTP {status} for {method.ToUpperInvariant()} {operationPath} must not have a body");
+            return;
+        }
+
+        if (!string.Equals(response.Content.Headers.ContentType?.MediaType, "application/json", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Response content type must be application/json");
+        var schemaNode = NodeAt(contentNode, "application/json", "schema");
         if (schemaNode is YamlMappingNode schemaMap
             && schemaMap.Children.TryGetValue(new YamlScalarNode("$ref"), out var reference))
         {
