@@ -71,6 +71,7 @@ async function handleRequest(request, response) {
     }
 
     if (typeof input?.sku !== "string" || input.sku.trim() === ""
+      || [...input.sku].length > 64
       || !Number.isInteger(input.quantity) || input.quantity < 1 || input.quantity > 100) {
       sendError(response, 400, "sku and quantity are invalid");
       return;

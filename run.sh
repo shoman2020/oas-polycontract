@@ -20,7 +20,7 @@ fi
 "${compose[@]}" config --quiet
 
 cleanup() {
-  "${compose[@]}" down --remove-orphans || true
+  "${compose[@]}" --profile test --profile mock down --remove-orphans || true
 }
 trap cleanup EXIT
 
