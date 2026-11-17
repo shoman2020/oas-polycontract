@@ -2,15 +2,15 @@
 
 One hand-edited contract per API boundary. Specmatic checks provider behavior against the live API and consumer expectations against a generated Smart Mock. Native suites validate live responses against the OAS.
 
-[Interactive showcase](https://shoman2020.github.io/oas-polycontract/) · [Contract graph](docs/project-flow.html#contracts) · [Pipeline graph](docs/project-flow.html#pipeline) · [Workflow graph](docs/project-flow.html#workflows) · [Roadmap](ROADMAP.md)
+[Interactive showcase](https://shoman2020.github.io/oas-polycontract/) · [Contracts](docs/project-flow.html#contracts) · [Pipeline](docs/project-flow.html#pipeline) · [Workflows](docs/project-flow.html#workflows) · [Performance](docs/project-flow.html#performance) · [Roadmap](ROADMAP.md)
 
 ## Run
 
-Requirements: Docker Engine and Compose. From the repository root, run:
+Requires Docker Engine and Compose:
 
 bash ./run.sh
 
-This runs contract lint and compatibility checks, Specmatic and WireMock examples, stateless fuzzing, stateful Order API tests, and live API integration suites in Rust, Go, Python, JavaScript, TypeScript, Java, C#, and Playwright. Compose removes services at the end. Use Docker Desktop or Colima on macOS, WSL or Git Bash on Windows. GitHub Actions uses Ubuntu.
+`run.sh` runs contract lint and compatibility checks, Specmatic and WireMock examples, stateless fuzzing, stateful Order API tests, and live API suites in Rust, Go, Python, JavaScript, TypeScript, Java, C#, and Playwright. Compose removes services afterward. Use Docker Desktop or Colima on macOS, WSL or Git Bash on Windows. CI uses Ubuntu.
 
 ## Contracts
 
@@ -22,11 +22,11 @@ This runs contract lint and compatibility checks, Specmatic and WireMock example
 | Inventory dependency | [Downstream OAS](demo/downstream/openapi.yaml) | WireMock mappings, Specmatic, downstream integration |
 | Product events | [AsyncAPI examples](contracts/events/) | WebSocket and Kafka message contracts; lint only |
 
-OpenAPI describes HTTP operations and payloads such as JSON and XML. AsyncAPI describes event messages and transports such as WebSocket and Kafka. No event provider or broker is included.
+OpenAPI covers HTTP operations and payloads such as JSON and XML. AsyncAPI covers event messages over WebSocket and Kafka. Event examples are linted; no event provider or broker is included.
 
 ## Test roles
 
-Contract-based tests verify conformance at either side of the shared contract. API integration tests call a running service, validate responses against OAS, then assert application behavior.
+Contract-based tests verify either side of the shared contract. API integration tests call a running service, validate responses against OAS, then assert behavior.
 
 ### Contract-based testing
 
@@ -35,7 +35,7 @@ Contract-based tests verify conformance at either side of the shared contract. A
 | Provider contract-based test | Specmatic provider verification | Live Product API, app:8080 |
 | Consumer contract-based test | JavaScript and Playwright | Specmatic Smart Mock, specmatic-mock:9000 |
 
-Consumers use the provider OAS; the project does not publish a separate CDC artifact.
+Consumers use the provider OAS; no separate CDC artifact is published.
 
 ### API integration testing
 
@@ -49,9 +49,9 @@ See the [client guide](clients/README.md) for test entry points, validators, mig
 
 ## Fuzzing and mock data
 
-Schemathesis stateless fuzzing sends independent Product API requests. The documented 502 is allowed only for the unavailable-inventory lookup. Stateful Schemathesis follows linked Order API operations and reuses returned IDs; the Order service starts empty per run.
+Stateless Schemathesis fuzzing sends independent Product API requests. Only the unavailable-inventory lookup allows the documented 502. Stateful Schemathesis follows linked Order operations and reuses returned IDs; the Order service starts empty per run.
 
-Specmatic mock data comes from OAS examples, deterministic fixtures in demo/openapi_examples, and dictionary values in demo/openapi_dictionary.yaml. Evaluations check exact examples and fallback values. AI-assisted fixture drafting is offline; review and validate generated data before committing. CI does not call a model.
+Specmatic mock data uses OAS examples, fixtures in `demo/openapi_examples`, and values in `demo/openapi_dictionary.yaml`. Evaluations check exact examples and fallback values. AI-assisted fixture drafting is offline; review generated data before committing. CI does not call a model.
 
 ## Security gates
 
@@ -59,9 +59,11 @@ contract.yml runs the demo pipeline and Trivy image scans. security.yml runs Cod
 
 Triggers: **Push to any branch**, **Push to main**, **Pull request**, **Weekly schedule**, and **Manual workflow dispatch**. See the [workflow graph](docs/project-flow.html#workflows).
 
-SecureAI-Scan, listed by the [OWASP GenAI Security Project](https://genai.owasp.org/solution/secureai-scan/), checks AI, LLM, and MCP code. This repository has no runtime LLM or MCP integration. The gate prepares to check future additions, fails on high findings, and uploads SARIF to GitHub code scanning.
+**Manual performance sampling** in [performance.yml](.github/workflows/performance.yml) runs one cold and four warm pipelines on one runner, then publishes stage medians and ranges.
 
-SecureAI-Scan supports JavaScript, TypeScript, and Python. Run focused scans when a target directory contains AI or MCP code:
+The [OWASP SecureAI-Scan](https://genai.owasp.org/solution/secureai-scan/) gate checks AI, LLM, and MCP source, fails on high findings, and uploads SARIF. This project has no runtime AI or MCP integration.
+
+SecureAI-Scan currently supports JavaScript, TypeScript, and Python. Run a focused scan when those folders contain AI or MCP code:
 
 ```sh
 source .github/versions.env
@@ -70,18 +72,25 @@ npx --yes "secureai-scan@$SECUREAI_SCAN_VERSION" scan clients/ts --fail-on high
 npx --yes "secureai-scan@$SECUREAI_SCAN_VERSION" scan clients/python --fail-on high
 ```
 
-The current client directories contain API tests, not AI integrations.
+The current client directories contain API tests only. Rust, Go, Java, and C# are included in the CodeQL matrix; CodeQL is general static analysis, not an AI-specific ruleset.
 
-| Languages | OWASP GenAI scan |
+| Language | Example scan |
 |---|---|
-| JavaScript, TypeScript, Python | SecureAI-Scan; examples above |
-| Rust, Go, Java, C# | Not supported by this scanner. CodeQL covers these languages, but not AI-specific risks. |
+| Language | OWASP AI example | General source analysis |
+|---|---|---|
+| JavaScript | `scan clients/js --fail-on high` | CodeQL `javascript-typescript` |
+| TypeScript | `scan clients/ts --fail-on high` | CodeQL `javascript-typescript` |
+| Python | `scan clients/python --fail-on high` | CodeQL `python` |
+| Rust | Not supported by SecureAI-Scan | CodeQL `rust` |
+| Go | Not supported by SecureAI-Scan | CodeQL `go` |
+| Java | Not supported by SecureAI-Scan | CodeQL `java-kotlin` |
+| C# | Not supported by SecureAI-Scan | CodeQL `csharp` |
 
 Tool versions are in .github/versions.env.
 
 ### Workflow map
 
-The same maps are available as navigable views in the [interactive showcase](docs/project-flow.html#workflows). Open the [contract graph](docs/project-flow.html#contracts) or the [pipeline graph](docs/project-flow.html#pipeline) there.
+Browse the [contract](docs/project-flow.html#contracts), [pipeline](docs/project-flow.html#pipeline), [workflow](docs/project-flow.html#workflows), and [performance](docs/project-flow.html#performance) maps in the interactive showcase.
 
 ```mermaid
 flowchart TB
@@ -104,13 +113,16 @@ flowchart TB
   MainPush --> Showcase[showcase.yml]
   Manual --> Showcase
   Showcase --> Pages[GitHub Pages]
+  Manual --> Performance[performance.yml]
+  Performance --> Samples[One cold and four warm runs]
+  Samples --> Timings[Stage medians and ranges]
   Dependabot[Dependabot weekly updates] --> UpdatePR[Dependency update pull request]
   UpdatePR --> PullRequest
 ```
 
 ## Performance
 
-The last green contract run, [44052746009](https://github.com/shoman2020/oas-polycontract/actions/runs/44052746009), took about **6m 27s**. An earlier diagnostic generated 115 Schemathesis cases in 2.07 seconds. Repeated cold and warm runs are needed for a stable baseline; see [Phase 12](ROADMAP.md#phase-12--performance-baseline).
+Each contract run reports stage timings and uploads a CSV artifact. The latest green run, [44124445828](https://github.com/shoman2020/oas-polycontract/actions/runs/44124445828), took **4m 52s**. An earlier Schemathesis diagnostic generated 115 cases in 2.07 seconds. The five-run cold/warm benchmark remains open. See the [performance view](docs/project-flow.html#performance) and [Phase 12](ROADMAP.md#phase-12--performance-baseline).
 
 ## Project structure
 
@@ -120,9 +132,10 @@ The last green contract run, [44052746009](https://github.com/shoman2020/oas-pol
 | contracts/events/ | AsyncAPI examples |
 | demo/ | Product, Order, Inventory, WireMock, and mock data |
 | clients/ | Rust, Go, Python, JS, TS, Java, C#, Playwright |
+| clients/rust/Cargo.lock; clients/go/go.sum; clients/csharp/packages.lock.json | Rust, Go, and .NET dependency locks |
 | gates/ | Lint and compatibility checks |
 | evals/ | Documentation, roles, and pipeline checks |
-| docs/project-flow.html | Interactive contract, pipeline, and workflow graphs |
+| docs/project-flow.html | Interactive contract, pipeline, workflow, and performance graphs |
 | .github/workflows/ | Contract, security, and showcase automation |
 | docker-compose.yml; run.sh | Local and CI pipeline |
 

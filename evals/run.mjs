@@ -192,6 +192,26 @@ function checkPipelineServices(services) {
   return services.length;
 }
 
+function checkDependencyLocks() {
+  const cargoLock = readRepositoryFile('clients/rust/Cargo.lock');
+  const goSum = readRepositoryFile('clients/go/go.sum');
+  const nugetLock = JSON.parse(readRepositoryFile('clients/csharp/packages.lock.json'));
+  const rustDockerfile = readRepositoryFile('clients/rust/Dockerfile');
+  const goDockerfile = readRepositoryFile('clients/go/Dockerfile');
+  const csharpDockerfile = readRepositoryFile('clients/csharp/Dockerfile');
+  const csharpProject = readRepositoryFile('clients/csharp/ContractTests.csproj');
+  const required = [
+    [cargoLock.includes('version = 4') && cargoLock.includes('name = "reqwest"\nversion = "0.13.5"'), 'Rust lockfile must record reqwest 0.13.5'],
+    [rustDockerfile.includes('cargo fetch --locked') && rustDockerfile.includes('"test", "--locked"'), 'Rust image must fetch and test with --locked'],
+    [/^github\.com\/getkin\/kin-openapi v0\.153\.0 h1:/m.test(goSum), 'Go checksum must record kin-openapi 0.153.0'],
+    [goDockerfile.includes('go mod download') && goDockerfile.includes('"-mod=readonly"'), 'Go image must download modules and test read-only'],
+    [Boolean(nugetLock.dependencies?.['net10.0']?.NJsonSchema?.resolved), 'NuGet lockfile must record resolved direct dependencies'],
+    [csharpProject.includes('<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>') && csharpDockerfile.includes('--locked-mode') && csharpDockerfile.includes('--no-restore'), '.NET restore and test must enforce the committed lockfile'],
+  ];
+  for (const [passed, message] of required) if (!passed) failures.push(`dependency-locks: ${message}`);
+  return required.length;
+}
+
 function checkRoadmapPhases(expectedPhases, verifiedRun) {
   const roadmap = readRepositoryFile('ROADMAP.md');
   const phases = [...roadmap.matchAll(/^### Phase (\d+)\s+—/gm)].map((match) => Number(match[1]));
@@ -209,11 +229,12 @@ function checkWorkflowVisuals() {
     '.github/workflows/contract.yml',
     '.github/workflows/security.yml',
     '.github/workflows/showcase.yml',
+    '.github/workflows/performance.yml',
   ];
   const sourcePolicies = [
     {
       path: '.github/workflows/contract.yml',
-      markers: ['  push:', '  pull_request:', '  workflow_dispatch:', 'bash ./run.sh', 'image-ref: oas-polycontract-app:latest', 'image-ref: oas-polycontract-wiremock:latest'],
+      markers: ['  push:', '  pull_request:', '  workflow_dispatch:', 'PIPELINE_TIMINGS_FILE:', 'pipeline-timings.csv', 'actions/upload-artifact@', 'bash ./run.sh', 'image-ref: oas-polycontract-app:latest', 'image-ref: oas-polycontract-wiremock:latest'],
     },
     {
       path: '.github/workflows/security.yml',
@@ -224,14 +245,18 @@ function checkWorkflowVisuals() {
       markers: ['branches: [main]', 'docs/project-flow.html', 'workflow_dispatch:', 'actions/deploy-pages@'],
     },
     {
+      path: '.github/workflows/performance.yml',
+      markers: ['workflow_dispatch:', 'one cold and four warm', 'bash ./run.sh', 'summarize-performance.mjs', 'actions/upload-artifact@'],
+    },
+    {
       path: '.github/dependabot.yml',
       markers: ['interval: weekly'],
     },
   ];
-  const workflowNames = ['contract.yml', 'security.yml', 'showcase.yml'];
+  const workflowNames = ['contract.yml', 'security.yml', 'showcase.yml', 'performance.yml'];
   const concepts = ['Dependency Review', 'Dependabot', 'Trivy image scans', 'OWASP GenAI scan', 'SecureAI-Scan'];
-  const readmeTriggers = ['Push to any branch', 'Push to main', 'Pull request', 'Weekly schedule', 'Manual workflow dispatch'];
-  const showcaseTriggers = ['Push · pull request · manual run', 'Main push · pull request · weekly · manual', 'Main push to showcase files · manual run'];
+  const readmeTriggers = ['Push to any branch', 'Push to main', 'Pull request', 'Weekly schedule', 'Manual workflow dispatch', 'Manual performance sampling'];
+  const showcaseTriggers = ['Push · pull request · manual run', 'Main push · pull request · weekly · manual', 'Main push to showcase files · manual run', 'Manual five-run benchmark'];
 
   for (const path of workflowFiles) assertRepositoryPath(path, 'workflow-visuals');
   for (const policy of sourcePolicies) {
@@ -248,6 +273,19 @@ function checkWorkflowVisuals() {
     if (!readme.includes(concept)) failures.push(`workflow-visuals: README omits ${concept}`);
     if (!showcase.includes(concept)) failures.push(`workflow-visuals: interactive showcase omits ${concept}`);
   }
+  for (const example of [
+    'scan clients/js --fail-on high',
+    'scan clients/ts --fail-on high',
+    'scan clients/python --fail-on high',
+    'CodeQL `rust`',
+    'CodeQL `go`',
+    'CodeQL `python`',
+    'CodeQL `javascript-typescript`',
+    'CodeQL `java-kotlin`',
+    'CodeQL `csharp`',
+  ]) {
+    if (!readme.includes(example)) failures.push(`workflow-visuals: README omits language scan example ${example}`);
+  }
   for (const trigger of readmeTriggers) {
     if (!readme.includes(trigger)) failures.push(`workflow-visuals: README omits trigger ${trigger}`);
   }
@@ -258,6 +296,7 @@ function checkWorkflowVisuals() {
     ['docs/project-flow.html#contracts', 'id="contracts"'],
     ['docs/project-flow.html#pipeline', 'id="pipeline"'],
     ['docs/project-flow.html#workflows', 'id="workflows"'],
+    ['docs/project-flow.html#performance', 'id="performance"'],
   ]) {
     if (!readme.includes(link) || !showcase.includes(anchor)) failures.push(`workflow-visuals: graph link ${link} must resolve to ${anchor}`);
   }
@@ -268,7 +307,7 @@ function checkWorkflowVisuals() {
   const laneCount = [...showcase.matchAll(/class="workflow-lane"/g)].length;
   if (!readme.includes('```mermaid\nflowchart TB')) failures.push('workflow-visuals: README workflow diagram is missing');
   if (sceneCount !== 8) failures.push(`workflow-visuals: expected 8 showcase slides, found ${sceneCount}`);
-  if (laneCount !== 3) failures.push(`workflow-visuals: expected 3 workflow lanes, found ${laneCount}`);
+  if (laneCount !== 4) failures.push(`workflow-visuals: expected 4 workflow lanes, found ${laneCount}`);
   if (!showcase.includes('aria-valuemax="8"')) failures.push('workflow-visuals: showcase progress range is not updated for 8 slides');
   return workflowFiles.length + sourcePolicies.length + concepts.length + readmeTriggers.length + showcaseTriggers.length + sceneCount + laneCount;
 }
@@ -281,6 +320,7 @@ const evaluators = {
   'mock-data-evaluations': (check) => checkMockDataEvaluations(check.file),
   'pipeline-services': (check) => checkPipelineServices(check.services),
   'workflow-visuals': () => checkWorkflowVisuals(),
+  'dependency-locks': () => checkDependencyLocks(),
   'roadmap-phases': (check) => checkRoadmapPhases(check.expectedPhases, check.verifiedRun),
 };
 

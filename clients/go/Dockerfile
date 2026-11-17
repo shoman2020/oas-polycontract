@@ -12,6 +12,6 @@ RUN chown app:app /workspace
 COPY --chown=app:app go.mod .
 COPY --chown=app:app . .
 USER app
-RUN go mod tidy
-CMD ["go", "test", "-v", "./..."]
+RUN go mod download
+CMD ["go", "test", "-mod=readonly", "-v", "./..."]
 

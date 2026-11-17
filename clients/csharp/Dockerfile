@@ -10,5 +10,6 @@ WORKDIR /workspace
 RUN chown app:app /workspace
 COPY --chown=app:app . .
 USER app
-CMD ["dotnet", "test"]
+RUN dotnet restore ContractTests.csproj --locked-mode
+CMD ["dotnet", "test", "--no-restore"]
 

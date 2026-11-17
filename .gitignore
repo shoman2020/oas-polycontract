@@ -8,6 +8,7 @@ clients/*/bin/
 **/.pytest_cache/
 **/.venv/
 .coverage
+.artifacts/
 
 # Local environment files
 .env

@@ -1,0 +1,50 @@
+name: performance
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: performance-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  five-run-sample:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check shell syntax
+        run: bash -n run.sh
+
+      - name: Collect one cold and four warm runs
+        shell: bash
+        run: |
+          set -euo pipefail
+          sample_dir="$RUNNER_TEMP/oas-performance"
+          mkdir -p "$sample_dir"
+          for run in 1 2 3 4 5; do
+            if [[ "$run" == 1 ]]; then
+              echo "==> Cold pipeline sample $run of 5"
+            else
+              echo "==> Warm pipeline sample $run of 5"
+            fi
+            PIPELINE_TIMINGS_FILE="$sample_dir/run-$run.csv" bash ./run.sh
+          done
+
+      - name: Summarize the samples
+        run: node evals/summarize-performance.mjs "$RUNNER_TEMP/oas-performance"
+
+      - name: Upload timing samples
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pipeline-performance-samples
+          path: ${{ runner.temp }}/oas-performance/
+          if-no-files-found: warn

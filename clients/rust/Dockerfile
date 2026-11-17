@@ -10,6 +10,6 @@ WORKDIR /workspace
 RUN chown app:app /workspace
 COPY --chown=app:app . .
 USER app
-RUN cargo fetch
-CMD ["cargo", "test", "--", "--nocapture"]
+RUN cargo fetch --locked
+CMD ["cargo", "test", "--locked", "--", "--nocapture"]
 

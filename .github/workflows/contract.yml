@@ -35,7 +35,17 @@ jobs:
           echo "SPECMATIC_VERSION=$SPECMATIC_VERSION" >> "$GITHUB_ENV"
 
       - name: Run the local contract pipeline
+        env:
+          PIPELINE_TIMINGS_FILE: ${{ runner.temp }}/pipeline-timings.csv
         run: bash ./run.sh
+
+      - name: Upload pipeline timings
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pipeline-timings
+          path: ${{ runner.temp }}/pipeline-timings.csv
+          if-no-files-found: warn
 
       # Scan built runtime images here; security.yml scans repository dependencies and configuration.
       - name: Scan application container image
