@@ -301,11 +301,35 @@ function checkWorkflowVisuals() {
   for (const trigger of showcaseTriggers) {
     if (!showcase.includes(trigger)) failures.push(`workflow-visuals: interactive showcase omits trigger ${trigger}`);
   }
+  if (!readme.includes('### Contract and test flow') || !readme.includes('```mermaid\nflowchart LR')) {
+    failures.push('workflow-visuals: README contract and test flow diagram is missing');
+  }
+  if (!readme.includes('### CI workflow') || !readme.includes('```mermaid\nflowchart TB')) {
+    failures.push('workflow-visuals: README CI workflow diagram is missing');
+  }
+  for (const link of [
+    'https://github.com/shoman2020/oas-polycontract#flow-overview',
+    'https://github.com/shoman2020/oas-polycontract#contract-and-test-flow',
+    'https://github.com/shoman2020/oas-polycontract#ci-workflow',
+  ]) {
+    if (!showcase.includes(link)) failures.push(`workflow-visuals: showcase does not link back to README diagram ${link}`);
+  }
+  for (const diagramElement of [
+    'aria-label="Contract and API test flow diagram"',
+    'Specmatic provider test',
+    'Specmatic Smart Mock',
+    'stateful-app:8082',
+    'WireMock downstream service',
+  ]) {
+    if (!showcase.includes(diagramElement)) failures.push(`workflow-visuals: interactive test-flow map omits ${diagramElement}`);
+  }
   for (const [link, anchor] of [
-    ['docs/project-flow.html#contracts', 'id="contracts"'],
-    ['docs/project-flow.html#pipeline', 'id="pipeline"'],
-    ['docs/project-flow.html#workflows', 'id="workflows"'],
-    ['docs/project-flow.html#performance', 'id="performance"'],
+    ['https://shoman2020.github.io/oas-polycontract/#contracts', 'id="contracts"'],
+    ['https://shoman2020.github.io/oas-polycontract/#test-roles', 'id="test-roles"'],
+    ['https://shoman2020.github.io/oas-polycontract/#test-behavior', 'id="test-behavior"'],
+    ['https://shoman2020.github.io/oas-polycontract/#pipeline', 'id="pipeline"'],
+    ['https://shoman2020.github.io/oas-polycontract/#workflows', 'id="workflows"'],
+    ['https://shoman2020.github.io/oas-polycontract/#performance', 'id="performance"'],
   ]) {
     if (!readme.includes(link) || !showcase.includes(anchor)) failures.push(`workflow-visuals: graph link ${link} must resolve to ${anchor}`);
   }
@@ -314,9 +338,14 @@ function checkWorkflowVisuals() {
   }
   const sceneCount = [...showcase.matchAll(/<section class="scene"/g)].length;
   const laneCount = [...showcase.matchAll(/class="workflow-lane"/g)].length;
+  const testFlowLaneCount = [...showcase.matchAll(/class="test-flow-lane"/g)].length;
+  const workflowMapReferences = [...readme.matchAll(/https:\/\/shoman2020\.github\.io\/oas-polycontract\/#(?:contracts|test-roles|test-behavior|pipeline|workflows|performance)/g)].length;
   if (!readme.includes('```mermaid\nflowchart TB')) failures.push('workflow-visuals: README workflow diagram is missing');
+  if (!readme.includes('```mermaid\nflowchart LR')) failures.push('workflow-visuals: README contract and test diagram is missing');
   if (sceneCount !== 8) failures.push(`workflow-visuals: expected 8 showcase slides, found ${sceneCount}`);
   if (laneCount !== 4) failures.push(`workflow-visuals: expected 4 workflow lanes, found ${laneCount}`);
+  if (testFlowLaneCount !== 5) failures.push(`workflow-visuals: expected 5 interactive test-flow lanes, found ${testFlowLaneCount}`);
+  if (workflowMapReferences < 6) failures.push(`workflow-visuals: expected 6 README links to interactive maps, found ${workflowMapReferences}`);
   if (!showcase.includes('aria-valuemax="8"')) failures.push('workflow-visuals: showcase progress range is not updated for 8 slides');
   return workflowFiles.length + sourcePolicies.length + concepts.length + readmeTriggers.length + showcaseTriggers.length + sceneCount + laneCount;
 }

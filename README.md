@@ -2,7 +2,56 @@
 
 One hand-edited contract per API boundary. Specmatic checks provider behavior against the live API and consumer expectations against a generated Smart Mock. Native suites validate live responses against the OAS.
 
-[Interactive showcase](https://shoman2020.github.io/oas-polycontract/) · [Contracts](docs/project-flow.html#contracts) · [Pipeline](docs/project-flow.html#pipeline) · [Workflows](docs/project-flow.html#workflows) · [Performance](docs/project-flow.html#performance) · [Roadmap](ROADMAP.md)
+[Interactive showcase](https://shoman2020.github.io/oas-polycontract/) · [Contracts](https://shoman2020.github.io/oas-polycontract/#contracts) · [Test roles](https://shoman2020.github.io/oas-polycontract/#test-roles) · [Test behavior](https://shoman2020.github.io/oas-polycontract/#test-behavior) · [Pipeline](https://shoman2020.github.io/oas-polycontract/#pipeline) · [Workflows](https://shoman2020.github.io/oas-polycontract/#workflows) · [Performance](https://shoman2020.github.io/oas-polycontract/#performance) · [Roadmap](ROADMAP.md)
+
+## Flow overview
+
+These diagrams render in this README. Open the [interactive showcase](https://shoman2020.github.io/oas-polycontract/) for the full project, pipeline, workflow, and performance maps.
+
+### Contract and test flow
+
+```mermaid
+flowchart LR
+  ProductOAS[Product OAS] --> ProviderTest[Specmatic provider test]
+  ProviderTest --> ProductAPI[Live Product API]
+  ProductOAS --> SmartMock[Specmatic Smart Mock]
+  SmartMock --> ConsumerTests[JavaScript and Playwright consumer tests]
+  ProductOAS --> ProductTests[Native API suites, Playwright, and Schemathesis]
+  ProductTests --> ProductAPI
+  OrderOAS[Order OAS] --> StatefulTests[Stateful Schemathesis and native suites]
+  StatefulTests --> OrderAPI[Live Order API]
+  ProductAPI --> WireMock[WireMock downstream]
+```
+
+### CI workflow
+
+```mermaid
+flowchart TB
+  AnyPush[Push to any branch] --> Contract[contract.yml]
+  PullRequest[Pull request] --> Contract
+  Manual[Manual workflow dispatch] --> Contract
+  Contract --> Runner[run.sh: build, contract and API tests]
+  Runner --> ImageScans[Trivy image scans]
+
+  MainPush[Push to main] --> Security[security.yml]
+  PullRequest --> Security
+  Weekly[Weekly schedule] --> Security
+  Manual --> Security
+  Security --> CodeQL[CodeQL]
+  Security --> Secrets[Gitleaks]
+  Security --> FileScan[Trivy filesystem scan]
+  Security --> AIScan[OWASP GenAI scan: SecureAI-Scan]
+  PullRequest -.-> Review[Dependency Review]
+
+  ShowcasePush[Main push to showcase files] --> Showcase[showcase.yml]
+  Manual --> Showcase
+  Showcase --> Pages[GitHub Pages]
+  Manual --> Performance[performance.yml]
+  Performance --> Samples[One cold and four warm runs]
+  Samples --> Timings[Stage medians and ranges]
+  Dependabot[Dependabot weekly updates] --> UpdatePR[Dependency update pull request]
+  UpdatePR --> PullRequest
+```
 
 ## Run
 
@@ -57,7 +106,7 @@ Specmatic mock data uses OAS examples, fixtures in `demo/openapi_examples`, and 
 
 contract.yml runs the demo pipeline and Trivy image scans. security.yml runs CodeQL, Gitleaks, Trivy filesystem checks, Dependency Review on pull requests, and the OWASP GenAI scan. Dependabot checks package manifests weekly.
 
-Triggers: **Push to any branch**, **Push to main**, **Pull request**, **Weekly schedule**, and **Manual workflow dispatch**. See the [workflow graph](docs/project-flow.html#workflows).
+Triggers: **Push to any branch**, **Push to main**, **Pull request**, **Weekly schedule**, and **Manual workflow dispatch**. See the [interactive workflow map](https://shoman2020.github.io/oas-polycontract/#workflows).
 
 **Manual performance sampling** in [performance.yml](.github/workflows/performance.yml) runs one cold and four warm pipelines on one runner, then publishes stage medians and ranges.
 
@@ -74,8 +123,6 @@ npx --yes "secureai-scan@$SECUREAI_SCAN_VERSION" scan clients/python --fail-on h
 
 The current client directories contain API tests only. Rust, Go, Java, and C# are included in the CodeQL matrix; CodeQL is general static analysis, not an AI-specific ruleset.
 
-| Language | Example scan |
-|---|---|
 | Language | OWASP AI example | General source analysis |
 |---|---|---|
 | JavaScript | `scan clients/js --fail-on high` | CodeQL `javascript-typescript` |
@@ -88,41 +135,9 @@ The current client directories contain API tests only. Rust, Go, Java, and C# ar
 
 Tool versions are in .github/versions.env.
 
-### Workflow map
-
-Browse the [contract](docs/project-flow.html#contracts), [pipeline](docs/project-flow.html#pipeline), [workflow](docs/project-flow.html#workflows), and [performance](docs/project-flow.html#performance) maps in the interactive showcase.
-
-```mermaid
-flowchart TB
-  AnyPush[Push to any branch] --> Contract[contract.yml]
-  PullRequest[Pull request] --> Contract
-  Manual[Manual workflow dispatch] --> Contract
-  Contract --> Runner[run.sh: build, contract and API tests]
-  Runner --> ImageScans[Trivy image scans]
-
-  MainPush[Push to main] --> Security[security.yml]
-  PullRequest --> Security
-  Weekly[Weekly schedule] --> Security
-  Manual --> Security
-  Security --> CodeQL[CodeQL]
-  Security --> Secrets[Gitleaks]
-  Security --> FileScan[Trivy filesystem scan]
-  Security --> AIScan[OWASP GenAI scan: SecureAI-Scan]
-  PullRequest -.-> Review[Dependency Review]
-
-  MainPush --> Showcase[showcase.yml]
-  Manual --> Showcase
-  Showcase --> Pages[GitHub Pages]
-  Manual --> Performance[performance.yml]
-  Performance --> Samples[One cold and four warm runs]
-  Samples --> Timings[Stage medians and ranges]
-  Dependabot[Dependabot weekly updates] --> UpdatePR[Dependency update pull request]
-  UpdatePR --> PullRequest
-```
-
 ## Performance
 
-Each contract run reports stage timings and uploads a CSV artifact. The latest green run, [44124445828](https://github.com/shoman2020/oas-polycontract/actions/runs/44124445828), took **4m 52s**. An earlier Schemathesis diagnostic generated 115 cases in 2.07 seconds. The five-run cold/warm benchmark remains open. See the [performance view](docs/project-flow.html#performance) and [Phase 12](ROADMAP.md#phase-12--performance-baseline).
+Each contract run reports stage timings and uploads a CSV artifact. The latest green contract run, [44146222326](https://github.com/shoman2020/oas-polycontract/actions/runs/44146222326), took **5m 46s**. An earlier Schemathesis diagnostic generated 115 cases in 2.07 seconds. The five-run cold/warm benchmark remains open. See the [performance view](https://shoman2020.github.io/oas-polycontract/#performance) and [Phase 12](ROADMAP.md#phase-12--performance-baseline).
 
 ## Project structure
 
@@ -135,7 +150,7 @@ Each contract run reports stage timings and uploads a CSV artifact. The latest g
 | clients/rust/Cargo.lock; clients/go/go.sum; clients/csharp/packages.lock.json | Rust, Go, and .NET dependency locks |
 | gates/ | Lint and compatibility checks |
 | evals/ | Documentation, roles, and pipeline checks |
-| docs/project-flow.html | Interactive contract, pipeline, workflow, and performance graphs |
+| docs/project-flow.html | Interactive showcase source, published on GitHub Pages |
 | .github/workflows/ | Contract, security, and showcase automation |
 | docker-compose.yml; run.sh | Local and CI pipeline |
 

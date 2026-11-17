@@ -62,6 +62,13 @@
     .workflow-step strong { color: var(--text); }
     .workflow-step:not(:last-child)::after { display: block; margin-top: 6px; color: var(--teal); content: "↓"; }
     .workflow-foot { margin: 14px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.45; }
+    .test-flow-map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 26px; }
+    .test-flow-lane { padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+    .test-flow-lane h3 { margin: 0 0 10px; color: var(--teal); font-size: .92rem; }
+    .test-flow-chain { display: grid; gap: 7px; }
+    .test-flow-step { padding: 10px 11px; border: 1px solid #ffffff18; border-radius: 9px; color: var(--muted); font-size: .82rem; line-height: 1.4; }
+    .test-flow-step strong { color: var(--text); }
+    .test-flow-step:not(:last-child)::after { display: block; margin-top: 6px; color: var(--teal); content: "↓"; }
     .metric { min-height: 180px; }
     .metric .value { display: block; margin: 7px 0 10px; color: var(--blue); font-size: clamp(1.8rem, 4vw, 2.65rem); font-weight: 800; letter-spacing: -.04em; }
     .note { margin-top: 20px; padding: 16px 18px; border-left: 3px solid var(--amber); background: #ffca7410; color: var(--muted); line-height: 1.55; }
@@ -79,6 +86,7 @@
       .stage { min-height: 650px; }
       .grid, .grid.two { grid-template-columns: 1fr; }
       .workflow-map { grid-template-columns: 1fr; }
+      .test-flow-map { grid-template-columns: 1fr; }
       .card { min-height: auto; }
       .flow { grid-template-columns: 1fr; }
       .flow-arrow { transform: rotate(90deg); justify-self: center; }
@@ -111,6 +119,7 @@
             <div class="flow-node"><b>Consumer support</b><span>Smart Mock and debug views</span></div>
           </div>
           <div class="mini-flow"><span class="step">Clear ownership</span><span class="step-arrow" aria-hidden="true">→</span><span class="step">Less duplication</span><span class="step-arrow" aria-hidden="true">→</span><span class="step">More confidence in change</span></div>
+          <div class="note">The same contract and CI diagrams render in the <a href="https://github.com/shoman2020/oas-polycontract#flow-overview">README flow overview</a>, with links to these interactive maps.</div>
         </section>
         <section class="scene" id="contracts" aria-labelledby="scene-title-2" hidden>
           <span class="eyebrow">02 · Project structure</span>
@@ -180,17 +189,56 @@
             </section>
           </div>
           <div class="note">Dependabot opens weekly update pull requests. Contract and security workflows evaluate those changes.</div>
+          <p class="workflow-foot"><a href="https://github.com/shoman2020/oas-polycontract#ci-workflow">Open this CI flow in the README</a>.</p>
         </section>
         <section class="scene" id="test-roles" aria-labelledby="scene-title-5" hidden>
           <span class="eyebrow">05 · Contract roles</span>
           <h2 id="scene-title-5" tabindex="-1">Contract tests and API integration tests have distinct targets.</h2>
           <p class="lead">Specmatic provider and consumer checks use the Product OAS with different targets. Native language suites exercise the live APIs.</p>
-          <div class="grid">
-            <article class="card"><span class="tag">Provider contract test</span><strong>Specmatic → live Product API</strong><p>Contract-derived requests go to the healthy app at <code>app:8080</code>. Specmatic verifies the provider responses against the shared OAS.</p></article>
-            <article class="card"><span class="tag">Consumer contract test</span><strong>JavaScript / Playwright → Smart Mock</strong><p>Dedicated consumer test files call the Specmatic mock at <code>specmatic-mock:9000</code>, created from the Product OAS.</p></article>
-            <article class="card"><span class="tag">API integration</span><strong>Native clients → live Product and Order APIs</strong><p>Seven language suites and the Playwright provider suite send real requests, validate response schemas, and check business behavior.</p></article>
+          <div class="test-flow-map" role="group" aria-label="Contract and API test flow diagram">
+            <section class="test-flow-lane">
+              <h3>Provider contract test</h3>
+              <div class="test-flow-chain">
+                <div class="test-flow-step"><strong>Product OAS</strong></div>
+                <div class="test-flow-step">Specmatic provider test</div>
+                <div class="test-flow-step">Live Product API · <code>app:8080</code></div>
+              </div>
+            </section>
+            <section class="test-flow-lane">
+              <h3>Consumer contract test</h3>
+              <div class="test-flow-chain">
+                <div class="test-flow-step"><strong>Product OAS</strong></div>
+                <div class="test-flow-step">Specmatic Smart Mock · <code>specmatic-mock:9000</code></div>
+                <div class="test-flow-step">JavaScript and Playwright consumer tests</div>
+              </div>
+            </section>
+            <section class="test-flow-lane">
+              <h3>Product API integration</h3>
+              <div class="test-flow-chain">
+                <div class="test-flow-step"><strong>Product OAS</strong></div>
+                <div class="test-flow-step">Seven native suites, Playwright, and stateless Schemathesis</div>
+                <div class="test-flow-step">Live Product API · <code>app:8080</code></div>
+              </div>
+            </section>
+            <section class="test-flow-lane">
+              <h3>Stateful Order tests</h3>
+              <div class="test-flow-chain">
+                <div class="test-flow-step"><strong>Order OAS</strong></div>
+                <div class="test-flow-step">Stateful Schemathesis and seven native suites</div>
+                <div class="test-flow-step">Live Order API · <code>stateful-app:8082</code></div>
+                <div class="test-flow-step">Create, read, confirm, delete, then verify 404</div>
+              </div>
+            </section>
+            <section class="test-flow-lane">
+              <h3>Downstream integration</h3>
+              <div class="test-flow-chain">
+                <div class="test-flow-step"><strong>Live Product API</strong></div>
+                <div class="test-flow-step">WireMock downstream service</div>
+                <div class="test-flow-step">Assert the WireMock request journal</div>
+              </div>
+            </section>
           </div>
-          <div class="note">The consumer examples share the provider OAS; this project does not publish a separate consumer-owned CDC contract.</div>
+          <div class="note">API integration suites validate live responses against OAS before asserting behavior. The consumer tests share the provider OAS. <a href="https://github.com/shoman2020/oas-polycontract#contract-and-test-flow">See the GitHub-rendered README diagram</a>.</div>
         </section>
         <section class="scene" id="test-behavior" aria-labelledby="scene-title-6" hidden>
           <span class="eyebrow">06 · Test behavior</span>
@@ -218,11 +266,11 @@
           <h2 id="scene-title-8" tabindex="-1">Compare stage timings before setting thresholds.</h2>
           <p class="lead">Contract runs publish per-stage timings and a CSV artifact. Run <code>performance.yml</code> manually to compare one cold pipeline with four warm runs on the same runner.</p>
           <div class="grid">
-            <article class="card metric"><strong>Latest green contract run</strong><span class="value">4m 52s</span><p>Whole-run duration; image scans included.</p></article>
+            <article class="card metric"><strong>Latest green contract run</strong><span class="value">5m 46s</span><p>Whole-run duration; image scans included.</p></article>
             <article class="card metric"><strong>Fuzz diagnostic</strong><span class="value">115 · 2.07s</span><p>Cases generated and fuzzing duration.</p></article>
             <article class="card metric"><strong>Stage comparison</strong><span class="value">5 samples</span><p>Manual run reports cold time and warm median/range.</p></article>
           </div>
-          <p style="margin-top:18px"><a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44124445828">Latest green contract run</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/workflows/contract.yml">Contract timing artifacts</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/workflows/performance.yml">Run the five-sample benchmark</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603">Fuzz diagnostic</a> · <a href="https://github.com/shoman2020/oas-polycontract/blob/main/ROADMAP.md">Roadmap</a></p>
+          <p style="margin-top:18px"><a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44146222326">Latest green contract run</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/workflows/contract.yml">Contract timing artifacts</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/workflows/performance.yml">Run the five-sample benchmark</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603">Fuzz diagnostic</a> · <a href="https://github.com/shoman2020/oas-polycontract/blob/main/ROADMAP.md">Roadmap</a></p>
         </section>
       </div>
       <nav class="controls" aria-label="Showcase controls">
