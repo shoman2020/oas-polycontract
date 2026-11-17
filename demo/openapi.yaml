@@ -10,7 +10,9 @@ info:
     url: https://shift-left.nl
 servers:
   - url: http://localhost:8080
-    description: Local demo service.
+    description: Local demo service from the host.
+  - url: http://app:8080
+    description: Demo service on the Docker Compose network.
 tags:
   - name: health
     description: Service availability.
@@ -58,7 +60,15 @@ paths:
           required: true
           schema:
             type: string
-          example: demo-sku
+          examples:
+            demo:
+              value: demo-sku
+            limited:
+              value: limited-sku
+            product-not-found:
+              value: not-found-sku
+            inventory-unavailable:
+              value: unavailable-sku
       responses:
         "200":
           description: Product found

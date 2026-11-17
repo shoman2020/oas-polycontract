@@ -11,7 +11,9 @@ info:
     url: https://shift-left.nl
 servers:
   - url: http://localhost:8081
-    description: Inventory WireMock service on the local host.
+    description: Inventory WireMock service from the local host.
+  - url: http://wiremock:8080
+    description: WireMock service on the Docker Compose network.
 tags:
   - name: inventory
     description: Inventory availability operations.
@@ -28,7 +30,13 @@ paths:
           required: true
           schema:
             type: string
-          example: demo-sku
+          examples:
+            demo:
+              value: demo-sku
+            missing:
+              value: not-found-sku
+            unavailable:
+              value: unavailable-sku
       responses:
         "200":
           description: Inventory record found
@@ -47,12 +55,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+              examples:
+                missing:
+                  value:
+                    message: No inventory record for not-found-sku
         "503":
           description: Inventory service is unavailable
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+              examples:
+                unavailable:
+                  value:
+                    message: Inventory service unavailable
 components:
   schemas:
     Inventory:
