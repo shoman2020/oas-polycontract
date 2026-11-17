@@ -297,6 +297,11 @@ function checkDependencyLocks() {
   const goDockerfile = readRepositoryFile('clients/go/Dockerfile');
   const csharpDockerfile = readRepositoryFile('clients/csharp/Dockerfile');
   const csharpProject = readRepositoryFile('clients/csharp/ContractTests.csproj');
+  const versions = readRepositoryFile('.github/versions.env');
+  const tsPackage = JSON.parse(readRepositoryFile('clients/ts/package.json'));
+  const tsLock = JSON.parse(readRepositoryFile('clients/ts/package-lock.json'));
+  const tsDockerfile = readRepositoryFile('clients/ts/Dockerfile');
+  const compose = readRepositoryFile('docker-compose.yml');
   const required = [
     [cargoLock.includes('version = 4') && cargoLock.includes('name = "reqwest"\nversion = "0.13.5"'), 'Rust lockfile must record reqwest 0.13.5'],
     [rustDockerfile.includes('cargo fetch --locked') && rustDockerfile.includes('"test", "--locked"'), 'Rust image must fetch and test with --locked'],
@@ -312,6 +317,10 @@ function checkDependencyLocks() {
     [goDockerfile.includes('go mod download') && goDockerfile.includes('"-mod=readonly"'), 'Go image must download modules and test read-only'],
     [Boolean(nugetLock.dependencies?.['net10.0']?.NJsonSchema?.resolved), 'NuGet lockfile must record resolved direct dependencies'],
     [csharpProject.includes('<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>') && csharpDockerfile.includes('--locked-mode') && csharpDockerfile.includes('--no-restore'), '.NET restore and test must enforce the committed lockfile'],
+    [/^NPM_VERSION=\d+\.\d+\.\d+$/m.test(versions), 'NPM_VERSION must be pinned in the shared versions file'],
+    [tsPackage.engines?.npm?.startsWith('>=12') && tsLock.lockfileVersion === 4, 'TypeScript patching must use npm 12 and its supported lockfile format'],
+    [tsDockerfile.includes('npm@${NPM_VERSION}') && tsDockerfile.includes('USER node'), 'TypeScript image must install the pinned npm version and run as non-root'],
+    [compose.includes('NPM_VERSION: ${NPM_VERSION:?Set NPM_VERSION'), 'Compose must pass the pinned npm version to the TypeScript build'],
   ];
   for (const [passed, message] of required) if (!passed) failures.push(`dependency-locks: ${message}`);
   return required.length;

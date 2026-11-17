@@ -302,6 +302,7 @@ services:
       context: ./clients/ts
       args:
         NODE_VERSION: ${NODE_VERSION:?Set NODE_VERSION in .github/versions.env}
+        NPM_VERSION: ${NPM_VERSION:?Set NPM_VERSION in .github/versions.env}
     environment:
       API_BASE_URL: http://app:8080
       OPENAPI_SPEC: /contracts/openapi.yaml
