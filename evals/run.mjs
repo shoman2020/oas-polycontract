@@ -44,24 +44,12 @@ function checkReadmeLinks() {
 
 function checkReadmeTree() {
   const readme = readRepositoryFile('README.md');
-  const section = readme.match(/## Project structure\s+```text\s*([\s\S]*?)```/);
-  if (!section) throw new Error('README project structure code block was not found');
-
-  const parents = [];
-  const paths = [];
-  const treeLines = section[1].split(/\r?\n/);
-
-  for (const line of treeLines) {
-    const match = line.match(/^((?:\|   )*)(?:\|--|`--)\s+(\S+)/);
-    if (!match) continue;
-    const depth = match[1].length / 4;
-    const name = match[2].replace(/\/$/, '');
-    parents.length = depth;
-    const path = [...parents, name].join('/');
-    paths.push(path);
-    if (match[2].endsWith('/')) parents[depth] = name;
-    else parents.length = depth;
-  }
+  const section = readme.match(/## Project structure\s+([\s\S]*?)(?=\n## |\s*$)/);
+  if (!section) throw new Error('README project structure table was not found');
+  const paths = [...section[1].matchAll(/^\|\s*([^|]+?)\s*\|/gm)]
+    .map((match) => match[1].trim())
+    .filter((path) => path !== 'Path' && !/^[- ]+$/.test(path))
+    .flatMap((path) => path.split(/\s*;\s*/));
 
   for (const path of paths) assertRepositoryPath(path, 'readme-structure');
   return paths.length;
@@ -229,7 +217,7 @@ function checkWorkflowVisuals() {
     },
     {
       path: '.github/workflows/security.yml',
-      markers: ['branches: [main]', 'pull_request:', 'workflow_dispatch:', 'schedule:', 'gitleaks/gitleaks-action', 'scan-type: fs', 'scanners: vuln,misconfig', 'dependency-review-action'],
+      markers: ['branches: [main]', 'pull_request:', 'workflow_dispatch:', 'schedule:', 'gitleaks/gitleaks-action', 'scan-type: fs', 'scanners: vuln,misconfig', 'dependency-review-action', 'name: OWASP GenAI scan', 'secureai-scan@', '--fail-on high', 'upload-sarif@'],
     },
     {
       path: '.github/workflows/showcase.yml',
@@ -241,7 +229,7 @@ function checkWorkflowVisuals() {
     },
   ];
   const workflowNames = ['contract.yml', 'security.yml', 'showcase.yml'];
-  const concepts = ['Dependency Review', 'Dependabot', 'Trivy image scans'];
+  const concepts = ['Dependency Review', 'Dependabot', 'Trivy image scans', 'OWASP GenAI scan', 'SecureAI-Scan'];
   const readmeTriggers = ['Push to any branch', 'Push to main', 'Pull request', 'Weekly schedule', 'Manual workflow dispatch'];
   const showcaseTriggers = ['Push · pull request · manual run', 'Main push · pull request · weekly · manual', 'Main push to showcase files · manual run'];
 
@@ -265,6 +253,16 @@ function checkWorkflowVisuals() {
   }
   for (const trigger of showcaseTriggers) {
     if (!showcase.includes(trigger)) failures.push(`workflow-visuals: interactive showcase omits trigger ${trigger}`);
+  }
+  for (const [link, anchor] of [
+    ['docs/project-flow.html#contracts', 'id="contracts"'],
+    ['docs/project-flow.html#pipeline', 'id="pipeline"'],
+    ['docs/project-flow.html#workflows', 'id="workflows"'],
+  ]) {
+    if (!readme.includes(link) || !showcase.includes(anchor)) failures.push(`workflow-visuals: graph link ${link} must resolve to ${anchor}`);
+  }
+  if (!/^SECUREAI_SCAN_VERSION=\S+$/m.test(readRepositoryFile('.github/versions.env'))) {
+    failures.push('workflow-visuals: SecureAI-Scan version is not pinned');
   }
   const sceneCount = [...showcase.matchAll(/<section class="scene"/g)].length;
   const laneCount = [...showcase.matchAll(/class="workflow-lane"/g)].length;

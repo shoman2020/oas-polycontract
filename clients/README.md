@@ -1,128 +1,57 @@
-# Client suite migration guide
+# Client suites
 
-The examples target the Product API and a separate stateful Order API in
-`demo/`, each with its own hand-edited OAS. Seven suites use language-native
-frameworks; Playwright adds a JavaScript `APIRequestContext` suite without
-launching a browser. Generated clients and model types are optional and do not
-replace runtime response validation.
+Seven language-native suites call the live Product API and stateful Order API. Playwright adds APIRequestContext tests without a browser. Each response is validated against its hand-edited OAS.
 
-The JavaScript, TypeScript, and Playwright containers install from committed
-lockfiles with `npm ci`. Python installs from `requirements.lock` with hash
-verification. Rust, Go, and C# lock-mode work is tracked in Phase 9 of the
-[`ROADMAP.md`](../ROADMAP.md).
-
-## Port a Postman or Bruno collection
-
-1. Export requests, remove credentials and environment-specific secrets, and
-   group requests by API boundary and operation.
-2. Compare each operation, status, media type, and body with the hand-reviewed
-   OpenAPI contract. Add missing structural constraints and examples to OAS.
-3. Move setup such as authentication, shared headers, and request chaining
-   into the target framework's fixtures or helpers.
-4. Remove status and body-shape assertions that OAS validation already checks.
-   Keep business assertions in one native test suite.
-5. Run `bash ./run.sh`. It executes the seven language suites and Playwright
-   API integration suites against the Product API. Separate JavaScript and
-   Playwright consumer tests target Specmatic's Smart Mock generated from the
-   same contract.
-6. The same command runs stateless Schemathesis fuzzing, Schemathesis stateful
-   tests, and a native order lifecycle integration test in each of the seven
-   languages. The stateful tests use a separate in-memory Order API; the
-   Product API remains GET-only.
-
-## What each test validates
-
-The seven native language suites send `GET /products/demo-sku` to the live
-Product API, validate status, content type, and JSON body against OAS, then
-check the business result (`available` is 7). Each also creates an order,
-reads it, confirms it, deletes it, and verifies the next read returns `404`.
-Each lifecycle response is validated against `demo/stateful/openapi.yaml`.
-Playwright covers the Product API provider and consumer examples; its suite
-does not include the Order API lifecycle.
-
-| Language or runner | Test entry point | OAS validation |
-|---|---|---|
-| Rust | `cargo test` | Resolves the operation response schema and local `$ref` from OAS, then uses `jsonschema`. |
-| Go | `go test ./...` | Uses `kin-openapi` to locate the route and validate the complete HTTP response. |
-| Python | `pytest` | Uses `openapi-core` with Requests request/response adapters. |
-| JavaScript | `node --test` | Uses `@oaverify/core` and its YAML loader with Fetch request/response objects. |
-| TypeScript | `tsc --noEmit`, then Vitest | Uses `@oaverify/core` and the YAML loader; the Fetch result is typed after runtime validation. |
-| Playwright API (JavaScript) | `npm run test:provider` | Uses `APIRequestContext`; adapts the response to Fetch objects and validates it with `@oaverify/core`. |
-| Java | `mvn test` | REST Assured's Atlassian `OpenApiValidationFilter` validates request and response. |
-| C# | `dotnet test` | Reads the response schema and status from the OAS YAML, then uses `NJsonSchema`. |
+Run all examples with bash ./run.sh. CI uses the same entry point.
 
 ## Contract-based testing
 
-Contract-based tests check conformance at the provider or consumer boundary.
-The provider test asks whether the running Product API honors the OAS.
-Specmatic sends contract-derived requests to the live service. The consumer
-tests exercise client requests against a Smart Mock generated from that same
-OAS; this example does not publish a separate consumer-owned CDC contract.
+| Test | Source | Target |
+|---|---|---|
+| Provider contract-based test | Specmatic provider verification | Live Product API at app:8080 |
+| Consumer contract-based test | JavaScript and Playwright consumer suites | Specmatic Smart Mock at specmatic-mock:9000 |
 
-| Role | Test source | Target | Expected evidence |
-|---|---|---|---|
-| Provider contract-based test | Compose `specmatic-provider` service | Running Product API at `app:8080` | Specmatic validates provider responses against the OAS. |
-| Consumer contract-based test | JavaScript [`consumer-contract.test.mjs`](js/consumer-contract.test.mjs) and Playwright [`consumer-contract.spec.mjs`](playwright/consumer-contract.spec.mjs) | Specmatic Smart Mock at `specmatic-mock:9000` | Client expectations work with contract-derived mock responses. |
+Consumers check client expectations against responses generated from the provider OAS; they do not publish a separate CDC contract.
 
 ## API integration testing
 
-API integration tests send code-authored requests to running services. They
-validate status, media type, and response schema against OAS, then assert
-application behavior. These tests include real service wiring and lifecycle
-operations, so they complement the contract-based provider and consumer tests.
+These suites call live services, validate status, media type, and response schema, then check application behavior.
 
-| Test type | Test source | Target | Expected evidence |
-|---|---|---|---|
-| Product API integration test | [Rust](rust/tests/api_integration_test.rs), [Go](go/product_api_integration_test.go), [Python](python/test_product_api_integration.py), [JavaScript](js/product-api-integration.test.mjs), [TypeScript](ts/product-api-integration.test.ts), [Java](java/src/test/java/nl/shiftleft/ProductApiIntegrationTest.java), [C#](csharp/ProductApiIntegrationTests.cs), and Playwright [provider suite](playwright/product-api-integration.spec.mjs) | Running Product API at `app:8080` | Real HTTP responses pass OAS validation and a business assertion. |
-| Stateful API integration test | [Rust](rust/tests/api_integration_test.rs), [Go](go/stateful_order_api_integration_test.go), [Python](python/test_stateful_order_api_integration.py), [JavaScript](js/stateful-order-api-integration.test.mjs), [TypeScript](ts/stateful-order-api-integration.test.ts), [Java](java/src/test/java/nl/shiftleft/StatefulOrderApiIntegrationTest.java), and [C#](csharp/StatefulOrderApiIntegrationTests.cs) | Running Order API at `stateful-app:8082` | The suite validates the create/read/confirm/delete lifecycle against its OAS. |
-| Downstream service integration test | [`wiremock.integration.mjs`](../demo/app/tests/wiremock.integration.mjs) | Product API and WireMock | The app returns its response and the expected inventory call appears in WireMock's request journal. |
+| Test | Source | Target |
+|---|---|---|
+| Product API integration test | Seven native suites and Playwright | Live Product API |
+| Stateful API integration test | Seven native suites | Order API lifecycle: create, read, confirm, delete, verify 404 |
+| Downstream service integration test | WireMock integration suite | Product API and WireMock request journal |
 
-Smart Mock fixtures and dictionary values have a separate deterministic
-evaluation in [`specmatic-mock.integration.mjs`](../demo/app/tests/specmatic-mock.integration.mjs)
-using [`mock-data-evals.json`](../evals/mock-data-evals.json). This checks mock
-data behavior; it is not a live API integration test.
+| Language | Validator |
+|---|---|
+| Rust | reqwest and jsonschema |
+| Go | net/http and kin-openapi |
+| Python | Requests and openapi-core |
+| JavaScript | Fetch and @oaverify/core |
+| TypeScript | Fetch and @oaverify/core |
+| Java | REST Assured OpenAPI validator |
+| C# | HttpClient and NJsonSchema |
+| Playwright | APIRequestContext and @oaverify/core; Product API only |
 
-The Rust and C# starters resolve the operation response and schema from the
-contract but intentionally support local component `$ref`s only. For larger
-contracts, prefer a full OpenAPI validator for that language or resolve and
-bundle external references before validation.
+## Test files
 
-## Test design
+| Role | Implemented source |
+|---|---|
+| Consumer contract | [JavaScript](js/consumer-contract.test.mjs), [Playwright](playwright/consumer-contract.spec.mjs) |
+| Product API integration | [Rust](rust/tests/api_integration_test.rs), [Go](go/product_api_integration_test.go), [Python](python/test_product_api_integration.py), [JavaScript](js/product-api-integration.test.mjs), [TypeScript](ts/product-api-integration.test.ts), [Java](java/src/test/java/nl/shiftleft/ProductApiIntegrationTest.java), [C#](csharp/ProductApiIntegrationTests.cs), [Playwright](playwright/product-api-integration.spec.mjs) |
+| Stateful API integration | [Rust](rust/tests/api_integration_test.rs), [Go](go/stateful_order_api_integration_test.go), [Python](python/test_stateful_order_api_integration.py), [JavaScript](js/stateful-order-api-integration.test.mjs), [TypeScript](ts/stateful-order-api-integration.test.ts), [Java](java/src/test/java/nl/shiftleft/StatefulOrderApiIntegrationTest.java), [C#](csharp/StatefulOrderApiIntegrationTests.cs) |
 
-Each language suite uses a small `ProductApiClient` object to centralize base
-URL handling, request construction, and timeouts. The native OpenAPI validator
-and business assertions remain separate, so test methods describe behavior
-instead of repeating transport setup. Rust uses a struct with methods, Go a
-client struct, Python a dataclass, and JavaScript, TypeScript, Java, and C# use
-classes.
+Product tests request GET /products/demo-sku. Each native language also runs the linked Order lifecycle. The Product API is GET-only; Order state is isolated per run. The downstream suite checks the WireMock journal. Smart Mock fixtures and dictionary fallback use separate deterministic evaluations.
 
-Playwright uses the same client pattern around its `APIRequestContext` fixture.
-Its provider test calls the healthy app; its consumer test calls the Specmatic
-Smart Mock. Run the two examples separately with `npm run test:provider` and
-`npm run test:consumer` inside `clients/playwright/` after setting
-`API_BASE_URL` and `OPENAPI_SPEC` for the intended target.
+## Migration and design
 
-Page Object Model is for browser UI automation. This repository has no browser
-UI, so its API clients use the equivalent service-object pattern for HTTP
-operations; there is no page model to maintain.
+1. Group requests by API boundary and operation; remove secrets.
+2. Hand-review OAS operations, status codes, media types, and schemas.
+3. Move setup, auth, and request chaining into native fixtures or helpers.
+4. Keep OAS shape validation in the validator and business assertions in one suite.
+5. Run bash ./run.sh and review output.
 
-## Representative output
+Use a small API client object for base URLs, requests, and timeouts. Keep schema validation separate from business assertions. Rust uses a struct, Go a client struct, Python a dataclass, and JS, TS, Java, and C# use classes. Page Object Model is for browser UI; this project has no browser UI.
 
-Exact formatting varies by framework. A successful run reports the same
-contract outcome from each language-native suite and the Playwright API suite:
-
-```text
-Rust       test product_response_matches_openapi_contract ... ok
-Go         --- PASS: TestProductResponseMatchesOpenAPIContract
-Python     test_product_api_integration.py::test_product_response_matches_openapi_contract PASSED
-JavaScript ✔ product response matches the OpenAPI contract
-TypeScript ✓ validates the response against the OAS and checks the business result
-Playwright Provider integration passed: GET /products/demo-sku -> 200
-Playwright Consumer contract passed: GET /products/demo-sku -> 200 from Specmatic Smart Mock
-Java       Tests run: 1, Failures: 0, Errors: 0, Skipped: 0
-C#         Passed! - Failed: 0, Passed: 1, Skipped: 0, Total: 1
-
-OAS validation passed: GET /products/demo-sku -> 200
-Stateful OAS validation passed: create -> read -> confirm -> delete -> 404
-```
-
+A successful run reports OAS validation for the Product response and the Order create/read/confirm/delete/404 lifecycle across native suites and Playwright.

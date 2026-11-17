@@ -101,7 +101,7 @@
     <main class="deck" aria-label="Interactive project showcase">
       <div class="progress-track" role="progressbar" aria-label="Showcase slide progress" aria-valuemin="1" aria-valuemax="8" aria-valuenow="1"><div class="progress-value" id="progress"></div></div>
       <div class="stage" id="stage" aria-live="polite" aria-atomic="true">
-        <section class="scene" aria-labelledby="scene-title-1">
+        <section class="scene" id="overview" aria-labelledby="scene-title-1">
           <span class="eyebrow">01 · Project purpose</span>
           <h1 id="scene-title-1" tabindex="-1">One reviewed contract. Consistent API checks.</h1>
           <p class="lead">oas-polycontract demonstrates an OpenAPI-first workflow: teams maintain the contract, then use it to validate providers, support consumer development, and check live APIs in code.</p>
@@ -112,7 +112,7 @@
           </div>
           <div class="mini-flow"><span class="step">Clear ownership</span><span class="step-arrow" aria-hidden="true">→</span><span class="step">Less duplication</span><span class="step-arrow" aria-hidden="true">→</span><span class="step">More confidence in change</span></div>
         </section>
-        <section class="scene" aria-labelledby="scene-title-2" hidden>
+        <section class="scene" id="contracts" aria-labelledby="scene-title-2" hidden>
           <span class="eyebrow">02 · Project structure</span>
           <h2 id="scene-title-2" tabindex="-1">Separate contracts by API boundary.</h2>
           <p class="lead">The repository keeps the design scaffold, runnable services, downstream dependency, and event examples distinct. Each contract has a clear scope and corresponding checks.</p>
@@ -123,7 +123,7 @@
           </div>
           <div class="note">The event contracts are linted examples. This project does not include a WebSocket server or Kafka broker.</div>
         </section>
-        <section class="scene" aria-labelledby="scene-title-3" hidden>
+        <section class="scene" id="pipeline" aria-labelledby="scene-title-3" hidden>
           <span class="eyebrow">03 · Pipeline</span>
           <h2 id="scene-title-3" tabindex="-1">One command runs the demonstration.</h2>
           <p class="lead">Run <code>bash ./run.sh</code> locally or in Ubuntu CI. Compose validates its configuration and builds images, repository evaluations run before the contract gates, then Compose starts services, waits for health checks, and runs the API suites.</p>
@@ -134,7 +134,7 @@
           </div>
           <div class="mini-flow"><span class="step"><b>Compose config and build</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Repository evals</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Contract and API checks</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Trivy image scans</b></span></div>
         </section>
-        <section class="scene" aria-labelledby="scene-title-4" hidden>
+        <section class="scene" id="workflows" aria-labelledby="scene-title-4" hidden>
           <span class="eyebrow">04 · GitHub workflows</span>
           <h2 id="scene-title-4" tabindex="-1">Separate workflow triggers. Clear scan ownership.</h2>
           <p class="lead">Three workflows handle contract verification, repository security, and showcase publishing. Dependabot proposes dependency updates on a separate weekly schedule.</p>
@@ -153,6 +153,7 @@
               <p class="workflow-trigger">Main push · pull request · weekly · manual</p>
               <div class="workflow-chain">
                 <div class="workflow-step"><strong>CodeQL</strong><br>Source code and workflow analysis</div>
+                <div class="workflow-step"><strong>OWASP GenAI scan · SecureAI-Scan</strong><br>High-severity AI and MCP source findings; JavaScript, TypeScript, and Python</div>
                 <div class="workflow-step"><strong>Gitleaks</strong><br>Repository secret scanning</div>
                 <div class="workflow-step"><strong>Trivy filesystem</strong><br>Dependency and configuration findings</div>
               </div>
@@ -171,7 +172,7 @@
           </div>
           <div class="note">Dependabot checks configured ecosystems weekly and opens update pull requests. Contract and security workflows then evaluate those changes.</div>
         </section>
-        <section class="scene" aria-labelledby="scene-title-5" hidden>
+        <section class="scene" id="test-roles" aria-labelledby="scene-title-5" hidden>
           <span class="eyebrow">05 · Contract roles</span>
           <h2 id="scene-title-5" tabindex="-1">Contract tests and API integration tests have distinct targets.</h2>
           <p class="lead">Specmatic provider and consumer checks use the Product OAS with different targets. Native language suites exercise the live APIs.</p>
@@ -182,7 +183,7 @@
           </div>
           <div class="note">The consumer examples share the provider OAS; this project does not publish a separate consumer-owned CDC contract.</div>
         </section>
-        <section class="scene" aria-labelledby="scene-title-6" hidden>
+        <section class="scene" id="test-behavior" aria-labelledby="scene-title-6" hidden>
           <span class="eyebrow">06 · Test behavior</span>
           <h2 id="scene-title-6" tabindex="-1">Test independent requests and linked workflows.</h2>
           <div class="grid two">
@@ -192,7 +193,7 @@
           <div class="mini-flow"><span class="step"><b>Create</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Read</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Confirm</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Delete</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Verify 404</b></span></div>
           <p class="lead" style="margin-top:20px">Rust, Go, Python, JavaScript, TypeScript, Java, and C# repeat the lifecycle and validate each response against the stateful OAS.</p>
         </section>
-        <section class="scene" aria-labelledby="scene-title-7" hidden>
+        <section class="scene" id="language-tests" aria-labelledby="scene-title-7" hidden>
           <span class="eyebrow">07 · Native API tests</span>
           <h2 id="scene-title-7" tabindex="-1">Validate live responses in native test suites.</h2>
           <p class="lead">Each example uses a small API client object for requests and a language-native test framework for behavior and OAS response validation.</p>
@@ -203,7 +204,7 @@
           </div>
           <div class="note">For manual exploration, optional Swagger UI and Prism views load the root contract. They serve a different role from the automated checks.</div>
         </section>
-        <section class="scene" aria-labelledby="scene-title-8" hidden>
+        <section class="scene" id="performance" aria-labelledby="scene-title-8" hidden>
           <span class="eyebrow">08 · Performance insights</span>
           <h2 id="scene-title-8" tabindex="-1">Use timings as diagnostics, not a benchmark.</h2>
           <p class="lead">The most recent green contract run completed in about 6 minutes 27 seconds. Earlier fuzzing timings are available as diagnostics; repeated cold and warm-cache runs are still needed for a stable benchmark.</p>
@@ -258,6 +259,8 @@
       counter.textContent = `${activeScene + 1} / ${scenes.length}`;
       progress.style.width = `${((activeScene + 1) / scenes.length) * 100}%`;
       progressTrack.setAttribute("aria-valuenow", String(activeScene + 1));
+      const hash = "#" + scenes[activeScene].id;
+      if (window.location.hash !== hash) history.replaceState(null, "", hash);
     }
 
     previous.addEventListener("click", () => showScene(activeScene - 1));
@@ -269,7 +272,8 @@
       if (event.key === "Home") showScene(0);
       if (event.key === "End") showScene(scenes.length - 1);
     });
-    showScene(0);
+    const requestedScene = scenes.findIndex((scene) => scene.id === window.location.hash.slice(1));
+    showScene(requestedScene < 0 ? 0 : requestedScene);
   </script>
 </body>
 </html>
