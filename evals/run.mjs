@@ -211,7 +211,7 @@ function checkDependencyLocks() {
       'github.com/gorilla/mux v1.8.0 // indirect',
       'github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect',
       'go.yaml.in/yaml/v4 v4.0.0 // indirect',
-      'golang.org/x/text v0.14.0 // indirect',
+      'golang.org/x/text v0.41.0 // indirect',
     ].every((dependency) => goMod.includes(dependency)), 'Go module file must pin the tidied indirect requirements'],
     [goDockerfile.includes('go mod download') && goDockerfile.includes('"-mod=readonly"'), 'Go image must download modules and test read-only'],
     [Boolean(nugetLock.dependencies?.['net10.0']?.NJsonSchema?.resolved), 'NuGet lockfile must record resolved direct dependencies'],
