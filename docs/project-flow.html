@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b1020">
-  <meta name="description" content="An interactive guide to the oas-polycontract project flow, contract roles, test phases, and performance insights.">
+  <meta name="description" content="Explore the OpenAPI contracts, test roles, pipeline, and performance history in oas-polycontract.">
   <title>oas-polycontract | Project flow</title>
   <style>
     :root {
@@ -89,43 +89,54 @@
       <a href="https://github.com/shoman2020/oas-polycontract">View repository</a>
     </header>
     <main class="deck" aria-label="Interactive project showcase">
-      <div class="progress-track" role="progressbar" aria-label="Showcase slide progress" aria-valuemin="1" aria-valuemax="6" aria-valuenow="1"><div class="progress-value" id="progress"></div></div>
+      <div class="progress-track" role="progressbar" aria-label="Showcase slide progress" aria-valuemin="1" aria-valuemax="7" aria-valuenow="1"><div class="progress-value" id="progress"></div></div>
       <div class="stage" id="stage" aria-live="polite" aria-atomic="true">
         <section class="scene" aria-labelledby="scene-title-1">
-          <span class="eyebrow">01 · Contract flow</span>
-          <h1 id="scene-title-1" tabindex="-1">One contract. Clear roles. Trust each change.</h1>
-          <p class="lead">A hand-edited OpenAPI contract feeds provider checks, consumer mocks, language-native API tests, and debugging views. Teams review one shared behavior definition.</p>
+          <span class="eyebrow">01 · Project purpose</span>
+          <h1 id="scene-title-1" tabindex="-1">One reviewed contract. Consistent API checks.</h1>
+          <p class="lead">oas-polycontract demonstrates an OpenAPI-first workflow: teams maintain the contract, then use it to validate providers, support consumer development, and check live APIs in code.</p>
           <div class="flow" aria-label="Contract drives provider, clients, and mock">
-            <div class="flow-node"><b>OpenAPI contract</b><span>One reviewed source</span></div><span class="flow-arrow" aria-hidden="true">→</span>
-            <div class="flow-node"><b>Provider</b><span>Live API behavior</span></div><span class="flow-arrow" aria-hidden="true">→</span>
-            <div class="flow-node"><b>Consumers</b><span>Tests, mock, debug</span></div>
+            <div class="flow-node"><b>Hand-edited contracts</b><span>One source per API boundary</span></div><span class="flow-arrow" aria-hidden="true">→</span>
+            <div class="flow-node"><b>Automated checks</b><span>Provider and API integration</span></div><span class="flow-arrow" aria-hidden="true">→</span>
+            <div class="flow-node"><b>Consumer support</b><span>Smart Mock and debug views</span></div>
           </div>
-          <div class="mini-flow"><span class="step">One shared contract</span><span class="step-arrow" aria-hidden="true">→</span><span class="step">Less maintenance</span><span class="step-arrow" aria-hidden="true">→</span><span class="step">More trust</span></div>
+          <div class="mini-flow"><span class="step">Clear ownership</span><span class="step-arrow" aria-hidden="true">→</span><span class="step">Less duplication</span><span class="step-arrow" aria-hidden="true">→</span><span class="step">More confidence in change</span></div>
         </section>
         <section class="scene" aria-labelledby="scene-title-2" hidden>
-          <span class="eyebrow">02 · One command</span>
-          <h2 id="scene-title-2" tabindex="-1">The pipeline runs the example end to end.</h2>
-          <p class="lead">Run <code>bash ./run.sh</code> locally or in Ubuntu CI. Compose starts the app and dependencies, waits for health, runs the gates, and cleans up at exit.</p>
+          <span class="eyebrow">02 · Project structure</span>
+          <h2 id="scene-title-2" tabindex="-1">Separate contracts by API boundary.</h2>
+          <p class="lead">The repository keeps the design scaffold, runnable services, downstream dependency, and event examples distinct. Each contract has a clear scope and corresponding checks.</p>
           <div class="grid">
-            <article class="card"><span class="tag">Contracts</span><strong>Lint and compatibility</strong><p>Spectral checks OpenAPI and AsyncAPI. oasdiff checks the root baseline.</p></article>
-            <article class="card"><span class="tag">Provider</span><strong>Exercise live services</strong><p>WireMock, Specmatic provider checks, Schemathesis, and API integration suites call the running app.</p></article>
-            <article class="card"><span class="tag">Consumers</span><strong>Use the Smart Mock</strong><p>JavaScript and Playwright examples validate consumer behavior against a mock served from the shared OAS.</p></article>
+            <article class="card"><span class="tag">Product Catalog</span><strong>Root OAS scaffold</strong><p><code>openapi/</code> holds the hand-edited contract and compatibility baseline. It has no provider implementation.</p></article>
+            <article class="card"><span class="tag">Runnable APIs</span><strong>Product and Order services</strong><p><code>demo/</code> contains the Product API, isolated stateful Order API, and Inventory dependency backed by WireMock.</p></article>
+            <article class="card"><span class="tag">Events and clients</span><strong>Separate examples</strong><p>AsyncAPI examples describe WebSocket and Kafka messages. <code>clients/</code> holds native language tests.</p></article>
           </div>
-          <div class="mini-flow"><span class="step"><b>Lint</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Build and start</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Contract and API tests</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Security scans</b></span></div>
+          <div class="note">The event contracts are linted examples. This project does not include a WebSocket server or Kafka broker.</div>
         </section>
         <section class="scene" aria-labelledby="scene-title-3" hidden>
-          <span class="eyebrow">03 · Contract roles</span>
-          <h2 id="scene-title-3" tabindex="-1">Provider and consumer checks answer different questions.</h2>
-          <p class="lead">Specmatic exercises the provider from its contract. Consumer examples run against a contract-derived Smart Mock, while API integration tests call the live application.</p>
-          <div class="grid two">
-            <article class="card"><span class="tag">Provider</span><strong>Does the app honor the contract?</strong><p>Specmatic sends contract-derived requests to the healthy application. The WireMock example separately checks the downstream inventory contract.</p></article>
-            <article class="card"><span class="tag">Consumer</span><strong>Can clients develop against the agreement?</strong><p>JavaScript and Playwright use the Specmatic Smart Mock. Their separate integration runs call the provider itself.</p></article>
+          <span class="eyebrow">03 · Pipeline</span>
+          <h2 id="scene-title-3" tabindex="-1">One command runs the demonstration.</h2>
+          <p class="lead">Run <code>bash ./run.sh</code> locally or in Ubuntu CI. Compose starts the services, waits for health checks, executes the gates, and cleans up.</p>
+          <div class="grid">
+            <article class="card"><span class="tag">Contract gates</span><strong>Lint and compatibility</strong><p>Spectral checks OpenAPI and AsyncAPI; oasdiff checks the root contract against its baseline.</p></article>
+            <article class="card"><span class="tag">Live services</span><strong>Verify and integrate</strong><p>Specmatic, Schemathesis, seven language suites, and Playwright call the running APIs. WireMock serves inventory.</p></article>
+            <article class="card"><span class="tag">Security and consumers</span><strong>Scan and mock</strong><p>Image scans run in CI. JavaScript and Playwright consumer examples use the Specmatic Smart Mock.</p></article>
           </div>
-          <div class="note">The consumer demonstration uses the shared provider OAS as a mock source. It is not a separate consumer-owned CDC contract.</div>
+          <div class="mini-flow"><span class="step"><b>Lint contracts</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Start services</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Run contract and API checks</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Scan images</b></span></div>
         </section>
         <section class="scene" aria-labelledby="scene-title-4" hidden>
-          <span class="eyebrow">04 · Test behavior</span>
-          <h2 id="scene-title-4" tabindex="-1">Fuzz independent requests. Sequence stateful workflows.</h2>
+          <span class="eyebrow">04 · Contract roles</span>
+          <h2 id="scene-title-4" tabindex="-1">Provider verification and consumer testing are distinct.</h2>
+          <p class="lead">Both use the Product OAS, but target different systems and validate different responsibilities.</p>
+          <div class="grid two">
+            <article class="card"><span class="tag">Provider</span><strong>Does the service meet its contract?</strong><p>Specmatic sends contract-derived requests to the healthy Product API. Its downstream check validates the WireMock-backed Inventory dependency.</p></article>
+            <article class="card"><span class="tag">Consumer</span><strong>Can the client use the agreed interface?</strong><p>JavaScript and Playwright examples run against a Specmatic Smart Mock. Their API integration runs separately target the live service.</p></article>
+          </div>
+          <div class="note">The consumer example uses a mock generated from the shared provider OAS; it does not include a separate consumer-owned CDC contract.</div>
+        </section>
+        <section class="scene" aria-labelledby="scene-title-5" hidden>
+          <span class="eyebrow">05 · Test behavior</span>
+          <h2 id="scene-title-5" tabindex="-1">Test independent requests and linked workflows.</h2>
           <div class="grid two">
             <article class="card"><span class="tag">Stateless fuzzing</span><strong>One request stands on its own</strong><p>Schemathesis generates independent Product API requests from OAS, probes boundaries, and validates responses. Each case does not rely on data from earlier cases.</p></article>
             <article class="card"><span class="tag">Stateful testing</span><strong>Follow linked operations</strong><p>The separate Order API preserves state across a lifecycle. OAS links pass the created identifier between operations.</p></article>
@@ -133,34 +144,34 @@
           <div class="mini-flow"><span class="step"><b>Create</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Read</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Confirm</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Delete</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Verify 404</b></span></div>
           <p class="lead" style="margin-top:20px">Seven native clients repeat the lifecycle and validate each live response against the stateful OAS.</p>
         </section>
-        <section class="scene" aria-labelledby="scene-title-5" hidden>
-          <span class="eyebrow">05 · Native API tests</span>
-          <h2 id="scene-title-5" tabindex="-1">Keep automation in the language teams maintain.</h2>
+        <section class="scene" aria-labelledby="scene-title-6" hidden>
+          <span class="eyebrow">06 · Native API tests</span>
+          <h2 id="scene-title-6" tabindex="-1">Validate live responses in native test suites.</h2>
           <p class="lead">Each example uses a small API client object for requests and a language-native test framework for behavior and OAS response validation.</p>
           <div class="grid">
             <article class="card"><span class="tag">Rust · Go · Python</span><strong>Native HTTP clients</strong><p>Typed request helpers, test fixtures, lifecycle checks, and contract validators.</p></article>
             <article class="card"><span class="tag">JavaScript · TypeScript</span><strong>Code-based suites</strong><p>JavaScript test runner and TypeScript test runner validate live provider responses.</p></article>
             <article class="card"><span class="tag">Java · C# · Playwright</span><strong>Framework-native tests</strong><p>JUnit and xUnit cover the lifecycle; Playwright APIRequestContext demonstrates provider and consumer tests.</p></article>
           </div>
-          <div class="note">Manual debugging is a separate use case. Swagger UI and Prism provide optional contract-driven views; they do not replace CI automation.</div>
+          <div class="note">For manual exploration, optional Swagger UI and Prism views load the root contract. They serve a different role from the automated checks.</div>
         </section>
-        <section class="scene" aria-labelledby="scene-title-6" hidden>
-          <span class="eyebrow">06 · Performance insights</span>
-          <h2 id="scene-title-6" tabindex="-1">Measure the pipeline with context.</h2>
-          <p class="lead">A historical cold Ubuntu run provides useful diagnostics, but it failed before the native test suites. Treat these timings as observations, not a passing baseline.</p>
+        <section class="scene" aria-labelledby="scene-title-7" hidden>
+          <span class="eyebrow">07 · Performance insights</span>
+          <h2 id="scene-title-7" tabindex="-1">Use timings as diagnostics, not a benchmark.</h2>
+          <p class="lead">A historical cold CI run records build and fuzzing timings. The complete contract suite later passed; stable performance comparisons still need repeated cold and warm-cache measurements.</p>
           <div class="grid">
             <article class="card metric"><strong>Client and app image builds</strong><span class="value">~67 sec</span><p>Approximate build time in the recorded sample.</p></article>
             <article class="card metric"><strong>Schemathesis fuzz phase</strong><span class="value">2.07 sec</span><p>115 generated cases; one unsupported-method finding.</p></article>
             <article class="card metric"><strong>Full CI job</strong><span class="value">2m 44s</span><p>Included image scans and ended on a contract finding.</p></article>
           </div>
-          <div class="note">The run caught <code>TRACE /healthz</code> returning 404 instead of 405. The behavior was fixed afterward. Establish a stable baseline from green runs and compare cold and warm-cache timings.</div>
-          <p style="margin-top:18px"><a href="https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603">Open the recorded CI run</a> · <a href="https://github.com/shoman2020/oas-polycontract/blob/main/ROADMAP.md">Review roadmap progress</a></p>
+          <div class="note">The earlier run found that <code>TRACE /healthz</code> returned 404 instead of 405. That behavior has since been fixed. The later contract run passed; the separate Pages deployment still requires Pages to be enabled in repository settings.</div>
+          <p style="margin-top:18px"><a href="https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603">Historical diagnostic run</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44046941415">Passing contract run</a> · <a href="https://github.com/shoman2020/oas-polycontract/blob/main/ROADMAP.md">Roadmap</a></p>
         </section>
       </div>
       <nav class="controls" aria-label="Showcase controls">
         <button type="button" id="previous" aria-label="Previous slide">Previous</button>
         <div class="nav-dots" id="dots" aria-label="Choose a slide"></div>
-        <span class="counter" id="counter" aria-live="polite">1 / 6</span>
+        <span class="counter" id="counter" aria-live="polite">1 / 7</span>
         <button type="button" id="next" aria-label="Next slide">Next</button>
       </nav>
     </main>
