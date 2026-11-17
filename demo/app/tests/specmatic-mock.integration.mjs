@@ -15,10 +15,10 @@ async function getWithRetry(path) {
   throw lastError ?? new Error("Specmatic mock did not become ready");
 }
 
-const inline = await getWithRetry("/products/demo-sku");
-assert.equal(inline.status, 200);
-assert.deepEqual(await inline.json(), { sku: "demo-sku", available: 7 });
-console.log("inline OAS example: GET /products/demo-sku -> 200, available=7");
+const demo = await getWithRetry("/products/demo-sku");
+assert.equal(demo.status, 200);
+assert.deepEqual(await demo.json(), { sku: "demo-sku", available: 7 });
+console.log("deterministic example: GET /products/demo-sku -> 200, available=7");
 
 const external = await getWithRetry("/products/vip-sku");
 assert.equal(external.status, 200);

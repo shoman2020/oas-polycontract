@@ -1,0 +1,13 @@
+{
+  "http-request": {
+    "method": "GET",
+    "path": "/products/demo-sku"
+  },
+  "http-response": {
+    "status": 200,
+    "body": {
+      "sku": "demo-sku",
+      "available": 7
+    }
+  }
+}

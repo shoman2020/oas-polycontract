@@ -6,17 +6,17 @@ One hand-edited contract per API boundary. Native tests and contract tools read 
 
 One role owns the contract. Clear ownership means less maintenance and more trust. Providers and consumers use the same contract revision. WireMock mappings describe a downstream dependency and are checked against that dependency's contract.
 
-## Status — 16 November 2026
+## Status — 17 November 2026
 
 | Area | Implementation | Verification or remaining work |
 |---|---|---|
-| Runnable demo | Product API, isolated linked Order API, inventory dependency, WireMock, Specmatic provider and downstream tests | Run 440427 passed both Schemathesis phases, WireMock, Specmatic provider/downstream, all seven native language suites, and Playwright provider checks. It stopped at the Smart Mock integration service because its run command omitted the `test`/`mock` profiles. |
-| Governance | Spectral for OAS and AsyncAPI, oasdiff against the root baseline, stateless and stateful Schemathesis | Stateless checks passed; stateful Schemathesis passed all 125 scenarios in run 440427. Mock example validation was next but Compose profile selection stopped that integration check. |
-| Language and API test clients | Rust, Go, Python, JavaScript, TypeScript, Java, and C# validate Product API and Order API responses; Playwright covers Product API | Run 440427 passed all seven native suites, including C# on the .NET 10 MTP runner, and Playwright provider tests. The Smart Mock consumer checks await the profile fix. |
-| Provider and consumer contract roles | Specmatic provider verification targets the running app; JavaScript and Playwright consumer suites target the Specmatic Smart Mock | The shared provider OAS drives both examples. This is consumer-side development against a contract-derived mock, not a separately published consumer-owned CDC artifact. Runtime verification awaits CI. |
+| Runnable demo | Product API, isolated linked Order API, inventory dependency, WireMock, Specmatic provider and downstream tests | Run 440438 passed both Schemathesis phases, WireMock, Specmatic provider/downstream, all seven native language suites, Playwright provider checks, and image scans. The Smart Mock test showed that a response example alone is not a deterministic request mapping; an external fixture now pins that scenario. |
+| Governance | Spectral for OAS and AsyncAPI, oasdiff against the root baseline, stateless and stateful Schemathesis | Stateless and stateful checks passed in run 440438, including all generated stateful scenarios. Smart Mock fixture verification is rerunning after a request-matched example was added. |
+| Language and API test clients | Rust, Go, Python, JavaScript, TypeScript, Java, and C# validate Product API and Order API responses; Playwright covers Product API | Run 440438 passed all seven native suites, including C# on the .NET 10 MTP runner, and Playwright provider tests. The consumer checks reached the mock and failed on the example assertion; the focused rerun will verify the fixture fix. |
+| Provider and consumer contract roles | Specmatic provider verification targets the running app; JavaScript and Playwright consumer suites target the Specmatic Smart Mock | The shared provider OAS drives both examples. This is consumer-side development against a contract-derived mock, not a separately published consumer-owned CDC artifact. Provider checks passed; rerun consumer checks after adding the deterministic fixture. |
 | Protocol coverage | AsyncAPI examples for WebSocket and Kafka, with a separate Spectral ruleset | Contract examples only; no event service or broker is part of the demo. |
 | Debug layer | Optional Swagger UI and Prism Compose services use the root contract | Local profile exists; environment-specific host URLs still need deployment configuration. |
-| CI and security | Ubuntu contract workflow; CodeQL, Gitleaks, Trivy, Dependency Review, and Dependabot | Contract run [44042797970](https://github.com/shoman2020/oas-polycontract/actions/runs/44042797970) passed all three image scans and every contract/language check through the provider stage. The Smart Mock integration command now enables both required Compose profiles. |
+| CI and security | Ubuntu contract workflow; CodeQL, Gitleaks, Trivy, Dependency Review, and Dependabot | Run [44043831606](https://github.com/shoman2020/oas-polycontract/actions/runs/44043831606) passed all three image scans and every contract/language check through the provider stage. Smart Mock verification reached the test and exposed a missing deterministic request mapping; rerun it with the new fixture. |
 | Dependency reproducibility | Direct package versions and container/tool versions are pinned | Most language projects do not yet commit transitive lockfiles. Add native lockfiles after the first green pipeline run, then enforce locked installs. |
 | Migration | No legacy Postman or Bruno collection was supplied | Phase 5 is not applicable unless one is provided. |
 | Scaffolder | Not implemented | Phase 9 remains open until the end-to-end pipeline is stable. |
@@ -88,7 +88,7 @@ Specmatic roles are separate: `specmatic-provider` runs contract-derived request
 
 - [x] Keep common examples in OAS, deterministic request-specific fixtures in `demo/openapi_examples/`, and domain-shaped fallback values in `demo/openapi_dictionary.yaml`.
 - [x] Keep AI-assisted fixture generation offline: review, schema-validate, and commit outputs; CI and mock startup do not call a model.
-- [x] Validate external examples and add assertions for inline, external, and dictionary responses.
+- [x] Validate external examples and assert deterministic request-matched and dictionary-backed mock responses.
 - [ ] Confirm mock-profile behavior in CI.
 
 ### Phase 4 — Debugging layer
@@ -124,7 +124,7 @@ Not applicable with the supplied project: no legacy collection was provided. If 
 - [x] Consolidate the README around the contract flow, runnable example, native suites, protocol scope, mock data, and contribution path.
 - [x] Document the example output and migration workflow.
 - [x] Keep roadmap status aligned with implementation and verification state.
-- [x] Add the animated project flow, application-server test topology, stateless/stateful guidance, and a measured CI performance snapshot.
+- [x] Replace the autoplay GIF with a manually controlled project showcase and a GitHub Pages deployment workflow.
 
 ### Phase 9 — Reusable scaffolder
 
@@ -138,7 +138,7 @@ These are the current gaps, in execution order. “Implemented” means files an
 
 | Priority | Gap | Status | Acceptance signal |
 |---|---|---|---|
-| P0 | Run the expanded contract and security workflows on this implementation | In progress; run 44042797970 passed stateless and stateful checks, all seven language suites, and Playwright provider tests. The mock integration test needs both Compose profiles active. | All applicable contract jobs and image/filesystem scans pass; verify Specmatic mock examples and consumer tests, then record a full green run. |
+| P0 | Run the expanded contract and security workflows on this implementation | In progress; run 44043831606 passed stateless and stateful checks, all seven language suites, Playwright provider tests, and image scans. The Smart Mock assertion expected an inline OAS response where a request-matched fixture was needed. | All applicable contract jobs and image/filesystem scans pass; verify deterministic Specmatic mock examples and consumer tests, then record a full green run. |
 | P1 | Make language dependency installs reproducible | Needed | Commit JS/TS package locks, `Cargo.lock`, Go module sums, a hash-locked Python requirements file, and NuGet lock files; lock Maven dependency resolution. Use lock-enforcing installs in the container builds. |
 | P1 | Require contract and security checks before merge | Repository configuration needed | GitHub branch protection requires the named checks. This setting is managed outside this repository. |
 | P2 | Decide whether the root Product Catalog OAS remains contract-only | Decision needed | If it stays a scaffold, keep provider checks on the demo OAS. If a root provider is added, add provider and client examples against the root contract. |
@@ -178,6 +178,8 @@ These are the current gaps, in execution order. “Implemented” means files an
 | 17 Nov 2026 | Contract run [44040993712](https://github.com/shoman2020/oas-polycontract/actions/runs/44040993712) passed stateful and stateless Schemathesis, all provider checks, and every client suite through Java. | C# compiled far enough to reveal that `NodeAt` returned a `YamlNode` before accessing `Children`. Added an explicit `YamlMappingNode` check and forwarded xUnit cancellation tokens to HTTP requests. |
 | 17 Nov 2026 | Contract run [44042036533](https://github.com/shoman2020/oas-polycontract/actions/runs/44042036533) passed stateless checks and found an undeclared PATCH body property accepted by the stateful Order API. | Added request object allowlists to match `additionalProperties: false` for both create and update operations; rerun the stateful phase. |
 | 17 Nov 2026 | Contract run [44042797970](https://github.com/shoman2020/oas-polycontract/actions/runs/44042797970) passed all 125 stateful scenarios, Rust, Go, Python, JavaScript, TypeScript, Java, C#, and Playwright provider tests. | It failed only when Compose ran `specmatic-mock-integration-test` without activating the service's `test` and `mock` profiles. Updated that command to enable both; consumer checks remain to verify. |
+| 17 Nov 2026 | Contract run [44043831606](https://github.com/shoman2020/oas-polycontract/actions/runs/44043831606) passed stateless and stateful Schemathesis, all seven language suites, Playwright provider checks, and all image scans. | The mock matched no request-response fixture for `/products/demo-sku`, so Specmatic correctly used the dictionary. Added a deterministic external example for that request and corrected the integration test description. |
+| 17 Nov 2026 | Replaced the automatic README project-flow GIF with a six-scene interactive showcase. | Added manual navigation, slide markers, keyboard controls, accessible status, reduced-motion handling, and a Pages deployment workflow; no slide timer is used. |
 
 ## Run and expected result
 
