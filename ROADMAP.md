@@ -9,9 +9,9 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | No event provider or broker |
 | Tests | Specmatic provider/consumer, WireMock, stateless fuzzing, stateful workflows, seven native languages, Playwright | Add runtime event examples only with a provider |
 | Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, OWASP SecureAI-Scan | SecureAI rules support JS, TS, and Python; no AI runtime is present |
-| Dependencies | Cargo, Go, NuGet, npm, Python, and Maven locks; native locked restores | Verify new lock enforcement in CI |
-| Performance | Per-stage timing and CSV artifacts; manual five-run workflow | Run sample workflow and record results |
-| Showcase | Contract, pipeline, workflow, test-role, and performance views | Previous Pages deployment passed in [run 44081375144](https://github.com/shoman2020/oas-polycontract/actions/runs/44081375144); verify this update after push |
+| Dependencies | Cargo, Go, NuGet, npm, Python, and Maven locks; locked builds passed in [contract run 44133906689](https://github.com/shoman2020/oas-polycontract/actions/runs/44133906689) | None |
+| Performance | Per-stage timing and CSV artifacts; manual five-run workflow | Run five samples and record the median and range |
+| Showcase | Contract, pipeline, workflow, test-role, and performance views; latest deployment passed in [run 44130117006](https://github.com/shoman2020/oas-polycontract/actions/runs/44130117006) | None for this dependency-only change |
 
 ## Test model
 
@@ -62,19 +62,19 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 ### Phase 8 — Documentation and evaluation
 - [x] Align README, client guide, interactive graphs, roles, and repository evaluations.
 - [x] Check links, structure, test sources/targets, workflows, and roadmap phases.
-- [ ] Verify latest changes from a clean checkout.
+- [x] Verify latest changes from a clean checkout.
 
 ### Phase 9 — Reproducible dependencies
 - [x] Commit Cargo, Go, and NuGet locks; enforce locked Rust/.NET and read-only Go builds.
 - [x] Keep npm, Python, and Maven dependencies pinned or locked.
-- [ ] Pass a clean CI run with all lock enforcement enabled.
+- [x] Pass a clean CI run with all lock enforcement enabled.
 
 ### Phase 10 — Merge policy
 - [ ] Require contract and security checks on pull requests.
 - [ ] Confirm failed checks block merges and required checks stay stable.
 
 ### Phase 11 — Showcase publishing
-- [x] Publish the interactive showcase with GitHub Actions; latest verified deployment passed in run 44081375144.
+- [x] Publish the interactive showcase with GitHub Actions; latest verified deployment passed in [run 44130117006](https://github.com/shoman2020/oas-polycontract/actions/runs/44130117006).
 
 ### Phase 12 — Performance baseline
 - [x] Report per-stage timings in the contract run summary and CSV artifact.
@@ -88,10 +88,10 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 
 ## Next
 
-1. Verify locked builds and evaluations in the next green contract run.
-2. Run the performance workflow and add its measurements to the showcase.
-3. Configure required branch checks if repository admin settings allow.
-4. Keep event runtime tests, legacy migration, and the optional CLI tied to real use cases.
+1. Run the five-sample performance workflow and record its median and range.
+2. Require contract and security checks in branch protection.
+3. Add event runtime examples or migrate legacy collections when a provider or collection exists.
+4. Revisit the optional CLI when users need selective starters.
 
 ## Package fit
 
@@ -99,5 +99,5 @@ This reference repository has no stable runtime API to package. A `create-polyco
 
 ## Progress
 
-- 17 Nov: Contract run [44124445828](https://github.com/shoman2020/oas-polycontract/actions/runs/44124445828) passed in 4m 52s; security run [44124445692](https://github.com/shoman2020/oas-polycontract/actions/runs/44124445692) passed. Earlier 8/8 repository checks passed; this update adds lock and performance evaluations.
-- 17 Nov: This update adds native dependency locks, locked restores, pipeline timing artifacts, a five-run benchmark workflow, and linked performance views. CI verification is pending.
+- 17 Nov: [Contract run 44133906689](https://github.com/shoman2020/oas-polycontract/actions/runs/44133906689) passed in 5m 54s with 10/10 repository evaluations and all image scans green. [Security run 44133906488](https://github.com/shoman2020/oas-polycontract/actions/runs/44133906488) passed, including OWASP GenAI and CodeQL.
+- 17 Nov: Updated Go `x/text` to 0.41.0 to resolve Trivy findings; clean CI verified locked dependency restores. The five-sample performance workflow is still pending.
