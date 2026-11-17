@@ -125,13 +125,10 @@ services:
   spectral:
     image: stoplight/spectral:${SPECTRAL_VERSION:?Set SPECTRAL_VERSION in .github/versions.env}
     entrypoint: ["/bin/sh", "-c"]
-    environment:
-      # The official Spectral image emits Node deprecation notices upstream.
-      # Suppress that category only in these lint containers.
-      NODE_OPTIONS: --no-deprecation
     command:
       - >-
-        spectral lint --ruleset /repo/gates/lint/.spectral.yaml
+        exec node --no-deprecation "$(command -v spectral)"
+        lint --ruleset /repo/gates/lint/.spectral.yaml
         /repo/openapi/openapi.yaml
         /repo/demo/openapi.yaml
         /repo/demo/stateful/openapi.yaml
@@ -143,11 +140,10 @@ services:
   spectral-asyncapi:
     image: stoplight/spectral:${SPECTRAL_VERSION:?Set SPECTRAL_VERSION in .github/versions.env}
     entrypoint: ["/bin/sh", "-c"]
-    environment:
-      NODE_OPTIONS: --no-deprecation
     command:
       - >-
-        spectral lint --ruleset /repo/gates/lint/.spectral-asyncapi.yaml
+        exec node --no-deprecation "$(command -v spectral)"
+        lint --ruleset /repo/gates/lint/.spectral-asyncapi.yaml
         /repo/contracts/events/websocket.asyncapi.yaml
         /repo/contracts/events/kafka.asyncapi.yaml
     volumes:
