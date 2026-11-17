@@ -18,6 +18,13 @@ function sendError(response, status, message, headers = {}) {
   sendJson(response, status, { message }, headers);
 }
 
+function hasOnlyFields(value, allowedFields) {
+  return value !== null
+    && typeof value === "object"
+    && !Array.isArray(value)
+    && Object.keys(value).every((key) => allowedFields.includes(key));
+}
+
 async function readJson(request) {
   const chunks = [];
   let byteCount = 0;
@@ -71,7 +78,8 @@ async function handleRequest(request, response) {
     }
 
     const skuLength = typeof input?.sku === "string" ? [...input.sku].length : 0;
-    if (skuLength < 1 || skuLength > 64
+    if (!hasOnlyFields(input, ["sku", "quantity"])
+      || skuLength < 1 || skuLength > 64
       || !Number.isInteger(input.quantity) || input.quantity < 1 || input.quantity > 100) {
       sendError(response, 400, "sku and quantity are invalid");
       return;
@@ -120,7 +128,8 @@ async function handleRequest(request, response) {
       return;
     }
 
-    if (!["confirmed", "cancelled"].includes(input?.status)) {
+    if (!hasOnlyFields(input, ["status"])
+      || !["confirmed", "cancelled"].includes(input.status)) {
       sendError(response, 400, "status must be confirmed or cancelled");
       return;
     }
