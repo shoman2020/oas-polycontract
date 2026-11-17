@@ -157,7 +157,7 @@ services:
 
   schemathesis:
     image: schemathesis/schemathesis:v${SCHEMATHESIS_VERSION:?Set SCHEMATHESIS_VERSION in .github/versions.env}
-    command: ["run", "/contracts/openapi.yaml", "--url=http://app:8080"]
+    command: ["--config-file", "/contracts/schemathesis.toml", "run", "/contracts/openapi.yaml", "--url=http://app:8080"]
     volumes:
       - ./demo:/contracts:ro
     depends_on:
@@ -199,7 +199,7 @@ services:
         condition: service_healthy
     profiles: [test]
 
-  rust-contract-test:
+  rust-api-integration-test:
     build:
       context: ./clients/rust
       args:
@@ -219,7 +219,7 @@ services:
         condition: service_healthy
     profiles: [test]
 
-  go-contract-test:
+  go-api-integration-test:
     build:
       context: ./clients/go
       args:
@@ -239,7 +239,7 @@ services:
         condition: service_healthy
     profiles: [test]
 
-  python-contract-test:
+  python-api-integration-test:
     build:
       context: ./clients/python
       args:
@@ -259,7 +259,8 @@ services:
         condition: service_healthy
     profiles: [test]
 
-  js-contract-test:
+  js-api-integration-test:
+    image: oas-polycontract-js:local
     build:
       context: ./clients/js
       args:
@@ -279,7 +280,20 @@ services:
         condition: service_healthy
     profiles: [test]
 
-  ts-contract-test:
+  js-consumer-contract-test:
+    image: oas-polycontract-js:local
+    command: ["npm", "run", "test:consumer"]
+    environment:
+      API_BASE_URL: http://specmatic-mock:9000
+      OPENAPI_SPEC: /contracts/openapi.yaml
+    volumes:
+      - ./demo:/contracts:ro
+    depends_on:
+      specmatic-mock:
+        condition: service_started
+    profiles: [test]
+
+  ts-api-integration-test:
     build:
       context: ./clients/ts
       args:
@@ -299,7 +313,7 @@ services:
         condition: service_healthy
     profiles: [test]
 
-  playwright-contract-test:
+  playwright-api-integration-test:
     image: oas-polycontract-playwright:local
     build:
       context: ./clients/playwright
@@ -316,7 +330,7 @@ services:
         condition: service_healthy
     profiles: [test]
 
-  playwright-consumer-test:
+  playwright-consumer-contract-test:
     image: oas-polycontract-playwright:local
     build:
       context: ./clients/playwright
@@ -333,7 +347,7 @@ services:
         condition: service_started
     profiles: [test]
 
-  java-contract-test:
+  java-api-integration-test:
     build:
       context: ./clients/java
       args:
@@ -354,7 +368,7 @@ services:
         condition: service_healthy
     profiles: [test]
 
-  csharp-contract-test:
+  csharp-api-integration-test:
     build:
       context: ./clients/csharp
       args:

@@ -33,9 +33,9 @@ echo "==> Checking root contract compatibility"
 
 echo "==> Building demo, language-native clients, and Playwright API suites"
 "${compose[@]}" build app wiremock wiremock-integration-test
-"${compose[@]}" --profile test --profile mock build rust-contract-test go-contract-test python-contract-test \
-  js-contract-test ts-contract-test playwright-contract-test playwright-consumer-test \
-  java-contract-test csharp-contract-test
+"${compose[@]}" --profile test --profile mock build rust-api-integration-test go-api-integration-test python-api-integration-test \
+  js-api-integration-test ts-api-integration-test playwright-api-integration-test playwright-consumer-contract-test \
+  java-api-integration-test csharp-api-integration-test
 
 echo "==> Evaluating repository structure, test coverage, pipeline wiring, and roadmap"
 "${compose[@]}" --profile test --profile mock run --rm project-evals
@@ -59,21 +59,21 @@ echo "==> Chaining linked order operations with stateful Schemathesis"
 "${compose[@]}" --profile test --profile mock run --rm stateful-schemathesis
 
 echo "==> Running language-native and Playwright OAS integration suites"
-"${compose[@]}" run --rm rust-contract-test
-"${compose[@]}" run --rm go-contract-test
-"${compose[@]}" run --rm python-contract-test
-"${compose[@]}" run --rm js-contract-test
-"${compose[@]}" run --rm ts-contract-test
-"${compose[@]}" run --rm playwright-contract-test
-"${compose[@]}" run --rm java-contract-test
-"${compose[@]}" run --rm csharp-contract-test
+"${compose[@]}" run --rm rust-api-integration-test
+"${compose[@]}" run --rm go-api-integration-test
+"${compose[@]}" run --rm python-api-integration-test
+"${compose[@]}" run --rm js-api-integration-test
+"${compose[@]}" run --rm ts-api-integration-test
+"${compose[@]}" run --rm playwright-api-integration-test
+"${compose[@]}" run --rm java-api-integration-test
+"${compose[@]}" run --rm csharp-api-integration-test
 
 echo "==> Checking Specmatic examples and dictionary-backed mock responses"
 "${compose[@]}" --profile mock up -d specmatic-mock
 "${compose[@]}" --profile test --profile mock run --rm specmatic-mock-integration-test
 echo "==> Running JavaScript and Playwright consumer suites against the Specmatic Smart Mock"
-"${compose[@]}" run --rm -e API_BASE_URL=http://specmatic-mock:9000 js-contract-test
-"${compose[@]}" --profile mock run --rm playwright-consumer-test
+"${compose[@]}" --profile test --profile mock run --rm js-consumer-contract-test
+"${compose[@]}" --profile mock run --rm playwright-consumer-contract-test
 
 echo "==> Contract pipeline passed"
 

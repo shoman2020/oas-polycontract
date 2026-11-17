@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "playwright test --config=playwright.config.mjs",
-    "test:provider": "playwright test --config=playwright.config.mjs contract.spec.mjs",
+    "test:provider": "playwright test --config=playwright.config.mjs product-api-integration.spec.mjs",
     "test:consumer": "playwright test --config=playwright.config.mjs consumer-contract.spec.mjs"
   },
   "dependencies": {

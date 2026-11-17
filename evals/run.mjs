@@ -1,5 +1,5 @@
 import { readFileSync, existsSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
@@ -21,15 +21,25 @@ function assertRepositoryPath(path, checkId) {
 }
 
 function checkReadmeLinks() {
-  const readme = readRepositoryFile('README.md');
-  const links = [...readme.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)]
-    .map((match) => match[1].trim().split(/[?#]/, 1)[0])
-    .filter((target) => target && !/^[a-z][a-z\d+.-]*:/i.test(target) && !target.startsWith('#'));
+  let linkCount = 0;
+  for (const documentPath of ['README.md', 'clients/README.md']) {
+    const document = readRepositoryFile(documentPath);
+    const links = [...document.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)]
+      .map((match) => match[1].trim().split(/[?#]/, 1)[0])
+      .filter((target) => target && !/^[a-z][a-z\d+.-]*:/i.test(target) && !target.startsWith('#'));
 
-  for (const target of links) {
-    assertRepositoryPath(decodeURIComponent(target), 'readme-links');
+    for (const target of links) {
+      const absolutePath = resolve(repositoryRoot, dirname(documentPath), decodeURIComponent(target));
+      const repositoryPath = relative(repositoryRoot, absolutePath);
+      if (repositoryPath.startsWith('..')) {
+        failures.push(`readme-links: ${documentPath} links outside the repository: ${target}`);
+        continue;
+      }
+      assertRepositoryPath(repositoryPath, 'readme-links');
+    }
+    linkCount += links.length;
   }
-  return links.length;
+  return linkCount;
 }
 
 function checkReadmeTree() {
@@ -95,6 +105,9 @@ function checkTestRoleMap() {
   const clientGuide = readRepositoryFile('clients/README.md');
   const showcase = readRepositoryFile('docs/project-flow.html');
   const compose = readRepositoryFile('docker-compose.yml');
+  const runner = readRepositoryFile('run.sh');
+  const playwrightPackage = readRepositoryFile('clients/playwright/package.json');
+  const schemathesisConfig = readRepositoryFile('demo/schemathesis.toml');
   const documentedRoles = [
     'Provider contract-based test',
     'Consumer contract-based test',
@@ -107,6 +120,7 @@ function checkTestRoleMap() {
     'command: ["mock", "openapi.yaml"]',
     'MOCK_URL: http://specmatic-mock:9000',
     'API_BASE_URL: http://app:8080',
+    'API_BASE_URL: http://specmatic-mock:9000',
     'STATEFUL_API_BASE_URL: http://stateful-app:8082',
     'command: ["node", "tests/wiremock.integration.mjs"]',
   ];
@@ -118,17 +132,64 @@ function checkTestRoleMap() {
     'specmatic-mock:9000',
     'stateful-app:8082',
   ];
+  const documentedSections = [
+    { readme: '### Contract-based testing', clientGuide: '## Contract-based testing' },
+    { readme: '### API integration testing', clientGuide: '## API integration testing' },
+  ];
+  const clientTestSources = [
+    'js/consumer-contract.test.mjs',
+    'playwright/consumer-contract.spec.mjs',
+    'rust/tests/api_integration_test.rs',
+    'go/product_api_integration_test.go',
+    'python/test_product_api_integration.py',
+    'js/product-api-integration.test.mjs',
+    'ts/product-api-integration.test.ts',
+    'java/src/test/java/nl/shiftleft/ProductApiIntegrationTest.java',
+    'csharp/ProductApiIntegrationTests.cs',
+    'go/stateful_order_api_integration_test.go',
+    'python/test_stateful_order_api_integration.py',
+    'js/stateful-order-api-integration.test.mjs',
+    'ts/stateful-order-api-integration.test.ts',
+    'java/src/test/java/nl/shiftleft/StatefulOrderApiIntegrationTest.java',
+    'csharp/StatefulOrderApiIntegrationTests.cs',
+    'playwright/product-api-integration.spec.mjs',
+  ];
+  const testCommands = [
+    'command: ["npm", "run", "test:provider"]',
+    'command: ["npm", "run", "test:consumer"]',
+    'run --rm js-api-integration-test',
+    'run --rm js-consumer-contract-test',
+    'run --rm playwright-api-integration-test',
+    'run --rm playwright-consumer-contract-test',
+  ];
   for (const role of documentedRoles) {
     if (!readme.includes(role)) failures.push(`test-role-map: README omits ${role}`);
     if (!clientGuide.includes(role)) failures.push(`test-role-map: client guide omits ${role}`);
   }
+  for (const section of documentedSections) {
+    if (!readme.includes(section.readme)) failures.push(`test-role-map: README omits the ${section.readme} section`);
+    if (!clientGuide.includes(section.clientGuide)) failures.push(`test-role-map: client guide omits the ${section.clientGuide} section`);
+  }
+  for (const source of clientTestSources) {
+    if (!clientGuide.includes(`(${source})`)) failures.push(`test-role-map: client guide does not link the implemented test source ${source}`);
+  }
   for (const target of targets) {
     if (!compose.includes(target)) failures.push(`test-role-map: Compose target is missing or changed: ${target}`);
+  }
+  if (!compose.includes('/contracts/schemathesis.toml')) failures.push('test-role-map: Compose does not load the Product API Schemathesis configuration');
+  if (!schemathesisConfig.includes('include-name = "GET /products/{sku}"')
+      || !schemathesisConfig.includes('["2xx", "3xx", "4xx", "502"]')) {
+    failures.push('test-role-map: Schemathesis must allow only the documented 502 on the Product lookup operation');
+  }
+  for (const command of testCommands) {
+    if (!compose.includes(command) && !runner.includes(command) && !playwrightPackage.includes(command)) {
+      failures.push(`test-role-map: implemented test structure is not wired to the documented role: ${command}`);
+    }
   }
   for (const label of visualLabels) {
     if (!showcase.includes(label)) failures.push(`test-role-map: interactive overview omits ${label}`);
   }
-  return documentedRoles.length + targets.length + visualLabels.length;
+  return documentedRoles.length + targets.length + visualLabels.length + documentedSections.length + clientTestSources.length + testCommands.length;
 }
 
 function checkPipelineServices(services) {

@@ -177,8 +177,8 @@
           <p class="lead">Specmatic provider and consumer checks use the Product OAS with different targets. Native language suites exercise the live APIs.</p>
           <div class="grid">
             <article class="card"><span class="tag">Provider contract test</span><strong>Specmatic → live Product API</strong><p>Contract-derived requests go to the healthy app at <code>app:8080</code>. Specmatic verifies the provider responses against the shared OAS.</p></article>
-            <article class="card"><span class="tag">Consumer contract test</span><strong>JavaScript / Playwright → Smart Mock</strong><p>Both examples call the Specmatic mock at <code>specmatic-mock:9000</code>, created from the Product OAS.</p></article>
-            <article class="card"><span class="tag">API integration</span><strong>Native clients → live Product and Order APIs</strong><p>Seven language suites and Playwright provider tests send real requests, validate response schemas, and check business behavior.</p></article>
+            <article class="card"><span class="tag">Consumer contract test</span><strong>JavaScript / Playwright → Smart Mock</strong><p>Dedicated consumer test files call the Specmatic mock at <code>specmatic-mock:9000</code>, created from the Product OAS.</p></article>
+            <article class="card"><span class="tag">API integration</span><strong>Native clients → live Product and Order APIs</strong><p>Seven language suites and the Playwright provider suite send real requests, validate response schemas, and check business behavior.</p></article>
           </div>
           <div class="note">The consumer examples share the provider OAS; this project does not publish a separate consumer-owned CDC contract.</div>
         </section>

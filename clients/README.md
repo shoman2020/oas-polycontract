@@ -22,8 +22,9 @@ verification. Rust, Go, and C# lock-mode work is tracked in Phase 9 of the
 4. Remove status and body-shape assertions that OAS validation already checks.
    Keep business assertions in one native test suite.
 5. Run `bash ./run.sh`. It executes the seven language suites and Playwright
-   against the Product API. JavaScript and Playwright also target Specmatic's
-   Smart Mock for consumer-side examples using the same contract.
+   API integration suites against the Product API. Separate JavaScript and
+   Playwright consumer tests target Specmatic's Smart Mock generated from the
+   same contract.
 6. The same command runs stateless Schemathesis fuzzing, Schemathesis stateful
    tests, and a native order lifecycle integration test in each of the seven
    languages. The stateful tests use a separate in-memory Order API; the
@@ -50,20 +51,36 @@ does not include the Order API lifecycle.
 | Java | `mvn test` | REST Assured's Atlassian `OpenApiValidationFilter` validates request and response. |
 | C# | `dotnet test` | Reads the response schema and status from the OAS YAML, then uses `NJsonSchema`. |
 
-## Test roles and targets
+## Contract-based testing
+
+Contract-based tests check conformance at the provider or consumer boundary.
+The provider test asks whether the running Product API honors the OAS.
+Specmatic sends contract-derived requests to the live service. The consumer
+tests exercise client requests against a Smart Mock generated from that same
+OAS; this example does not publish a separate consumer-owned CDC contract.
+
+| Role | Test source | Target | Expected evidence |
+|---|---|---|---|
+| Provider contract-based test | Compose `specmatic-provider` service | Running Product API at `app:8080` | Specmatic validates provider responses against the OAS. |
+| Consumer contract-based test | JavaScript [`consumer-contract.test.mjs`](js/consumer-contract.test.mjs) and Playwright [`consumer-contract.spec.mjs`](playwright/consumer-contract.spec.mjs) | Specmatic Smart Mock at `specmatic-mock:9000` | Client expectations work with contract-derived mock responses. |
+
+## API integration testing
+
+API integration tests send code-authored requests to running services. They
+validate status, media type, and response schema against OAS, then assert
+application behavior. These tests include real service wiring and lifecycle
+operations, so they complement the contract-based provider and consumer tests.
 
 | Test type | Test source | Target | Expected evidence |
 |---|---|---|---|
-| Provider contract-based test | Compose `specmatic-provider` service | Running Product API at `app:8080` | Specmatic sends OAS-derived requests to the provider and validates its responses. |
-| Consumer contract-based test | `clients/js/contract.test.mjs` with the mock URL and `clients/playwright/consumer-contract.spec.mjs` | Specmatic Smart Mock at `specmatic-mock:9000` | Consumer examples work with responses generated from the shared Product OAS. |
-| Product API integration test | Seven language-native suites and `clients/playwright/contract.spec.mjs` | Running Product API at `app:8080` | Real HTTP responses pass OAS validation and a business assertion. |
-| Stateful API integration test | Seven native `stateful` test entry points | Running Order API at `stateful-app:8082` | The suite validates the full order lifecycle against its OAS. |
-| Downstream service integration test | `demo/app/tests/wiremock.integration.mjs` | Product API and WireMock | The app returns its response and the expected inventory call appears in WireMock's request journal. |
+| Product API integration test | [Rust](rust/tests/api_integration_test.rs), [Go](go/product_api_integration_test.go), [Python](python/test_product_api_integration.py), [JavaScript](js/product-api-integration.test.mjs), [TypeScript](ts/product-api-integration.test.ts), [Java](java/src/test/java/nl/shiftleft/ProductApiIntegrationTest.java), [C#](csharp/ProductApiIntegrationTests.cs), and Playwright [provider suite](playwright/product-api-integration.spec.mjs) | Running Product API at `app:8080` | Real HTTP responses pass OAS validation and a business assertion. |
+| Stateful API integration test | [Rust](rust/tests/api_integration_test.rs), [Go](go/stateful_order_api_integration_test.go), [Python](python/test_stateful_order_api_integration.py), [JavaScript](js/stateful-order-api-integration.test.mjs), [TypeScript](ts/stateful-order-api-integration.test.ts), [Java](java/src/test/java/nl/shiftleft/StatefulOrderApiIntegrationTest.java), and [C#](csharp/StatefulOrderApiIntegrationTests.cs) | Running Order API at `stateful-app:8082` | The suite validates the create/read/confirm/delete lifecycle against its OAS. |
+| Downstream service integration test | [`wiremock.integration.mjs`](../demo/app/tests/wiremock.integration.mjs) | Product API and WireMock | The app returns its response and the expected inventory call appears in WireMock's request journal. |
 
-The provider and consumer examples are contract-based tests with different
-targets. Native language suites are API integration tests against running
-services. Their OAS response validators check the interface as part of each
-integration test; business assertions remain explicit in test code.
+Smart Mock fixtures and dictionary values have a separate deterministic
+evaluation in [`specmatic-mock.integration.mjs`](../demo/app/tests/specmatic-mock.integration.mjs)
+using [`mock-data-evals.json`](../evals/mock-data-evals.json). This checks mock
+data behavior; it is not a live API integration test.
 
 The Rust and C# starters resolve the operation response and schema from the
 contract but intentionally support local component `$ref`s only. For larger
@@ -97,7 +114,7 @@ contract outcome from each language-native suite and the Playwright API suite:
 ```text
 Rust       test product_response_matches_openapi_contract ... ok
 Go         --- PASS: TestProductResponseMatchesOpenAPIContract
-Python     test_contract.py::test_product_response_matches_openapi_contract PASSED
+Python     test_product_api_integration.py::test_product_response_matches_openapi_contract PASSED
 JavaScript ✔ product response matches the OpenAPI contract
 TypeScript ✓ validates the response against the OAS and checks the business result
 Playwright Provider integration passed: GET /products/demo-sku -> 200

@@ -6,7 +6,7 @@ import com.atlassian.oai.validator.restassured.OpenApiValidationFilter;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 
-class ProductContractTest {
+class ProductApiIntegrationTest {
     @Test
     void productResponseMatchesOpenApiContract() throws Exception {
         String specUrl = Path.of(System.getenv("OPENAPI_SPEC")).toUri().toURL().toString();

@@ -3,7 +3,7 @@
   "checks": [
     {
       "id": "readme-links",
-      "description": "README relative links resolve to repository files or directories",
+      "description": "README and client guide relative links resolve from their own locations",
       "type": "readme-links"
     },
     {
@@ -16,26 +16,27 @@
       "description": "Each documented native language and Playwright role has test entry points",
       "type": "files-exist",
       "paths": [
-        "clients/rust/tests/contract_test.rs",
-        "clients/go/contract_test.go",
-        "clients/go/stateful_contract_test.go",
-        "clients/python/test_contract.py",
-        "clients/python/test_stateful_contract.py",
-        "clients/js/contract.test.mjs",
-        "clients/js/stateful-contract.test.mjs",
-        "clients/ts/contract.test.ts",
-        "clients/ts/stateful-contract.test.ts",
-        "clients/java/src/test/java/nl/shiftleft/ProductContractTest.java",
-        "clients/java/src/test/java/nl/shiftleft/StatefulOrderContractTest.java",
-        "clients/csharp/ProductContractTests.cs",
-        "clients/csharp/StatefulOrderContractTests.cs",
-        "clients/playwright/contract.spec.mjs",
+        "clients/rust/tests/api_integration_test.rs",
+        "clients/go/product_api_integration_test.go",
+        "clients/go/stateful_order_api_integration_test.go",
+        "clients/python/test_product_api_integration.py",
+        "clients/python/test_stateful_order_api_integration.py",
+        "clients/js/product-api-integration.test.mjs",
+        "clients/js/stateful-order-api-integration.test.mjs",
+        "clients/js/consumer-contract.test.mjs",
+        "clients/ts/product-api-integration.test.ts",
+        "clients/ts/stateful-order-api-integration.test.ts",
+        "clients/java/src/test/java/nl/shiftleft/ProductApiIntegrationTest.java",
+        "clients/java/src/test/java/nl/shiftleft/StatefulOrderApiIntegrationTest.java",
+        "clients/csharp/ProductApiIntegrationTests.cs",
+        "clients/csharp/StatefulOrderApiIntegrationTests.cs",
+        "clients/playwright/product-api-integration.spec.mjs",
         "clients/playwright/consumer-contract.spec.mjs"
       ]
     },
     {
       "id": "test-role-map",
-      "description": "Provider, consumer, and integration tests are distinguished by source and target",
+      "description": "Contract and integration methods match the client test files, Compose targets, and fuzz rules",
       "type": "test-role-map"
     },
     {
@@ -59,16 +60,17 @@
         "specmatic-examples-validate",
         "schemathesis",
         "stateful-schemathesis",
-        "rust-contract-test",
-        "go-contract-test",
-        "python-contract-test",
-        "js-contract-test",
-        "ts-contract-test",
-        "playwright-contract-test",
-        "java-contract-test",
-        "csharp-contract-test",
+        "rust-api-integration-test",
+        "go-api-integration-test",
+        "python-api-integration-test",
+        "js-api-integration-test",
+        "js-consumer-contract-test",
+        "ts-api-integration-test",
+        "playwright-api-integration-test",
+        "java-api-integration-test",
+        "csharp-api-integration-test",
         "specmatic-mock-integration-test",
-        "playwright-consumer-test"
+        "playwright-consumer-contract-test"
       ]
     },
     {

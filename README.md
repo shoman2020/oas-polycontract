@@ -24,7 +24,7 @@ Before contract gates, `bash ./run.sh` evaluates README links and its project tr
 
 ## Fuzzing and stateful tests
 
-Schemathesis performs **stateless fuzzing** against the GET-only Product API: it generates independent requests from the OpenAPI contract, probes input boundaries, and checks the responses. Each case can run without depending on data created by an earlier case.
+Schemathesis performs **stateless fuzzing** against the GET-only Product API: it generates independent requests from the OpenAPI contract, probes input boundaries, and checks the responses. Each case can run without depending on data created by an earlier case. [`demo/schemathesis.toml`](demo/schemathesis.toml) allows the documented `502` for `GET /products/{sku}` because the demo deliberately maps one SKU to an unavailable inventory service; other server errors still fail.
 
 **Stateful testing** sequences related operations and reuses values returned by earlier requests. The Product API remains GET-only, so `run.sh` demonstrates stateful testing against a separate in-memory Order API in [`demo/stateful/`](demo/stateful/). Its OAS links let Schemathesis create an order, read or update it, delete it, and verify a later read returns `404`. The service is disposable and starts empty for each pipeline run.
 
@@ -100,16 +100,26 @@ The stateful example runs against the separate `stateful-app` container at `http
 
 ## Test roles and source layout
 
+Contract-based testing checks how each side uses the shared interface contract. Provider verification sends contract-derived requests to the live app; consumer tests send client requests to a Smart Mock generated from the same OAS. API integration testing uses code to call the running services, validates their responses against OAS, and checks application behavior, including dependency calls and stateful flows.
+
+### Contract-based testing
+
 | Test type | Source | Target | Purpose |
 |---|---|---|---|
 | Provider contract-based test | Specmatic `specmatic-provider` service | Live Product API at `http://app:8080` | Sends contract-derived requests to the provider and verifies its responses against the shared OAS. |
-| Consumer contract-based test | JavaScript and Playwright consumer suites | Specmatic Smart Mock at `http://specmatic-mock:9000` | Exercises consumer requests and handling with responses generated from the Product OAS. |
-| Product API integration test | Rust, Go, Python, JavaScript, TypeScript, Java, C#, and Playwright provider suites | Live Product API at `http://app:8080` | Sends real HTTP requests, validates status, media type, and response schema against OAS, then checks business behavior. |
-| Stateful API integration test | Seven language-native stateful suites | Live Order API at `http://stateful-app:8082` | Runs create, read, confirm, delete, and post-delete `404` lifecycle checks against the stateful OAS. |
-| Downstream service integration test | [`demo/app/tests/wiremock.integration.mjs`](demo/app/tests/wiremock.integration.mjs) | Product API and WireMock | Confirms the running app makes the expected inventory request to its dependency. |
-| Smart Mock data evaluation | [`demo/app/tests/specmatic-mock.integration.mjs`](demo/app/tests/specmatic-mock.integration.mjs) with [`evals/mock-data-evals.json`](evals/mock-data-evals.json) | Specmatic Smart Mock | Checks exact fixture responses and allowed dictionary fallback values. |
+| Consumer contract-based test | JavaScript [`consumer-contract.test.mjs`](clients/js/consumer-contract.test.mjs) and Playwright [`consumer-contract.spec.mjs`](clients/playwright/consumer-contract.spec.mjs) | Specmatic Smart Mock at `http://specmatic-mock:9000` | Exercises client requests and expectations using responses generated from the Product OAS. |
 
-Specmatic uses the same API specification to verify providers and create Smart Mocks for consumers ([contract testing](https://docs.specmatic.io/contract_driven_api_development/contract_testing), [service virtualization](https://docs.specmatic.io/contract_driven_api_development/service_virtualization)). Both are contract-based tests: provider verification targets the live app, while consumer examples target the contract-derived mock. The language-native suites target live services as API integration tests and also validate their responses against OAS. This example shares the provider contract with consumers; it does not publish a separate consumer-owned CDC contract.
+### API integration testing
+
+| Test type | Source | Target | Purpose |
+|---|---|---|---|
+| Product API integration test | Seven language-native suites ([entry points](clients/README.md#api-integration-testing)) and Playwright [`product-api-integration.spec.mjs`](clients/playwright/product-api-integration.spec.mjs) | Live Product API at `http://app:8080` | Sends real HTTP requests, validates status, media type, and response schema against OAS, then checks business behavior. |
+| Stateful API integration test | Seven language-native stateful suites ([entry points](clients/README.md#api-integration-testing)) | Live Order API at `http://stateful-app:8082` | Runs create, read, confirm, delete, and post-delete `404` lifecycle checks against the stateful OAS. |
+| Downstream service integration test | [`demo/app/tests/wiremock.integration.mjs`](demo/app/tests/wiremock.integration.mjs) | Product API and WireMock | Confirms the running app makes the expected inventory request to its dependency. |
+
+Smart Mock fixture and dictionary checks are a separate evaluation: [`demo/app/tests/specmatic-mock.integration.mjs`](demo/app/tests/specmatic-mock.integration.mjs) uses [`evals/mock-data-evals.json`](evals/mock-data-evals.json) to check exact fixtures and allowed fallback values.
+
+Specmatic uses the same API specification to verify providers and create Smart Mocks for consumers ([contract testing](https://docs.specmatic.io/contract_driven_api_development/contract_testing), [service virtualization](https://docs.specmatic.io/contract_driven_api_development/service_virtualization)). The consumer examples share the provider OAS; the repository does not publish a separate consumer-owned CDC contract.
 
 To run these commands directly, pass the pinned image versions with `--env-file .github/versions.env`. For a full run, `bash ./run.sh` handles the startup and cleanup.
 
@@ -121,13 +131,14 @@ docker compose --env-file .github/versions.env up -d wiremock app
 docker compose --env-file .github/versions.env --profile test run --rm specmatic-provider
 ```
 
-`specmatic-mock` starts a Smart Mock from the shared OAS. The JavaScript and Playwright consumer tests run against it. Their separate runs against the live Product API are API integration tests.
+`specmatic-mock` starts a Smart Mock from the shared OAS. The JavaScript and Playwright consumer contract tests run against it. Separate native API integration suites call the live Product API.
 
 ```sh
 docker compose --env-file .github/versions.env --profile mock up -d specmatic-mock
-docker compose --env-file .github/versions.env --profile test --profile mock build specmatic-mock-integration-test playwright-consumer-test
+docker compose --env-file .github/versions.env --profile test --profile mock build js-api-integration-test specmatic-mock-integration-test playwright-consumer-contract-test
 docker compose --env-file .github/versions.env --profile test --profile mock run --rm specmatic-mock-integration-test
-docker compose --env-file .github/versions.env --profile test --profile mock run --rm playwright-consumer-test
+docker compose --env-file .github/versions.env --profile test --profile mock run --rm js-consumer-contract-test
+docker compose --env-file .github/versions.env --profile test --profile mock run --rm playwright-consumer-contract-test
 ```
 
 `bash ./run.sh` runs both roles, plus the JavaScript consumer example and checks for deterministic external examples and dictionary-backed mock data.
@@ -191,7 +202,7 @@ The runnable suites live in [`clients/`](clients/). Each makes a real HTTP reque
 | Java | JUnit + REST Assured | Atlassian OpenAPI Request Validator filter |
 | C# | xUnit + `HttpClient` | `NJsonSchema` using the response schema read from OAS YAML |
 
-The JavaScript and Playwright suites each run against both the live provider and Specmatic's Smart Mock. The live-provider run is an API integration test; the mock-backed run demonstrates consumer-side development against the same OAS. Both keep business assertions in code and validate response shape against the contract. Migration notes and representative output are in [`clients/README.md`](clients/README.md).
+JavaScript and Playwright have separate test sources for each role. Their API integration suites call the live Product API; their consumer contract tests call Specmatic's Smart Mock. Both validate responses against the shared OAS, while the consumer examples use the contract-derived mock to develop and check client expectations. Migration notes and representative output are in [`clients/README.md`](clients/README.md).
 
 The JavaScript, TypeScript, and Playwright images install from committed npm lockfiles with `npm ci`. Python installs from a hash-locked requirements file. Remaining Rust, Go, and C# lock-mode work is tracked in [Phase 9](ROADMAP.md#phase-9--reproducible-dependencies).
 
@@ -220,6 +231,7 @@ oas-polycontract/
 |-- evals/                           # Repository integrity evaluation definitions and runner
 |-- demo/
 |   |-- openapi.yaml                 # Runnable Product API contract
+|   |-- schemathesis.toml            # Operation-scoped allowance for the documented 502
 |   |-- openapi_examples/            # Deterministic Specmatic request/response data
 |   |-- openapi_dictionary.yaml      # Domain-shaped Smart Mock fallback values
 |   |-- app/                         # Product API provider

@@ -3,7 +3,7 @@ using Xunit;
 
 namespace OasPolycontract.Clients.CSharp;
 
-public sealed class StatefulOrderContractTests
+public sealed class StatefulOrderApiIntegrationTests
 {
     [Fact]
     public async Task OrderLifecycleResponsesMatchOpenApiContract()

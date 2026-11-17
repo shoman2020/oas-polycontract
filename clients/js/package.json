@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test"
+    "test": "node --test product-api-integration.test.mjs stateful-order-api-integration.test.mjs",
+    "test:consumer": "node --test consumer-contract.test.mjs"
   },
   "dependencies": {
     "@oaverify/core": "7.3.1",

@@ -7,7 +7,7 @@ import io.restassured.response.Response;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 
-class StatefulOrderContractTest {
+class StatefulOrderApiIntegrationTest {
     @Test
     void orderLifecycleResponsesMatchOpenApiContract() throws Exception {
         String specUrl = Path.of(System.getenv("STATEFUL_OPENAPI_SPEC")).toUri().toURL().toString();
