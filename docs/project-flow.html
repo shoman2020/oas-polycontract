@@ -116,13 +116,13 @@
         <section class="scene" aria-labelledby="scene-title-3" hidden>
           <span class="eyebrow">03 · Pipeline</span>
           <h2 id="scene-title-3" tabindex="-1">One command runs the demonstration.</h2>
-          <p class="lead">Run <code>bash ./run.sh</code> locally or in Ubuntu CI. Compose starts the services, waits for health checks, executes the gates, and cleans up.</p>
+          <p class="lead">Run <code>bash ./run.sh</code> locally or in Ubuntu CI. Docker Compose builds and starts the services, waits for health checks, runs the gates, and cleans up.</p>
           <div class="grid">
             <article class="card"><span class="tag">Contract gates</span><strong>Lint and compatibility</strong><p>Spectral checks OpenAPI and AsyncAPI; oasdiff checks the root contract against its baseline.</p></article>
-            <article class="card"><span class="tag">Live services</span><strong>Verify and integrate</strong><p>Specmatic, Schemathesis, seven language suites, and Playwright call the running APIs. WireMock serves inventory.</p></article>
-            <article class="card"><span class="tag">Security and consumers</span><strong>Scan and mock</strong><p>Image scans run in CI. JavaScript and Playwright consumer examples use the Specmatic Smart Mock.</p></article>
+            <article class="card"><span class="tag">Live services</span><strong>Node.js, WireMock, Specmatic</strong><p>Schemathesis and the API integration suites exercise the running Product and Order APIs.</p></article>
+            <article class="card"><span class="tag">Clients and security</span><strong>Rust, Go, Python, JavaScript, TypeScript, Java, C#</strong><p>Playwright adds API provider and consumer examples. CI scans the built container images.</p></article>
           </div>
-          <div class="mini-flow"><span class="step"><b>Lint contracts</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Start services</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Run contract and API checks</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Scan images</b></span></div>
+          <div class="mini-flow"><span class="step"><b>Spectral and oasdiff</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Docker Compose</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Contract and API checks</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Trivy image scans</b></span></div>
         </section>
         <section class="scene" aria-labelledby="scene-title-4" hidden>
           <span class="eyebrow">04 · Contract roles</span>
@@ -142,30 +142,29 @@
             <article class="card"><span class="tag">Stateful testing</span><strong>Follow linked operations</strong><p>The separate Order API preserves state across a lifecycle. OAS links pass the created identifier between operations.</p></article>
           </div>
           <div class="mini-flow"><span class="step"><b>Create</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Read</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Confirm</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Delete</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Verify 404</b></span></div>
-          <p class="lead" style="margin-top:20px">Seven native clients repeat the lifecycle and validate each live response against the stateful OAS.</p>
+          <p class="lead" style="margin-top:20px">Rust, Go, Python, JavaScript, TypeScript, Java, and C# repeat the lifecycle and validate each response against the stateful OAS.</p>
         </section>
         <section class="scene" aria-labelledby="scene-title-6" hidden>
           <span class="eyebrow">06 · Native API tests</span>
           <h2 id="scene-title-6" tabindex="-1">Validate live responses in native test suites.</h2>
           <p class="lead">Each example uses a small API client object for requests and a language-native test framework for behavior and OAS response validation.</p>
           <div class="grid">
-            <article class="card"><span class="tag">Rust · Go · Python</span><strong>Native HTTP clients</strong><p>Typed request helpers, test fixtures, lifecycle checks, and contract validators.</p></article>
-            <article class="card"><span class="tag">JavaScript · TypeScript</span><strong>Code-based suites</strong><p>JavaScript test runner and TypeScript test runner validate live provider responses.</p></article>
-            <article class="card"><span class="tag">Java · C# · Playwright</span><strong>Framework-native tests</strong><p>JUnit and xUnit cover the lifecycle; Playwright APIRequestContext demonstrates provider and consumer tests.</p></article>
+            <article class="card"><span class="tag">Rust · Go · Python</span><strong>Native HTTP clients</strong><p>reqwest, net/http, and requests validate response status, media type, and schema.</p></article>
+            <article class="card"><span class="tag">JavaScript · TypeScript</span><strong>Node test runner and Vitest</strong><p><code>@oaverify/core</code> validates live provider responses and Smart Mock examples.</p></article>
+            <article class="card"><span class="tag">Java · C#</span><strong>JUnit and xUnit</strong><p>REST Assured and HttpClient cover provider and stateful API integration. Playwright adds JavaScript API tests.</p></article>
           </div>
           <div class="note">For manual exploration, optional Swagger UI and Prism views load the root contract. They serve a different role from the automated checks.</div>
         </section>
         <section class="scene" aria-labelledby="scene-title-7" hidden>
           <span class="eyebrow">07 · Performance insights</span>
           <h2 id="scene-title-7" tabindex="-1">Use timings as diagnostics, not a benchmark.</h2>
-          <p class="lead">A historical cold CI run records build and fuzzing timings. The complete contract suite later passed; stable performance comparisons still need repeated cold and warm-cache measurements.</p>
+          <p class="lead">The latest full contract CI job passed in 5 minutes 14 seconds. Earlier fuzzing timings are available as diagnostics; repeated cold and warm-cache runs are still needed for a stable benchmark.</p>
           <div class="grid">
-            <article class="card metric"><strong>Client and app image builds</strong><span class="value">~67 sec</span><p>Approximate build time in the recorded sample.</p></article>
-            <article class="card metric"><strong>Schemathesis fuzz phase</strong><span class="value">2.07 sec</span><p>115 generated cases; one unsupported-method finding.</p></article>
-            <article class="card metric"><strong>Full CI job</strong><span class="value">2m 44s</span><p>Included image scans and ended on a contract finding.</p></article>
+            <article class="card metric"><strong>Passing contract CI job</strong><span class="value">5m 14s</span><p>Contract gates, API suites, Playwright, and image scans.</p></article>
+            <article class="card metric"><strong>Earlier Schemathesis run</strong><span class="value">115 · 2.07s</span><p>Generated cases and fuzzing duration; diagnostic run.</p></article>
+            <article class="card metric"><strong>Benchmark status</strong><span class="value">Baseline open</span><p>Collect repeated cold and warm-cache measurements.</p></article>
           </div>
-          <div class="note">The earlier run found that <code>TRACE /healthz</code> returned 404 instead of 405. That behavior has since been fixed. The later contract run passed; the separate Pages deployment still requires Pages to be enabled in repository settings.</div>
-          <p style="margin-top:18px"><a href="https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603">Historical diagnostic run</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44046941415">Passing contract run</a> · <a href="https://github.com/shoman2020/oas-polycontract/blob/main/ROADMAP.md">Roadmap</a></p>
+          <p style="margin-top:18px"><a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44046941415">Passing contract run</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603">Earlier fuzzing diagnostics</a> · <a href="https://github.com/shoman2020/oas-polycontract/blob/main/ROADMAP.md">Roadmap</a></p>
         </section>
       </div>
       <nav class="controls" aria-label="Showcase controls">
