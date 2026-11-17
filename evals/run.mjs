@@ -320,6 +320,7 @@ function checkDependencyLocks() {
     [/^NPM_VERSION=\d+\.\d+\.\d+$/m.test(versions), 'NPM_VERSION must be pinned in the shared versions file'],
     [tsPackage.engines?.npm?.startsWith('>=12') && tsLock.lockfileVersion === 4, 'TypeScript patching must use npm 12 and its supported lockfile format'],
     [tsDockerfile.includes('npm@${NPM_VERSION}') && tsDockerfile.includes('USER node'), 'TypeScript image must install the pinned npm version and run as non-root'],
+    [tsDockerfile.indexOf('COPY --chown=node:node patches/') < tsDockerfile.indexOf('RUN npm ci'), 'TypeScript image must copy the dependency patch before npm ci'],
     [compose.includes('NPM_VERSION: ${NPM_VERSION:?Set NPM_VERSION'), 'Compose must pass the pinned npm version to the TypeScript build'],
   ];
   for (const [passed, message] of required) if (!passed) failures.push(`dependency-locks: ${message}`);

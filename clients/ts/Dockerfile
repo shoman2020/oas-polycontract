@@ -6,6 +6,7 @@ RUN npm install --global "npm@${NPM_VERSION}" --no-audit --no-fund
 WORKDIR /workspace
 RUN chown node:node /workspace
 COPY --chown=node:node package.json package-lock.json .npmrc ./
+COPY --chown=node:node patches/ ./patches/
 USER node
 RUN npm ci --no-audit --no-fund
 COPY --chown=node:node . .
