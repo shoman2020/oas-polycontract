@@ -1,4 +1,4 @@
-asyncapi: 2.6.0
+asyncapi: 3.1.0
 info:
   title: Product Availability WebSocket API
   version: 1.0.0
@@ -14,23 +14,30 @@ tags:
     description: Product availability events.
 servers:
   local:
-    url: localhost:8083
+    host: localhost:8083
     protocol: ws
     description: Local development endpoint (example contract; no server is included).
 defaultContentType: application/json
 channels:
-  /products/{sku}/availability:
+  productAvailability:
+    address: /products/{sku}/availability
     parameters:
       sku:
         description: Product SKU to subscribe to.
         schema:
           type: string
-    publish:
-      operationId: publishAvailabilityUpdates
-      summary: Publish availability updates for one product.
-      description: Publishes an availability update for subscribers to the product channel.
-      message:
+    messages:
+      availabilityChanged:
         $ref: "#/components/messages/AvailabilityChanged"
+operations:
+  publishAvailabilityUpdates:
+    action: send
+    channel:
+      $ref: "#/channels/productAvailability"
+    summary: Publish availability updates for one product.
+    description: Publishes an availability update for subscribers to the product channel.
+    messages:
+      - $ref: "#/channels/productAvailability/messages/availabilityChanged"
 components:
   messages:
     AvailabilityChanged:

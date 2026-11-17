@@ -1,4 +1,4 @@
-asyncapi: 2.6.0
+asyncapi: 3.1.0
 info:
   title: Product Availability Kafka API
   version: 1.0.0
@@ -14,19 +14,26 @@ tags:
     description: Product availability events.
 servers:
   local:
-    url: localhost:9092
+    host: localhost:9092
     protocol: kafka
     protocolVersion: "3.7.0"
     description: Local development broker (example contract; no broker is included).
 defaultContentType: application/json
 channels:
-  products.availability:
-    publish:
-      operationId: publishAvailabilityChanged
-      summary: Publish an availability update.
-      description: Publishes an availability update to the products.availability topic.
-      message:
+  productAvailability:
+    address: products.availability
+    messages:
+      availabilityChanged:
         $ref: "#/components/messages/AvailabilityChanged"
+operations:
+  publishAvailabilityChanged:
+    action: send
+    channel:
+      $ref: "#/channels/productAvailability"
+    summary: Publish an availability update.
+    description: Publishes an availability update to the products.availability topic.
+    messages:
+      - $ref: "#/channels/productAvailability/messages/availabilityChanged"
 components:
   messages:
     AvailabilityChanged:
