@@ -26,7 +26,8 @@ internal sealed class OpenApiResponseValidator
         string method)
     {
         var status = ((int)response.StatusCode).ToString(CultureInfo.InvariantCulture);
-        var responses = NodeAt(_spec, "paths", operationPath, method, "responses");
+        var responses = NodeAt(_spec, "paths", operationPath, method, "responses") as YamlMappingNode
+            ?? throw new InvalidOperationException($"Responses for {method.ToUpperInvariant()} {operationPath} must be a mapping");
         var responseExists = responses.Children.Keys
             .OfType<YamlScalarNode>()
             .Any(key => key.Value == status);

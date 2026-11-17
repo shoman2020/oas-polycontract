@@ -11,8 +11,9 @@ public sealed class ProductContractTests
         using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
         var api = new ProductApiClient(httpClient, new Uri(RequiredEnvironmentVariable("API_BASE_URL")));
         var contract = OpenApiResponseValidator.Load(RequiredEnvironmentVariable("OPENAPI_SPEC"));
+        var cancellationToken = TestContext.Current.CancellationToken;
 
-        using var response = await api.GetProductAsync("demo-sku");
+        using var response = await api.GetProductAsync("demo-sku", cancellationToken);
         var body = await response.Content.ReadAsStringAsync();
         await contract.ValidateAsync(response, body, "/products/{sku}", "get");
 
