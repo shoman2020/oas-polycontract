@@ -87,12 +87,13 @@ jobs:
           source .github/versions.env
           echo "TRIVY_VERSION=$TRIVY_VERSION" >> "$GITHUB_ENV"
 
-      - name: Scan dependencies, secrets, and configuration
+      - name: Scan dependencies and configuration
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: fs
           scan-ref: .
-          scanners: vuln,secret,misconfig
+          # Gitleaks owns repository secret scanning. Trivy image scans live in contract.yml.
+          scanners: vuln,misconfig
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"
