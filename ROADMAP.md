@@ -8,7 +8,7 @@ One hand-edited contract per API boundary. Clear ownership means less maintenanc
 |---|---|---|
 | Runnable APIs | Product, Order, Inventory, WireMock, and Specmatic examples | Contract pipeline passed on [run 44110813231](https://github.com/shoman2020/oas-polycontract/actions/runs/44110813231), including all three container scans. |
 | Test roles | Specmatic provider targets the app; JS and Playwright consumers target Smart Mock; seven languages plus Playwright run API integration tests | Provider, consumer, stateful, and integration checks passed in the contract run. |
-| Contracts | OAS for HTTP, AsyncAPI 3.1 examples for WebSocket and Kafka; pinned Spectral 6.17, oasdiff, Schemathesis | Event examples have no live provider or broker. Spectral is invoked with a CLI-scoped Node deprecation switch; CI verification pending. |
+| Contracts | OAS for HTTP, AsyncAPI 3.1 examples for WebSocket and Kafka; pinned Spectral 6.17, oasdiff, Schemathesis | Event examples have no live provider or broker. A wrapper filters only Spectral's upstream `DEP0040` notice; CI verification pending. |
 | Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, and OWASP SecureAI-Scan | Security workflow [run 44110813201](https://github.com/shoman2020/oas-polycontract/actions/runs/44110813201) passed, including SecureAI-Scan. Its AI-specific rules cover Python, JavaScript, and TypeScript; this demo has no AI runtime. |
 | Showcase | Interactive contract, pipeline, workflow, test-role, and performance views | GitHub Pages is not enabled in repository settings. |
 | Reproducibility | npm and Python locks; Maven dependency and lifecycle plugin versions are explicitly managed | Add Rust Cargo.lock, Go go.sum, and C# NuGet lock mode; verify a clean run. |
@@ -113,5 +113,5 @@ A create-polycontract npm CLI could follow if users need selective project gener
 ## Progress
 
 - 17 Nov: Commit 44bd1d9 passed the OWASP GenAI scan, other security jobs, and showcase deployment. Commit baab726 aligned Maven dependency versions after contract run 44081375236 exposed convergence errors. Contract run [44110813231](https://github.com/shoman2020/oas-polycontract/actions/runs/44110813231) and security run [44110813201](https://github.com/shoman2020/oas-polycontract/actions/runs/44110813201) then passed. Repository evaluations passed 8/8 checks.
-- 17 Nov: Updated the WebSocket and Kafka examples to AsyncAPI 3.1.0; corrected AsyncAPI 3 `info.tags` and channel parameter shapes after linting found errors. Invoke Spectral with a CLI-scoped Node deprecation switch; CI verification is pending.
+- 17 Nov: Updated the WebSocket and Kafka examples to AsyncAPI 3.1.0; corrected AsyncAPI 3 `info.tags` and channel parameter shapes after linting found errors. CI showed the official image ignored the deprecation switch; a wrapper now filters only its exact `DEP0040` notice and preserves the lint exit code. Verification is pending.
 - Earlier full green contract run: [44052746009](https://github.com/shoman2020/oas-polycontract/actions/runs/44052746009).

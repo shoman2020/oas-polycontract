@@ -127,7 +127,7 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - >-
-        exec node --no-deprecation "$(command -v spectral)"
+        sh /repo/gates/lint/run-spectral.sh
         lint --ruleset /repo/gates/lint/.spectral.yaml
         /repo/openapi/openapi.yaml
         /repo/demo/openapi.yaml
@@ -142,7 +142,7 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command:
       - >-
-        exec node --no-deprecation "$(command -v spectral)"
+        sh /repo/gates/lint/run-spectral.sh
         lint --ruleset /repo/gates/lint/.spectral-asyncapi.yaml
         /repo/contracts/events/websocket.asyncapi.yaml
         /repo/contracts/events/kafka.asyncapi.yaml
