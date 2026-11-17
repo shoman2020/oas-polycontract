@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "vitest run"
+    "test": "node --test security/picomatch-redos.test.mjs && vitest run"
   },
   "dependencies": {
     "@oaverify/core": "7.3.1",
@@ -11,6 +11,10 @@
     "@types/node": "26.6.6",
     "typescript": "7.0.2",
     "vitest": "5.1.0"
+  },
+  "overrides": {
+    "picomatch": "git+https://github.com/seeibt/picomatch.git#1bf0d04563cb9ce568cf36efc5f6b7187d9911d5"
   }
 }
+
 
