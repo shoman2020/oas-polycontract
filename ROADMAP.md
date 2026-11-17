@@ -8,8 +8,8 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 |---|---|---|
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | No event provider or broker |
 | Tests | Specmatic provider/consumer, WireMock, stateless fuzzing, stateful workflows, seven native languages, Playwright | Add runtime event examples only with a provider |
-| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, OWASP SecureAI-Scan | SecureAI rules support JS, TS, and Python; no AI runtime is present |
-| Dependencies | Cargo, Go, NuGet, npm, Python, and Maven locks; locked builds passed in [contract run 44133906689](https://github.com/shoman2020/oas-polycontract/actions/runs/44133906689) | None |
+| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, OWASP SecureAI-Scan; latest checks passed in [run 44138173669](https://github.com/shoman2020/oas-polycontract/actions/runs/44138173669) | SecureAI rules support JS, TS, and Python; no AI runtime is present |
+| Dependencies | Cargo, Go, NuGet, npm, Python, and Maven locks; locked builds passed in [contract run 44138173771](https://github.com/shoman2020/oas-polycontract/actions/runs/44138173771) | None |
 | Performance | Per-stage timing and CSV artifacts; manual five-run workflow | Run five samples and record the median and range |
 | Showcase | Contract, pipeline, workflow, test-role, and performance views; latest deployment passed in [run 44130117006](https://github.com/shoman2020/oas-polycontract/actions/runs/44130117006) | None for this dependency-only change |
 
@@ -99,5 +99,5 @@ This reference repository has no stable runtime API to package. A `create-polyco
 
 ## Progress
 
-- 17 Nov: [Contract run 44133906689](https://github.com/shoman2020/oas-polycontract/actions/runs/44133906689) passed in 5m 54s with 10/10 repository evaluations and all image scans green. [Security run 44133906488](https://github.com/shoman2020/oas-polycontract/actions/runs/44133906488) passed, including OWASP GenAI and CodeQL.
-- 17 Nov: Updated Go `x/text` to 0.41.0 to resolve Trivy findings; clean CI verified locked dependency restores. The five-sample performance workflow is still pending.
+- 17 Nov: [Contract run 44138173771](https://github.com/shoman2020/oas-polycontract/actions/runs/44138173771) (#97) passed in 5m 36s with 10/10 repository evaluations and all image scans green. [Security run 44138173669](https://github.com/shoman2020/oas-polycontract/actions/runs/44138173669) (#75) passed, including OWASP GenAI and CodeQL.
+- 17 Nov: Updated Go `x/text` to 0.41.0 to resolve Trivy findings and removed the temporary lock-generation workflow. The five-sample performance workflow is still pending.
