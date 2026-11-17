@@ -10,6 +10,6 @@ require (
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect
 	go.yaml.in/yaml/v4 v4.0.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 )
 
