@@ -6,12 +6,12 @@ One hand-edited contract per API boundary. Clear ownership means less maintenanc
 
 | Area | Current state | Gap |
 |---|---|---|
-| Runnable APIs | Product, Order, Inventory, WireMock, and Specmatic examples | Contract run [44075851175](https://github.com/shoman2020/oas-polycontract/actions/runs/44075851175) failed in Java Maven Enforcer. This patch aligns Jackson dependencies and pins lifecycle plugins. |
+| Runnable APIs | Product, Order, Inventory, WireMock, and Specmatic examples | Run [44081375236](https://github.com/shoman2020/oas-polycontract/actions/runs/44081375236) passed the Java build setup but failed dependency convergence on older Swagger and REST Assured transitives. This patch aligns those versions. |
 | Test roles | Specmatic provider targets the app; JS and Playwright consumers target Smart Mock; seven languages plus Playwright run API integration tests | Re-run CI after the Maven fix. Last full green run: [44052746009](https://github.com/shoman2020/oas-polycontract/actions/runs/44052746009). |
 | Contracts | OAS for HTTP, AsyncAPI examples for WebSocket and Kafka; Spectral, oasdiff, Schemathesis | Event examples have no live provider or broker. |
 | Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot; OWASP SecureAI-Scan added to security.yml | GenAI scan awaits CI verification. It supports Python, JavaScript, and TypeScript; this demo has no AI runtime. |
 | Showcase | Interactive contract, pipeline, workflow, test-role, and performance views | GitHub Pages is not enabled in repository settings. |
-| Reproducibility | npm and Python locks; Maven convergence and plugin versions enforced | Add Rust Cargo.lock, Go go.sum, and C# NuGet lock mode; verify a clean run. |
+| Reproducibility | npm and Python locks; Maven dependency and lifecycle plugin versions are explicitly managed | Add Rust Cargo.lock, Go go.sum, and C# NuGet lock mode; verify a clean run. |
 
 ## Test model
 
@@ -112,5 +112,5 @@ A create-polycontract npm CLI could follow if users need selective project gener
 
 ## Progress
 
-- 17 Nov: Workflows ran for commit 7361ee4. Security and showcase passed; contract failed at Maven convergence and implicit lifecycle plugin versions. This patch addresses both and adds the OWASP GenAI gate.
+- 17 Nov: Commit 44bd1d9 passed the OWASP GenAI scan, other security jobs, and showcase deployment. Contract run 44081375236 passed plugin checks but failed on version splits in REST Assured, SLF4J, Commons IO, SnakeYAML, and related transitive dependencies. This patch manages those versions.
 - Earlier full green contract run: [44052746009](https://github.com/shoman2020/oas-polycontract/actions/runs/44052746009).
