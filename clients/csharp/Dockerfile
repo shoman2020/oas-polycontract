@@ -9,5 +9,5 @@ WORKDIR /workspace
 RUN chown app:app /workspace
 COPY --chown=app:app . .
 USER app
-CMD ["dotnet", "test", "--logger", "console;verbosity=normal"]
+CMD ["dotnet", "test"]
 
