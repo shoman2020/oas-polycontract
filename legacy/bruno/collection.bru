@@ -1,0 +1,19 @@
+meta {
+  name: oas-polycontract local API examples
+}
+
+auth {
+  mode: none
+}
+
+vars:pre-request {
+  productBaseUrl: http://localhost:8080
+  orderBaseUrl: http://localhost:8083
+  productSku: demo-sku
+}
+
+docs {
+  ## Manual API examples
+
+  Requests follow the Product OAS and the stateful Order OAS. Run the Order requests in sequence; the create response saves its ID for later requests.
+}

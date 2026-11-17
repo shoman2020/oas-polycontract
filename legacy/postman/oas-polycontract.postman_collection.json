@@ -1,0 +1,113 @@
+{
+  "info": {
+    "name": "oas-polycontract local API examples",
+    "description": "Manual Product lookup and stateful Order lifecycle examples. Request paths and response assertions follow the project OAS.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "productBaseUrl", "value": "http://localhost:8080" },
+    { "key": "orderBaseUrl", "value": "http://localhost:8083" },
+    { "key": "productSku", "value": "demo-sku" },
+    { "key": "orderId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Product API",
+      "item": [
+        {
+          "name": "Health",
+          "request": { "method": "GET", "url": "{{productBaseUrl}}/healthz" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('health responds with 200', () => pm.response.to.have.status(200));",
+            "pm.test('health response follows the contract', () => {",
+            "  const body = pm.response.json();",
+            "  pm.expect(body.status).to.be.a('string');",
+            "});"
+          ] } }]
+        },
+        {
+          "name": "Get product by SKU",
+          "request": { "method": "GET", "url": "{{productBaseUrl}}/products/{{productSku}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('product responds with 200', () => pm.response.to.have.status(200));",
+            "pm.test('product response follows the OAS shape', () => {",
+            "  const body = pm.response.json();",
+            "  pm.expect(body.sku).to.eql(pm.variables.get('productSku'));",
+            "  pm.expect(Number.isInteger(body.available)).to.eql(true);",
+            "  pm.expect(body.available).to.be.at.least(0);",
+            "});"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "Stateful Order API",
+      "item": [
+        {
+          "name": "Health",
+          "request": { "method": "GET", "url": "{{orderBaseUrl}}/healthz" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('health responds with 200', () => pm.response.to.have.status(200));",
+            "pm.test('health status is ok', () => pm.expect(pm.response.json().status).to.eql('ok'));"
+          ] } }]
+        },
+        {
+          "name": "Create order",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"sku\": \"demo-sku\",\n  \"quantity\": 2\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{orderBaseUrl}}/orders"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('order is created', () => pm.response.to.have.status(201));",
+            "pm.test('created order follows the OAS shape', () => {",
+            "  const body = pm.response.json();",
+            "  pm.expect(body.sku).to.eql('demo-sku');",
+            "  pm.expect(body.quantity).to.eql(2);",
+            "  pm.expect(body.status).to.eql('created');",
+            "  pm.expect(body.id).to.be.a('string').and.not.empty;",
+            "  pm.collectionVariables.set('orderId', body.id);",
+            "});"
+          ] } }]
+        },
+        {
+          "name": "Read created order",
+          "request": { "method": "GET", "url": "{{orderBaseUrl}}/orders/{{orderId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('order is readable', () => pm.response.to.have.status(200));",
+            "pm.test('order remains in created state', () => pm.expect(pm.response.json().status).to.eql('created'));"
+          ] } }]
+        },
+        {
+          "name": "Confirm order",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"confirmed\"\n}", "options": { "raw": { "language": "json" } } },
+            "url": "{{orderBaseUrl}}/orders/{{orderId}}"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('order is confirmed', () => pm.response.to.have.status(200));",
+            "pm.test('confirmed state is returned', () => pm.expect(pm.response.json().status).to.eql('confirmed'));"
+          ] } }]
+        },
+        {
+          "name": "Delete order",
+          "request": { "method": "DELETE", "url": "{{orderBaseUrl}}/orders/{{orderId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('order is deleted', () => pm.response.to.have.status(204));"
+          ] } }]
+        },
+        {
+          "name": "Verify deleted order",
+          "request": { "method": "GET", "url": "{{orderBaseUrl}}/orders/{{orderId}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('deleted order returns 404', () => pm.response.to.have.status(404));",
+            "pm.test('error response follows the OAS shape', () => pm.expect(pm.response.json().message).to.be.a('string'));"
+          ] } }]
+        }
+      ]
+    }
+  ]
+}

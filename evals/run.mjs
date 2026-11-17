@@ -88,6 +88,102 @@ function checkMockDataEvaluations(path) {
   return evaluation.cases.length;
 }
 
+function readOpenApiOperations(path) {
+  const source = readRepositoryFile(path);
+  const pathsSection = source.match(/^paths:\s*\r?\n([\s\S]*?)(?=^components:\s*$)/m)?.[1];
+  if (!pathsSection) throw new Error(`${path} has no paths section`);
+
+  const operations = new Set();
+  let currentPath;
+  for (const line of pathsSection.split(/\r?\n/)) {
+    const pathMatch = line.match(/^  (\/.*):\s*$/);
+    if (pathMatch) {
+      currentPath = pathMatch[1];
+      continue;
+    }
+    const methodMatch = line.match(/^    (get|put|post|delete|options|head|patch|trace):\s*$/i);
+    if (currentPath && methodMatch) operations.add(`${methodMatch[1].toLowerCase()} ${currentPath}`);
+  }
+  return operations;
+}
+
+function checkLegacyCollections() {
+  const allowedOperations = new Set([
+    ...readOpenApiOperations('demo/openapi.yaml'),
+    ...readOpenApiOperations('demo/stateful/openapi.yaml'),
+  ]);
+  const actualOperations = [];
+  const normalizePath = (path) => path
+    .replace(/\{\{[^}]+\}\}/g, '{}')
+    .replace(/\{[^}]+\}/g, '{}');
+  const validateRequest = (method, rawUrl, source) => {
+    try {
+      const url = rawUrl.replace(/^\{\{[^}]+\}\}/, 'http://localhost')
+        .replace(/\{\{[^}]+\}\}/g, 'sample');
+      const route = `${method.toLowerCase()} ${new URL(url).pathname}`;
+      actualOperations.push(route);
+      const [actualMethod, actualPath] = route.split(' ');
+      const actualSegments = actualPath.split('/');
+      const declared = [...allowedOperations].some((operation) => {
+        const [expectedMethod, expectedPath] = operation.split(' ');
+        const expectedSegments = normalizePath(expectedPath).split('/');
+        return expectedMethod === actualMethod
+          && expectedSegments.length === actualSegments.length
+          && expectedSegments.every((segment, index) => segment === '{}' || segment === actualSegments[index]);
+      });
+      if (!declared) failures.push(`legacy-collections: ${source} uses undeclared operation ${route}`);
+    } catch (error) {
+      failures.push(`legacy-collections: invalid URL in ${source}: ${error.message}`);
+    }
+  };
+
+  const postman = JSON.parse(readRepositoryFile('legacy/postman/oas-polycontract.postman_collection.json'));
+  const visitPostmanItems = (items, parent = postman.info.name) => {
+    for (const item of items ?? []) {
+      const source = `${parent}/${item.name}`;
+      if (item.request) {
+        const rawUrl = typeof item.request.url === 'string' ? item.request.url : item.request.url?.raw;
+        if (!rawUrl) failures.push(`legacy-collections: ${source} has no URL`);
+        else validateRequest(item.request.method, rawUrl, source);
+      } else {
+        visitPostmanItems(item.item, source);
+      }
+    }
+  };
+  visitPostmanItems(postman.item);
+  if (!JSON.stringify(postman).includes("pm.collectionVariables.set('orderId'")) {
+    failures.push('legacy-collections: Postman order creation does not pass its response ID to later requests');
+  }
+
+  const brunoRequests = [
+    'legacy/bruno/Product API/Health.bru',
+    'legacy/bruno/Product API/Get product by SKU.bru',
+    'legacy/bruno/Stateful Order API/Health.bru',
+    'legacy/bruno/Stateful Order API/Create order.bru',
+    'legacy/bruno/Stateful Order API/Read created order.bru',
+    'legacy/bruno/Stateful Order API/Confirm order.bru',
+    'legacy/bruno/Stateful Order API/Delete order.bru',
+    'legacy/bruno/Stateful Order API/Verify deleted order.bru',
+  ];
+  let orderCreation = '';
+  for (const path of brunoRequests) {
+    const request = readRepositoryFile(path);
+    const match = request.match(/^(get|put|post|delete|patch|head|options|trace)\s*\{([\s\S]*?)^\}/mi);
+    const url = match?.[2].match(/^\s*url:\s*(\S+)\s*$/mi)?.[1];
+    if (!match || !url) failures.push(`legacy-collections: ${path} has no supported HTTP request`);
+    else validateRequest(match[1], url, path);
+    if (path.endsWith('Create order.bru')) orderCreation = request;
+  }
+  if (!orderCreation.includes('script:post-response') || !orderCreation.includes('bru.setVar("orderId", res.getBody().id)')) {
+    failures.push('legacy-collections: Bruno order creation does not pass its response ID to later requests');
+  }
+  if (actualOperations.length !== 16) failures.push(`legacy-collections: expected 16 collection requests, found ${actualOperations.length}`);
+  if (!readRepositoryFile('legacy/postman/local.postman_environment.json').includes('http://localhost:8083')) {
+    failures.push('legacy-collections: Postman local environment does not point to the host Order API port');
+  }
+  return actualOperations.length;
+}
+
 function checkTestRoleMap() {
   const readme = readRepositoryFile('README.md');
   const clientGuide = readRepositoryFile('clients/README.md');
@@ -228,6 +324,10 @@ function checkRoadmapPhases(expectedPhases, verifiedRun) {
     failures.push(`roadmap-phases: expected phases ${expectedPhases.join(', ')}, found ${phases.join(', ')}`);
   }
   if (!roadmap.includes(verifiedRun)) failures.push(`roadmap-phases: verified run ${verifiedRun} is not recorded`);
+  const phaseFive = roadmap.match(/^### Phase 5\s+—[\s\S]*?(?=^### Phase 6\s+—)/m)?.[0] ?? '';
+  if (!phaseFive.includes('[x] Add project-specific Postman and Bruno collections')) {
+    failures.push('roadmap-phases: Phase 5 must record the Postman and Bruno examples');
+  }
   return phases.length;
 }
 
@@ -320,6 +420,8 @@ function checkWorkflowVisuals() {
     'Specmatic Smart Mock',
     'stateful-app:8082',
     'WireMock downstream service',
+    'Manual API debugging',
+    'localhost:8083',
   ]) {
     if (!showcase.includes(diagramElement)) failures.push(`workflow-visuals: interactive test-flow map omits ${diagramElement}`);
   }
@@ -344,7 +446,7 @@ function checkWorkflowVisuals() {
   if (!readme.includes('```mermaid\nflowchart LR')) failures.push('workflow-visuals: README contract and test diagram is missing');
   if (sceneCount !== 8) failures.push(`workflow-visuals: expected 8 showcase slides, found ${sceneCount}`);
   if (laneCount !== 4) failures.push(`workflow-visuals: expected 4 workflow lanes, found ${laneCount}`);
-  if (testFlowLaneCount !== 5) failures.push(`workflow-visuals: expected 5 interactive test-flow lanes, found ${testFlowLaneCount}`);
+  if (testFlowLaneCount !== 6) failures.push(`workflow-visuals: expected 6 interactive test-flow lanes, found ${testFlowLaneCount}`);
   if (workflowMapReferences < 6) failures.push(`workflow-visuals: expected 6 README links to interactive maps, found ${workflowMapReferences}`);
   if (!showcase.includes('aria-valuemax="8"')) failures.push('workflow-visuals: showcase progress range is not updated for 8 slides');
   return workflowFiles.length + sourcePolicies.length + concepts.length + readmeTriggers.length + showcaseTriggers.length + sceneCount + laneCount;
@@ -356,6 +458,7 @@ const evaluators = {
   'files-exist': (check) => checkFilesExist(check.paths, check.id),
   'test-role-map': () => checkTestRoleMap(),
   'mock-data-evaluations': (check) => checkMockDataEvaluations(check.file),
+  'legacy-collections': () => checkLegacyCollections(),
   'pipeline-services': (check) => checkPipelineServices(check.services),
   'workflow-visuals': () => checkWorkflowVisuals(),
   'dependency-locks': () => checkDependencyLocks(),

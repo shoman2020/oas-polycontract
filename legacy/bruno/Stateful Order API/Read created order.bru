@@ -1,0 +1,18 @@
+meta {
+  name: Read created order
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{orderBaseUrl}}/orders/{{orderId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("order is readable in created state", () => {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().status).to.equal("created");
+  });
+}

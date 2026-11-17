@@ -1,0 +1,18 @@
+meta {
+  name: Order health
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{orderBaseUrl}}/healthz
+  body: none
+  auth: none
+}
+
+tests {
+  test("Order API is healthy", () => {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().status).to.equal("ok");
+  });
+}

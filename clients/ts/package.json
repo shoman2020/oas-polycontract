@@ -2,6 +2,9 @@
   "name": "oas-polycontract-ts-client",
   "private": true,
   "type": "module",
+  "engines": {
+    "npm": ">=12.0.0"
+  },
   "scripts": {
     "test": "node --test security/picomatch-redos.test.mjs && vitest run"
   },
@@ -12,9 +15,8 @@
     "typescript": "7.0.2",
     "vitest": "5.1.0"
   },
-  "overrides": {
-    "picomatch": "git+https://github.com/seeibt/picomatch.git#1bf0d04563cb9ce568cf36efc5f6b7187d9911d5"
+  "patchedDependencies": {
+    "picomatch@4.0.7": "patches/picomatch@4.0.7.patch"
   }
 }
-
 

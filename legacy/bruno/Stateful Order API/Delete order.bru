@@ -1,0 +1,17 @@
+meta {
+  name: Delete order
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{orderBaseUrl}}/orders/{{orderId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("order is deleted", () => {
+    expect(res.getStatus()).to.equal(204);
+  });
+}

@@ -46,6 +46,11 @@
       "file": "evals/mock-data-evals.json"
     },
     {
+      "id": "legacy-collections",
+      "description": "Postman and Bruno requests use declared OAS operations and pass created Order IDs through the stateful flow",
+      "type": "legacy-collections"
+    },
+    {
       "id": "pipeline-coverage",
       "description": "Compose services are connected to the shared run entry point",
       "type": "pipeline-services",
@@ -97,7 +102,7 @@
       "description": "Roadmap defines sequential phases and records the latest verified contract run",
       "type": "roadmap-phases",
       "expectedPhases": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
-      "verifiedRun": "44138173771"
+      "verifiedRun": "44146222326"
     }
   ]
 }

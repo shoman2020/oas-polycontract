@@ -1,0 +1,24 @@
+meta {
+  name: Get product by SKU
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{productBaseUrl}}/products/{{productSku}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("product responds with 200", () => {
+    expect(res.getStatus()).to.equal(200);
+  });
+
+  test("product response follows the OAS shape", () => {
+    const body = res.getBody();
+    expect(body.sku).to.equal("demo-sku");
+    expect(Number.isInteger(body.available)).to.equal(true);
+    expect(body.available).to.be.at.least(0);
+  });
+}

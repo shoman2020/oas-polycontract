@@ -23,6 +23,10 @@ These suites call live services, validate status, media type, and response schem
 | Stateful API integration test | Seven native suites | Order API lifecycle: create, read, confirm, delete, verify 404 |
 | Downstream service integration test | WireMock integration suite | Product API and WireMock request journal |
 
+## Manual debugging and collection migration
+
+[Postman](../legacy/postman/oas-polycontract.postman_collection.json) and [Bruno](../legacy/bruno/) collections follow the Product and Order OAS for interactive debugging and legacy migration. CI uses Specmatic for provider and consumer contract checks, plus Schemathesis, WireMock, and code-based integration suites. See [legacy/README.md](../legacy/README.md) for local setup.
+
 | Language | Validator |
 |---|---|
 | Rust | reqwest and jsonschema |
@@ -54,4 +58,4 @@ Product tests call `GET /products/demo-sku`; native suites also run the linked O
 
 Keep a small API client for base URLs, requests, and timeouts. Separate schema validation from business assertions. Use native structs, dataclasses, or classes. Page Object Model is for browser UI; these are API tests.
 
-CI also checks committed Rust, Go, and NuGet locks. Every response is validated against its API contract.
+CI also checks committed Rust, Go, and NuGet locks. Each native suite validates live API responses against its contract before checking business behavior.

@@ -1,0 +1,18 @@
+meta {
+  name: Verify deleted order
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{orderBaseUrl}}/orders/{{orderId}}
+  body: none
+  auth: none
+}
+
+tests {
+  test("deleted order returns the contract error", () => {
+    expect(res.getStatus()).to.equal(404);
+    expect(res.getBody().message).to.be.a("string");
+  });
+}

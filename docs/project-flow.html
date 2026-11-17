@@ -118,8 +118,8 @@
             <div class="flow-node"><b>Automated checks</b><span>Provider and API integration</span></div><span class="flow-arrow" aria-hidden="true">→</span>
             <div class="flow-node"><b>Consumer support</b><span>Smart Mock and debug views</span></div>
           </div>
-          <div class="mini-flow"><span class="step">Clear ownership</span><span class="step-arrow" aria-hidden="true">→</span><span class="step">Less duplication</span><span class="step-arrow" aria-hidden="true">→</span><span class="step">More confidence in change</span></div>
-          <div class="note">The same contract and CI diagrams render in the <a href="https://github.com/shoman2020/oas-polycontract#flow-overview">README flow overview</a>, with links to these interactive maps.</div>
+          <div class="mini-flow"><span class="step">One contract owner</span><span class="step-arrow" aria-hidden="true">→</span><span class="step">Fewer duplicate specs</span><span class="step-arrow" aria-hidden="true">→</span><span class="step">Lower maintenance cost</span></div>
+          <div class="note">Open contracts stay usable across clients and test vendors. Removing duplicate specifications and overlapping tools can reduce maintenance and tooling costs. See the <a href="https://github.com/shoman2020/oas-polycontract#flow-overview">README project map</a>.</div>
         </section>
         <section class="scene" id="contracts" aria-labelledby="scene-title-2" hidden>
           <span class="eyebrow">02 · Project structure</span>
@@ -128,7 +128,8 @@
           <div class="grid">
             <article class="card"><span class="tag">Product Catalog</span><strong>Root OAS scaffold</strong><p><code>openapi/</code> holds the hand-edited contract and compatibility baseline. It has no provider implementation.</p></article>
             <article class="card"><span class="tag">Runnable APIs</span><strong>Product and Order services</strong><p><code>demo/</code> contains the Product API, isolated stateful Order API, and Inventory dependency backed by WireMock.</p></article>
-            <article class="card"><span class="tag">Events, clients, evaluations</span><strong>Separate checks</strong><p><code>contracts/events/</code> holds linted AsyncAPI examples; <code>clients/</code> holds native suites; <code>evals/</code> checks docs, test entry points, pipeline wiring, mock cases, and roadmap tracking.</p></article>
+            <article class="card"><span class="tag">Events and evaluations</span><strong>Separate contract types and checks</strong><p><code>contracts/events/</code> holds linted AsyncAPI examples. <code>evals/</code> checks docs, test entry points, collection paths, pipeline wiring, mock cases, and roadmap progress.</p></article>
+            <article class="card"><span class="tag">Phase 5 · examples delivered</span><strong>Manual collection migration</strong><p><code>legacy/</code> holds OAS-aligned Postman and Bruno examples for Product lookup and the stateful Order flow. Their paths are checked against the contracts.</p><p><a href="https://github.com/shoman2020/oas-polycontract/tree/main/legacy">Open the collections and setup guide</a></p></article>
           </div>
           <div class="note">The event contracts are linted examples. This project does not include a WebSocket server or Kafka broker.</div>
         </section>
@@ -237,8 +238,16 @@
                 <div class="test-flow-step">Assert the WireMock request journal</div>
               </div>
             </section>
+            <section class="test-flow-lane">
+              <h3>Manual API debugging</h3>
+              <div class="test-flow-chain">
+                <div class="test-flow-step"><strong>Product and Order OAS</strong></div>
+                <div class="test-flow-step">Postman and Bruno collections</div>
+                <div class="test-flow-step">Local Product API · <code>localhost:8080</code> and Order API · <code>localhost:8083</code></div>
+              </div>
+            </section>
           </div>
-          <div class="note">API integration suites validate live responses against OAS before asserting behavior. The consumer tests share the provider OAS. <a href="https://github.com/shoman2020/oas-polycontract#contract-and-test-flow">See the GitHub-rendered README diagram</a>.</div>
+          <div class="note">Provider and consumer contract tests share the Product OAS and use different targets. Integration suites validate live APIs. Manual collections support exploration and migration. <a href="https://github.com/shoman2020/oas-polycontract#contract-and-test-flow">See the README flow diagram</a>.</div>
         </section>
         <section class="scene" id="test-behavior" aria-labelledby="scene-title-6" hidden>
           <span class="eyebrow">06 · Test behavior</span>
@@ -264,13 +273,13 @@
         <section class="scene" id="performance" aria-labelledby="scene-title-8" hidden>
           <span class="eyebrow">08 · Performance insights</span>
           <h2 id="scene-title-8" tabindex="-1">Compare stage timings before setting thresholds.</h2>
-          <p class="lead">Contract runs publish per-stage timings and a CSV artifact. Run <code>performance.yml</code> manually to compare one cold pipeline with four warm runs on the same runner.</p>
+          <p class="lead">The <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941">five-sample run</a> measured 304s cold and a 201s warm median (200–205s range). The build stage fell from 91s to 2s; treat this single-runner sample as a reference, not an SLA.</p>
           <div class="grid">
             <article class="card metric"><strong>Latest green contract run</strong><span class="value">5m 46s</span><p>Whole-run duration; image scans included.</p></article>
             <article class="card metric"><strong>Fuzz diagnostic</strong><span class="value">115 · 2.07s</span><p>Cases generated and fuzzing duration.</p></article>
-            <article class="card metric"><strong>Stage comparison</strong><span class="value">5 samples</span><p>Manual run reports cold time and warm median/range.</p></article>
+            <article class="card metric"><strong>Cold / warm median</strong><span class="value">304s / 201s</span><p>Warm range 200–205s; build 91s cold and 2s warm.</p></article>
           </div>
-          <p style="margin-top:18px"><a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44146222326">Latest green contract run</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/workflows/contract.yml">Contract timing artifacts</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/workflows/performance.yml">Run the five-sample benchmark</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603">Fuzz diagnostic</a> · <a href="https://github.com/shoman2020/oas-polycontract/blob/main/ROADMAP.md">Roadmap</a></p>
+          <p style="margin-top:18px"><a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44146222326">Latest green contract run</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941">Five-sample performance report</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/workflows/contract.yml">Contract timing artifacts</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/workflows/performance.yml">Run the benchmark again</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603">Fuzz diagnostic</a> · <a href="https://github.com/shoman2020/oas-polycontract/blob/main/ROADMAP.md">Roadmap</a></p>
         </section>
       </div>
       <nav class="controls" aria-label="Showcase controls">

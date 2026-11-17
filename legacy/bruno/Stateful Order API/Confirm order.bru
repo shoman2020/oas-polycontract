@@ -1,0 +1,24 @@
+meta {
+  name: Confirm order
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{orderBaseUrl}}/orders/{{orderId}}
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "status": "confirmed"
+  }
+}
+
+tests {
+  test("order transitions to confirmed", () => {
+    expect(res.getStatus()).to.equal(200);
+    expect(res.getBody().status).to.equal("confirmed");
+  });
+}

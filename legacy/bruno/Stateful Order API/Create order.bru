@@ -1,0 +1,36 @@
+meta {
+  name: Create order
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{orderBaseUrl}}/orders
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "sku": "demo-sku",
+    "quantity": 2
+  }
+}
+
+script:post-response {
+  bru.setVar("orderId", res.getBody().id);
+}
+
+tests {
+  test("order is created", () => {
+    expect(res.getStatus()).to.equal(201);
+    expect(res.getBody().status).to.equal("created");
+  });
+
+  test("created order follows the OAS shape", () => {
+    const body = res.getBody();
+    expect(body.id).to.be.a("string").and.not.empty;
+    expect(body.sku).to.equal("demo-sku");
+    expect(body.quantity).to.equal(2);
+  });
+}

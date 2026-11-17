@@ -8,10 +8,11 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 |---|---|---|
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | No event provider or broker |
 | Tests | Specmatic provider/consumer, WireMock, stateless fuzzing, stateful workflows, seven native languages, Playwright | Add runtime event examples only with a provider |
-| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, OWASP SecureAI-Scan; latest checks passed in [run 44146222046](https://github.com/shoman2020/oas-polycontract/actions/runs/44146222046) | SecureAI rules support JS, TS, and Python; no AI runtime is present |
-| Dependencies | Cargo, Go, NuGet, npm, Python, and Maven locks; locked builds passed in [contract run 44146222326](https://github.com/shoman2020/oas-polycontract/actions/runs/44146222326) | Replace the temporary Picomatch security pin after a fixed release is published |
-| Performance | Per-stage timing and CSV artifacts; manual five-run workflow | Run five samples and record the median and range |
-| Showcase | Contract, pipeline, workflow, test-role, and performance views; latest deployment passed in [run 44130117006](https://github.com/shoman2020/oas-polycontract/actions/runs/44130117006) | None for this dependency-only change |
+| Legacy migration | Project-specific Postman and Bruno collections mapped to Product and Order OAS | Migrate team-owned collections if supplied |
+| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, OWASP SecureAI-Scan; latest security run [44152942046](https://github.com/shoman2020/oas-polycontract/actions/runs/44152942046) passed | SecureAI-Scan examples cover JS, TS, and Python; no AI runtime is present |
+| Dependencies | Cargo, Go, NuGet, npm, Python, and Maven locks; locked builds passed in [contract run 44146222326](https://github.com/shoman2020/oas-polycontract/actions/runs/44146222326) | Verify the Picomatch patch in the next contract run; replace it when upstream publishes a fix |
+| Performance | [Five-sample run](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941): 304s cold, 201s warm median (200–205s range); build 91s cold and 2s warm | Repeat on other runners or cache states before setting thresholds |
+| Showcase | Contract, pipeline, workflow, test-role, performance, and Postman/Bruno migration views | Publish the updated views with this change |
 
 ## Test model
 
@@ -47,7 +48,10 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 - [ ] Configure environment URLs when deployed environments exist.
 
 ### Phase 5 — Legacy migration
-- [ ] Migrate Postman or Bruno requests when a source collection is provided.
+- [x] Add project-specific Postman and Bruno collections for Product lookup and the stateful Order flow, based on public collection examples and project OAS.
+- [x] Document local service startup, import, and collection run order.
+- [x] Check collection methods and paths against the Product and Order OAS in repository evaluations.
+- [ ] Convert team-owned historic requests when an original collection is available.
 
 ### Phase 6 — Local and CI pipeline
 - [x] Run checks through `bash ./run.sh` and Docker Compose.
@@ -62,7 +66,7 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 ### Phase 8 — Documentation and evaluation
 - [x] Align README, client guide, interactive graphs, roles, and repository evaluations.
 - [x] Check links, structure, test sources/targets, workflows, and roadmap phases.
-- [x] Verify latest changes from a clean checkout.
+- [x] Run repository evaluations on the current project structure and documentation.
 
 ### Phase 9 — Reproducible dependencies
 - [x] Commit Cargo, Go, and NuGet locks; enforce locked Rust/.NET and read-only Go builds.
@@ -79,7 +83,8 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 ### Phase 12 — Performance baseline
 - [x] Report per-stage timings in the contract run summary and CSV artifact.
 - [x] Add a manual workflow for one cold and four warm pipeline samples.
-- [ ] Run it; record medians and ranges before setting thresholds.
+- [x] Run one cold and four warm samples; record medians and ranges.
+- [ ] Repeat on other runners or cache states before setting thresholds.
 
 ### Phase 13 — Optional scaffolder
 - [ ] Confirm demand before building `create-polycontract`.
@@ -88,9 +93,9 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 
 ## Next
 
-1. Run the five-sample performance workflow and record its median and range.
+1. Repeat the performance sample across runners or cache states before setting thresholds.
 2. Require contract and security checks in branch protection.
-3. Add event runtime examples or migrate legacy collections when a provider or collection exists.
+3. Convert team-owned legacy requests when an original collection is supplied; add event runtime examples when a provider exists.
 4. Revisit the optional CLI when users need selective starters.
 
 ## Package fit
@@ -99,6 +104,7 @@ This reference repository has no stable runtime API to package. A `create-polyco
 
 ## Progress
 
-- 17 Nov: [Contract run 44146222326](https://github.com/shoman2020/oas-polycontract/actions/runs/44146222326) (#98) passed in 5m 46s with 10/10 repository evaluations and all image scans green. [Security run 44146222046](https://github.com/shoman2020/oas-polycontract/actions/runs/44146222046) (#76) passed, including OWASP GenAI and CodeQL.
-- 17 Nov: Updated Go `x/text` to 0.41.0 to resolve Trivy findings and removed the temporary lock-generation workflow. The five-sample performance workflow is still pending.
-- 17 Nov: Temporarily pinned the TypeScript test dependency to the fix proposed in upstream Picomatch PR #237 for CVE-2026-112366. The PR is still open; replace the pin with an official release when available.
+- 17 Nov: [Contract run 44146222326](https://github.com/shoman2020/oas-polycontract/actions/runs/44146222326) (#98) passed in 5m 46s with 10/10 repository evaluations and all image scans green. [Security run 44152942046](https://github.com/shoman2020/oas-polycontract/actions/runs/44152942046) (#78) passed, including OWASP GenAI and CodeQL.
+- 17 Nov: Updated Go `x/text` to 0.41.0 to resolve Trivy findings and removed the temporary lock-generation workflow. The five-sample performance workflow completed in run 44146642941.
+- 17 Nov: Contract run [44152941995](https://github.com/shoman2020/oas-polycontract/actions/runs/44152941995) showed that npm 12 rejects transitive Git overrides. Replaced the override with npm's native, lockfile-hashed patch for the proposed Picomatch fix; contract verification is pending.
+- 17 Nov: Added Postman and Bruno collections mapped to Product and Order OAS. Team-owned legacy collection migration remains open until original exports are available.
