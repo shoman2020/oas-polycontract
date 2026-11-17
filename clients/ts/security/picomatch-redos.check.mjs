@@ -37,4 +37,3 @@ test("single-branch repeated extglobs do not block the event loop", async () => 
     await worker.terminate();
   }
 });
-

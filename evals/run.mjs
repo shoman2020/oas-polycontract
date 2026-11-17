@@ -301,6 +301,7 @@ function checkDependencyLocks() {
   const tsPackage = JSON.parse(readRepositoryFile('clients/ts/package.json'));
   const tsLock = JSON.parse(readRepositoryFile('clients/ts/package-lock.json'));
   const tsDockerfile = readRepositoryFile('clients/ts/Dockerfile');
+  const tsTests = tsPackage.scripts?.test ?? '';
   const compose = readRepositoryFile('docker-compose.yml');
   const required = [
     [cargoLock.includes('version = 4') && cargoLock.includes('name = "reqwest"\nversion = "0.13.5"'), 'Rust lockfile must record reqwest 0.13.5'],
@@ -321,6 +322,7 @@ function checkDependencyLocks() {
     [tsPackage.engines?.npm?.startsWith('>=12') && tsLock.lockfileVersion === 4, 'TypeScript patching must use npm 12 and its supported lockfile format'],
     [tsDockerfile.includes('npm@${NPM_VERSION}') && tsDockerfile.includes('USER node'), 'TypeScript image must install the pinned npm version and run as non-root'],
     [tsDockerfile.indexOf('COPY --chown=node:node patches/') < tsDockerfile.indexOf('RUN npm ci'), 'TypeScript image must copy the dependency patch before npm ci'],
+    [tsTests.includes('node --test security/picomatch-redos.check.mjs') && !tsTests.includes('picomatch-redos.test.mjs'), 'The Node-only Picomatch check must stay outside Vitest discovery'],
     [compose.includes('NPM_VERSION: ${NPM_VERSION:?Set NPM_VERSION'), 'Compose must pass the pinned npm version to the TypeScript build'],
   ];
   for (const [passed, message] of required) if (!passed) failures.push(`dependency-locks: ${message}`);
