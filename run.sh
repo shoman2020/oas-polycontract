@@ -66,7 +66,7 @@ echo "==> Running language-native and Playwright OAS integration suites"
 
 echo "==> Checking Specmatic examples and dictionary-backed mock responses"
 "${compose[@]}" --profile mock up -d specmatic-mock
-"${compose[@]}" run --rm specmatic-mock-integration-test
+"${compose[@]}" --profile test --profile mock run --rm specmatic-mock-integration-test
 echo "==> Running JavaScript and Playwright consumer suites against the Specmatic Smart Mock"
 "${compose[@]}" run --rm -e API_BASE_URL=http://specmatic-mock:9000 js-contract-test
 "${compose[@]}" --profile mock run --rm playwright-consumer-test
