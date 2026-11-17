@@ -5,7 +5,13 @@ info:
   description: Contract example for product availability events published to Kafka.
   contact:
     name: SHIFT-LEFT.NL and Ahmed Abdelwahab
-    url: https://github.com/shoman2020/oas-polycontract/issues
+    url: https://shift-left.nl
+  license:
+    name: MIT
+    url: https://opensource.org/license/mit
+tags:
+  - name: products
+    description: Product availability events.
 servers:
   local:
     url: localhost:9092
@@ -18,6 +24,7 @@ channels:
     publish:
       operationId: publishAvailabilityChanged
       summary: Publish an availability update.
+      description: Publishes an availability update to the products.availability topic.
       message:
         $ref: "#/components/messages/AvailabilityChanged"
 components:

@@ -3,9 +3,9 @@ FROM node:${NODE_VERSION}-alpine
 
 WORKDIR /workspace
 RUN chown node:node /workspace
-COPY --chown=node:node package.json .
+COPY --chown=node:node package.json package-lock.json ./
 USER node
-RUN npm install --no-audit --no-fund
+RUN npm ci --no-audit --no-fund
 COPY --chown=node:node . .
 CMD ["npm", "test"]
 

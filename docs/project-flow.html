@@ -33,7 +33,7 @@
     .eyebrow { color: var(--teal); font-size: .74rem; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
     .deck { overflow: hidden; border: 1px solid var(--line); border-radius: 24px; background: linear-gradient(145deg, #10192a, #0e1627); box-shadow: 0 28px 90px #0007; }
     .progress-track { height: 4px; background: #243149; }
-    .progress-value { width: 16.666%; height: 100%; background: linear-gradient(90deg, var(--teal), var(--blue)); transition: width .22s ease; }
+    .progress-value { width: 12.5%; height: 100%; background: linear-gradient(90deg, var(--teal), var(--blue)); transition: width .22s ease; }
     .stage { min-height: 570px; padding: clamp(26px, 5vw, 58px); }
     .scene[hidden] { display: none; }
     .scene h1, .scene h2 { max-width: 800px; margin: 12px 0 14px; font-size: clamp(2rem, 5vw, 3.65rem); line-height: 1.05; letter-spacing: -.045em; }
@@ -53,6 +53,15 @@
     .mini-flow { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-top: 28px; }
     .step { padding: 12px 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--panel); color: var(--muted); }
     .step b { color: var(--text); }
+    .workflow-map { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 24px; }
+    .workflow-lane { padding: 18px; border: 1px solid var(--line); border-radius: 15px; background: var(--panel); }
+    .workflow-lane h3 { margin: 0 0 7px; color: var(--text); font-size: 1rem; }
+    .workflow-trigger { min-height: 48px; margin: 0 0 12px; color: var(--muted); font-size: .84rem; line-height: 1.45; }
+    .workflow-chain { display: grid; gap: 7px; }
+    .workflow-step { padding: 10px 11px; border: 1px solid #ffffff18; border-radius: 9px; color: var(--muted); font-size: .82rem; line-height: 1.4; }
+    .workflow-step strong { color: var(--text); }
+    .workflow-step:not(:last-child)::after { display: block; margin-top: 6px; color: var(--teal); content: "↓"; }
+    .workflow-foot { margin: 14px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.45; }
     .metric { min-height: 180px; }
     .metric .value { display: block; margin: 7px 0 10px; color: var(--blue); font-size: clamp(1.8rem, 4vw, 2.65rem); font-weight: 800; letter-spacing: -.04em; }
     .note { margin-top: 20px; padding: 16px 18px; border-left: 3px solid var(--amber); background: #ffca7410; color: var(--muted); line-height: 1.55; }
@@ -69,6 +78,7 @@
     @media (max-width: 700px) {
       .stage { min-height: 650px; }
       .grid, .grid.two { grid-template-columns: 1fr; }
+      .workflow-map { grid-template-columns: 1fr; }
       .card { min-height: auto; }
       .flow { grid-template-columns: 1fr; }
       .flow-arrow { transform: rotate(90deg); justify-self: center; }
@@ -89,7 +99,7 @@
       <a href="https://github.com/shoman2020/oas-polycontract">View repository</a>
     </header>
     <main class="deck" aria-label="Interactive project showcase">
-      <div class="progress-track" role="progressbar" aria-label="Showcase slide progress" aria-valuemin="1" aria-valuemax="7" aria-valuenow="1"><div class="progress-value" id="progress"></div></div>
+      <div class="progress-track" role="progressbar" aria-label="Showcase slide progress" aria-valuemin="1" aria-valuemax="8" aria-valuenow="1"><div class="progress-value" id="progress"></div></div>
       <div class="stage" id="stage" aria-live="polite" aria-atomic="true">
         <section class="scene" aria-labelledby="scene-title-1">
           <span class="eyebrow">01 · Project purpose</span>
@@ -109,34 +119,72 @@
           <div class="grid">
             <article class="card"><span class="tag">Product Catalog</span><strong>Root OAS scaffold</strong><p><code>openapi/</code> holds the hand-edited contract and compatibility baseline. It has no provider implementation.</p></article>
             <article class="card"><span class="tag">Runnable APIs</span><strong>Product and Order services</strong><p><code>demo/</code> contains the Product API, isolated stateful Order API, and Inventory dependency backed by WireMock.</p></article>
-            <article class="card"><span class="tag">Events and clients</span><strong>Separate examples</strong><p>AsyncAPI examples describe WebSocket and Kafka messages. <code>clients/</code> holds native language tests.</p></article>
+            <article class="card"><span class="tag">Events, clients, evaluations</span><strong>Separate checks</strong><p><code>contracts/events/</code> holds linted AsyncAPI examples; <code>clients/</code> holds native suites; <code>evals/</code> checks docs, test entry points, pipeline wiring, mock cases, and roadmap tracking.</p></article>
           </div>
           <div class="note">The event contracts are linted examples. This project does not include a WebSocket server or Kafka broker.</div>
         </section>
         <section class="scene" aria-labelledby="scene-title-3" hidden>
           <span class="eyebrow">03 · Pipeline</span>
           <h2 id="scene-title-3" tabindex="-1">One command runs the demonstration.</h2>
-          <p class="lead">Run <code>bash ./run.sh</code> locally or in Ubuntu CI. Docker Compose builds and starts the services, waits for health checks, runs the gates, and cleans up.</p>
+          <p class="lead">Run <code>bash ./run.sh</code> locally or in Ubuntu CI. Compose validates its configuration and builds images, repository evaluations run before the contract gates, then Compose starts services, waits for health checks, and runs the API suites.</p>
           <div class="grid">
             <article class="card"><span class="tag">Contract gates</span><strong>Lint and compatibility</strong><p>Spectral checks OpenAPI and AsyncAPI; oasdiff checks the root contract against its baseline.</p></article>
             <article class="card"><span class="tag">Live services</span><strong>Node.js, WireMock, Specmatic</strong><p>Schemathesis and the API integration suites exercise the running Product and Order APIs.</p></article>
-            <article class="card"><span class="tag">Clients and security</span><strong>Rust, Go, Python, JavaScript, TypeScript, Java, C#</strong><p>Playwright adds API provider and consumer examples. CI scans the built container images.</p></article>
+            <article class="card"><span class="tag">API integration</span><strong>Rust, Go, Python, JavaScript, TypeScript, Java, C#</strong><p>The language suites call the Product API at <code>app:8080</code> and Order API at <code>stateful-app:8082</code>. Playwright adds a live API integration example.</p></article>
           </div>
-          <div class="mini-flow"><span class="step"><b>Spectral and oasdiff</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Docker Compose</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Contract and API checks</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Trivy image scans</b></span></div>
+          <div class="mini-flow"><span class="step"><b>Compose config and build</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Repository evals</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Contract and API checks</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Trivy image scans</b></span></div>
         </section>
         <section class="scene" aria-labelledby="scene-title-4" hidden>
-          <span class="eyebrow">04 · Contract roles</span>
-          <h2 id="scene-title-4" tabindex="-1">Provider verification and consumer testing are distinct.</h2>
-          <p class="lead">Both use the Product OAS, but target different systems and validate different responsibilities.</p>
-          <div class="grid two">
-            <article class="card"><span class="tag">Provider</span><strong>Does the service meet its contract?</strong><p>Specmatic sends contract-derived requests to the healthy Product API. Its downstream check validates the WireMock-backed Inventory dependency.</p></article>
-            <article class="card"><span class="tag">Consumer</span><strong>Can the client use the agreed interface?</strong><p>JavaScript and Playwright examples run against a Specmatic Smart Mock. Their API integration runs separately target the live service.</p></article>
+          <span class="eyebrow">04 · GitHub workflows</span>
+          <h2 id="scene-title-4" tabindex="-1">Separate workflow triggers. Clear scan ownership.</h2>
+          <p class="lead">Three workflows handle contract verification, repository security, and showcase publishing. Dependabot proposes dependency updates on a separate weekly schedule.</p>
+          <div class="workflow-map" role="group" aria-label="GitHub Actions workflow responsibilities">
+            <section class="workflow-lane" aria-labelledby="workflow-contract">
+              <h3 id="workflow-contract">contract.yml</h3>
+              <p class="workflow-trigger">Push · pull request · manual run</p>
+              <div class="workflow-chain">
+                <div class="workflow-step"><strong>run.sh · config and build</strong><br>Validate Compose and build the app and test images</div>
+                <div class="workflow-step"><strong>Evaluations and gates</strong><br>Repository checks, Spectral, oasdiff, Compose tests, fuzzing</div>
+                <div class="workflow-step"><strong>Trivy image scans</strong><br>App, WireMock, and Specmatic images</div>
+              </div>
+            </section>
+            <section class="workflow-lane" aria-labelledby="workflow-security">
+              <h3 id="workflow-security">security.yml</h3>
+              <p class="workflow-trigger">Main push · pull request · weekly · manual</p>
+              <div class="workflow-chain">
+                <div class="workflow-step"><strong>CodeQL</strong><br>Source code and workflow analysis</div>
+                <div class="workflow-step"><strong>Gitleaks</strong><br>Repository secret scanning</div>
+                <div class="workflow-step"><strong>Trivy filesystem</strong><br>Dependency and configuration findings</div>
+              </div>
+              <p class="workflow-foot">Dependency Review runs only for pull requests.</p>
+            </section>
+            <section class="workflow-lane" aria-labelledby="workflow-showcase">
+              <h3 id="workflow-showcase">showcase.yml</h3>
+              <p class="workflow-trigger">Main push to showcase files · manual run</p>
+              <div class="workflow-chain">
+                <div class="workflow-step"><strong>Prepare site</strong><br>Copy project-flow.html to index.html</div>
+                <div class="workflow-step"><strong>Upload artifact</strong><br>Publish the static site artifact</div>
+                <div class="workflow-step"><strong>Deploy Pages</strong><br>Serve the interactive project map</div>
+              </div>
+              <p class="workflow-foot">The repository must have Pages configured to use GitHub Actions.</p>
+            </section>
           </div>
-          <div class="note">The consumer example uses a mock generated from the shared provider OAS; it does not include a separate consumer-owned CDC contract.</div>
+          <div class="note">Dependabot checks configured ecosystems weekly and opens update pull requests. Contract and security workflows then evaluate those changes.</div>
         </section>
         <section class="scene" aria-labelledby="scene-title-5" hidden>
-          <span class="eyebrow">05 · Test behavior</span>
-          <h2 id="scene-title-5" tabindex="-1">Test independent requests and linked workflows.</h2>
+          <span class="eyebrow">05 · Contract roles</span>
+          <h2 id="scene-title-5" tabindex="-1">Contract tests and API integration tests have distinct targets.</h2>
+          <p class="lead">Specmatic provider and consumer checks use the Product OAS with different targets. Native language suites exercise the live APIs.</p>
+          <div class="grid">
+            <article class="card"><span class="tag">Provider contract test</span><strong>Specmatic → live Product API</strong><p>Contract-derived requests go to the healthy app at <code>app:8080</code>. Specmatic verifies the provider responses against the shared OAS.</p></article>
+            <article class="card"><span class="tag">Consumer contract test</span><strong>JavaScript / Playwright → Smart Mock</strong><p>Both examples call the Specmatic mock at <code>specmatic-mock:9000</code>, created from the Product OAS.</p></article>
+            <article class="card"><span class="tag">API integration</span><strong>Native clients → live Product and Order APIs</strong><p>Seven language suites and Playwright provider tests send real requests, validate response schemas, and check business behavior.</p></article>
+          </div>
+          <div class="note">The consumer examples share the provider OAS; this project does not publish a separate consumer-owned CDC contract.</div>
+        </section>
+        <section class="scene" aria-labelledby="scene-title-6" hidden>
+          <span class="eyebrow">06 · Test behavior</span>
+          <h2 id="scene-title-6" tabindex="-1">Test independent requests and linked workflows.</h2>
           <div class="grid two">
             <article class="card"><span class="tag">Stateless fuzzing</span><strong>One request stands on its own</strong><p>Schemathesis generates independent Product API requests from OAS, probes boundaries, and validates responses. Each case does not rely on data from earlier cases.</p></article>
             <article class="card"><span class="tag">Stateful testing</span><strong>Follow linked operations</strong><p>The separate Order API preserves state across a lifecycle. OAS links pass the created identifier between operations.</p></article>
@@ -144,20 +192,20 @@
           <div class="mini-flow"><span class="step"><b>Create</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Read</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Confirm</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Delete</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Verify 404</b></span></div>
           <p class="lead" style="margin-top:20px">Rust, Go, Python, JavaScript, TypeScript, Java, and C# repeat the lifecycle and validate each response against the stateful OAS.</p>
         </section>
-        <section class="scene" aria-labelledby="scene-title-6" hidden>
-          <span class="eyebrow">06 · Native API tests</span>
-          <h2 id="scene-title-6" tabindex="-1">Validate live responses in native test suites.</h2>
+        <section class="scene" aria-labelledby="scene-title-7" hidden>
+          <span class="eyebrow">07 · Native API tests</span>
+          <h2 id="scene-title-7" tabindex="-1">Validate live responses in native test suites.</h2>
           <p class="lead">Each example uses a small API client object for requests and a language-native test framework for behavior and OAS response validation.</p>
           <div class="grid">
             <article class="card"><span class="tag">Rust · Go · Python</span><strong>Native HTTP clients</strong><p>reqwest, net/http, and requests validate response status, media type, and schema.</p></article>
             <article class="card"><span class="tag">JavaScript · TypeScript</span><strong>Node test runner and Vitest</strong><p><code>@oaverify/core</code> validates live provider responses and Smart Mock examples.</p></article>
-            <article class="card"><span class="tag">Java · C#</span><strong>JUnit and xUnit</strong><p>REST Assured and HttpClient cover provider and stateful API integration. Playwright adds JavaScript API tests.</p></article>
+            <article class="card"><span class="tag">Java · C#</span><strong>JUnit and xUnit</strong><p>REST Assured and HttpClient cover live Product API and stateful Order API integration. Playwright covers the live Product API.</p></article>
           </div>
           <div class="note">For manual exploration, optional Swagger UI and Prism views load the root contract. They serve a different role from the automated checks.</div>
         </section>
-        <section class="scene" aria-labelledby="scene-title-7" hidden>
-          <span class="eyebrow">07 · Performance insights</span>
-          <h2 id="scene-title-7" tabindex="-1">Use timings as diagnostics, not a benchmark.</h2>
+        <section class="scene" aria-labelledby="scene-title-8" hidden>
+          <span class="eyebrow">08 · Performance insights</span>
+          <h2 id="scene-title-8" tabindex="-1">Use timings as diagnostics, not a benchmark.</h2>
           <p class="lead">The latest full contract CI job passed in 5 minutes 14 seconds. Earlier fuzzing timings are available as diagnostics; repeated cold and warm-cache runs are still needed for a stable benchmark.</p>
           <div class="grid">
             <article class="card metric"><strong>Passing contract CI job</strong><span class="value">5m 14s</span><p>Contract gates, API suites, Playwright, and image scans.</p></article>
@@ -170,11 +218,11 @@
       <nav class="controls" aria-label="Showcase controls">
         <button type="button" id="previous" aria-label="Previous slide">Previous</button>
         <div class="nav-dots" id="dots" aria-label="Choose a slide"></div>
-        <span class="counter" id="counter" aria-live="polite">1 / 7</span>
+        <span class="counter" id="counter" aria-live="polite">1 / 8</span>
         <button type="button" id="next" aria-label="Next slide">Next</button>
       </nav>
     </main>
-    <footer class="footer"><span>Use the buttons, slide markers, or keyboard arrows. The showcase never advances on its own.</span><a href="https://github.com/shoman2020/oas-polycontract">Project source</a></footer>
+    <footer class="footer"><span>Maintained by <a href="https://shift-left.nl" rel="noopener noreferrer">SHIFT-LEFT.NL</a> and Ahmed Abdelwahab. Use the buttons, slide markers, or keyboard arrows; the showcase never advances on its own.</span><a href="https://github.com/shoman2020/oas-polycontract">Project source</a></footer>
   </div>
   <script>
     const scenes = [...document.querySelectorAll(".scene")];

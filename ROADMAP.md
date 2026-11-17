@@ -10,17 +10,20 @@ One role owns the contract. Clear ownership means less maintenance and more trus
 
 | Area | Implementation | Verification or remaining work |
 |---|---|---|
-| Runnable demo | Product API, isolated linked Order API, inventory dependency, WireMock, Specmatic provider and downstream tests | Run 440438 passed both Schemathesis phases, WireMock, Specmatic provider/downstream, all seven native language suites, Playwright provider checks, and image scans. The Smart Mock test showed that a response example alone is not a deterministic request mapping; an external fixture now pins that scenario. |
-| Governance | Spectral for OAS and AsyncAPI, oasdiff against the root baseline, stateless and stateful Schemathesis | Stateless and stateful checks passed in run 440438, including all generated stateful scenarios. Smart Mock fixture verification is rerunning after a request-matched example was added. |
-| Language and API test clients | Rust, Go, Python, JavaScript, TypeScript, Java, and C# validate Product API and Order API responses; Playwright covers Product API | Run 440438 passed all seven native suites, including C# on the .NET 10 MTP runner, and Playwright provider tests. The consumer checks reached the mock and failed on the example assertion; the focused rerun will verify the fixture fix. |
-| Provider and consumer contract roles | Specmatic provider verification targets the running app; JavaScript and Playwright consumer suites target the Specmatic Smart Mock | The shared provider OAS drives both examples. This is consumer-side development against a contract-derived mock, not a separately published consumer-owned CDC artifact. Provider checks passed; rerun consumer checks after adding the deterministic fixture. |
+| Runnable demo | Product API, isolated linked Order API, inventory dependency, WireMock, Specmatic provider and downstream tests | Contract run [44046941415](https://github.com/shoman2020/oas-polycontract/actions/runs/44046941415) passed the full contract pipeline, including both Schemathesis phases, provider and consumer examples, all seven native suites, Playwright, and image scans. |
+| Governance | Spectral for OAS and AsyncAPI, oasdiff against the root baseline, stateless and stateful Schemathesis | Passed in run 44046941415. Stateful tests exercise linked operations and stateless fuzzing checks independent Product API requests. |
+| Language and API test clients | Rust, Go, Python, JavaScript, TypeScript, Java, and C# validate Product API and Order API responses; Playwright covers Product API | All seven native suites and both Playwright targets passed in run 44046941415. |
+| Provider and consumer contract roles | Specmatic provider verification targets the running app; JavaScript and Playwright consumer suites target the Specmatic Smart Mock | Provider, deterministic external example, dictionary fallback, and consumer checks passed. Consumers use the shared provider OAS; no separate consumer-owned CDC artifact is published. |
 | Protocol coverage | AsyncAPI examples for WebSocket and Kafka, with a separate Spectral ruleset | Contract examples only; no event service or broker is part of the demo. |
 | Debug layer | Optional Swagger UI and Prism Compose services use the root contract | Local profile exists; environment-specific host URLs still need deployment configuration. |
-| CI and security | Ubuntu contract workflow; CodeQL, Gitleaks, Trivy, Dependency Review, and Dependabot | Trivy image scans run with the contract job; security workflow scans repository dependencies and configuration. Gitleaks owns secret scanning, so the filesystem Trivy job omits its overlapping secret scanner. Run [44046941415](https://github.com/shoman2020/oas-polycontract/actions/runs/44046941415) passed the full contract job. |
-| Dependency reproducibility | Direct package versions and container/tool versions are pinned | Most language projects do not yet commit transitive lockfiles. Add native lockfiles after the first green pipeline run, then enforce locked installs. |
+| CI and security | Ubuntu contract workflow; CodeQL, Gitleaks, Trivy, Dependency Review, and Dependabot | Contract run 44052746009 passed. Its warnings were reviewed and fixes are in this patch. Trivy scans built runtime images in `contract.yml` and repository dependencies/configuration in `security.yml`; Gitleaks owns secret scanning. Required branch-protection checks still need repository settings. |
+| Dependency reproducibility | JavaScript, TypeScript, Playwright, and the dependency-free demo app have npm lockfiles; Node test images use `npm ci`. Python uses a hash-locked requirements file; Java enforces dependency convergence and pins Maven plugins. | Rust `Cargo.lock`, Go `go.sum` read-only mode, and C# NuGet lock restore remain open. A clean full-pipeline check is still required. |
+| Showcase publishing | Interactive HTML is checked in and a GitHub Pages workflow builds it as `index.html` | Run [44046941399](https://github.com/shoman2020/oas-polycontract/actions/runs/44046941399) could not configure Pages because Pages is not enabled for the repository. Enable Pages with GitHub Actions in repository settings, then rerun. |
+| Repository evaluations | `evals/project-evals.json` checks structure, test roles, workflow visuals, and roadmap; `evals/mock-data-evals.json` defines mock response cases | Local Node run passed 8/8 evaluation groups. Docker is unavailable in this checkout, so Compose parsing and container execution remain for CI verification. |
 | Migration | No legacy Postman or Bruno collection was supplied | Phase 5 is not applicable unless one is provided. |
-| Scaffolder | Not implemented | Phase 9 remains open until the end-to-end pipeline is stable. |
-| MCP | Design notes only | Optional; keep outside the contract and test source of truth. |
+| Repository structure | Active files are grouped by contracts, demo services, clients, gates, docs, and GitHub automation | Removed empty placeholder folders that had no implementation or references. Recreate a directory when its first maintained file is ready. |
+| Scaffolder | Not implemented | Phase 13 remains optional; wait for reproducible dependencies, required CI checks, and maintainer requirements first. |
+| MCP | Not implemented | Optional; consider only for a concrete workflow and keep it outside the contract and test source of truth. |
 
 ## Contract flow
 
@@ -28,16 +31,24 @@ One role owns the contract. Clear ownership means less maintenance and more trus
 flowchart LR
     OAS[Hand-edited OAS] --> Lint[Spectral lint]
     OAS --> Compat[oasdiff baseline]
-    OAS --> Specmatic[Provider verification and Smart Mock]
-    OAS --> Clients[Seven languages and Playwright API]
+    OAS --> Provider[Provider contract test: Specmatic]
+    OAS --> Mock[Specmatic Smart Mock]
+    OAS --> Integration[API integration: seven languages and Playwright provider]
     OAS --> Fuzz[Schemathesis against demo]
     OAS --> Debug[Swagger UI and Prism]
+    Provider --> App[Live Product API]
+    Integration --> App
+    Consumer[JavaScript and Playwright consumer tests] --> Mock
+    Fuzz --> App
     Downstream[Inventory OAS] --> WireMock[WireMock stub validation]
+    App --> WireMock
+    StatefulOAS[Stateful Order OAS] --> StatefulTests[Stateful Schemathesis and seven language API integration suites]
+    StatefulTests --> OrderApp[Live Order API]
 ```
 
-The repository has two distinct HTTP contracts. `openapi/openapi.yaml` is the root Product Catalog scaffold and its baseline; it has no server. `demo/openapi.yaml` is exercised by the demo app, seven language-native suites, and Playwright API tests. `demo/downstream/openapi.yaml` describes the app's WireMock-backed inventory dependency.
+The repository has two distinct HTTP contracts. `openapi/openapi.yaml` is the root Product Catalog scaffold and its baseline, with a local server URL for tooling. `demo/openapi.yaml` is exercised by the demo app, seven language-native suites, and Playwright API tests. `demo/downstream/openapi.yaml` describes the app's WireMock-backed inventory dependency.
 
-Specmatic roles are separate: `specmatic-provider` runs contract-derived requests against the healthy app; `specmatic-mock` serves the same OAS for JavaScript and Playwright consumer-side tests. Those client suites also run against the live app as API integration tests. The mock-backed example demonstrates consumer development against a shared provider contract, not a separate consumer-owned CDC contract.
+Specmatic's provider contract test sends contract-derived requests to the live app. Its consumer examples send client requests to a Smart Mock created from the same OAS. The seven native language suites and Playwright provider suite call the live Product API as API integration tests; the seven native suites also exercise the separate stateful Order API. These test sources and targets are listed in the README test map.
 
 ## Phases
 
@@ -60,9 +71,11 @@ Specmatic roles are separate: `specmatic-provider` runs contract-derived request
 - [x] Add a separate stateful Order API with linked OAS operations and run Schemathesis' stateful phase against it.
 - [x] Test the demo provider and WireMock dependency with Specmatic, including deterministic 404 and 502 examples.
 - [x] Return a declared `405 Method Not Allowed` with `Allow: GET` for unsupported methods on known routes; add the response to the demo OAS.
-- [ ] Run the expanded gates in CI and configure branch protection to require them.
-- [ ] Keep Specmatic behavioral backward-compatibility checking optional; it overlaps the structural oasdiff gate and is not needed for this single baseline.
-- [ ] Add a root provider check only if a root API implementation is created.
+- [x] Run the expanded gates in CI; the latest full contract run passed in run 44052746009. Its logs were reviewed for lint, build, and analyzer warnings; fixes are included in this patch and will be confirmed by the next run.
+- [ ] Configure branch protection to require contract and security status checks.
+- [x] Keep Specmatic behavioral backward-compatibility checking out of the current gates; it overlaps oasdiff for the single root baseline.
+
+Conditional: add a root provider check if a service is implemented for the root Product Catalog contract.
 
 ### Phase 3 — Language-native clients
 
@@ -75,7 +88,7 @@ Specmatic roles are separate: `specmatic-provider` runs contract-derived request
 - [x] Wire the separate stateful contract and provider into the seven language test containers.
 - [x] Keep provider verification, consumer-side mock tests, and live-server API integration suites distinct in the README and runnable examples.
 - [x] Document how to port requests and assertions from Postman or Bruno in [`clients/README.md`](clients/README.md).
-- [ ] Confirm the stateful and Product API scenarios pass in all seven language suites and both Playwright targets pass in the expanded pipeline.
+- [x] Confirm the stateful and Product API scenarios pass in all seven language suites and both Playwright targets in run 44046941415.
 
 ### Protocol scope
 
@@ -89,14 +102,14 @@ Specmatic roles are separate: `specmatic-provider` runs contract-derived request
 - [x] Keep common examples in OAS, deterministic request-specific fixtures in `demo/openapi_examples/`, and domain-shaped fallback values in `demo/openapi_dictionary.yaml`.
 - [x] Keep AI-assisted fixture generation offline: review, schema-validate, and commit outputs; CI and mock startup do not call a model.
 - [x] Validate external examples and assert deterministic request-matched and dictionary-backed mock responses.
-- [ ] Confirm mock-profile behavior in CI.
+- [x] Confirm deterministic fixtures, dictionary fallback, and mock-profile consumer behavior in run 44046941415.
 
 ### Phase 4 — Debugging layer
 
 - [x] Add optional Swagger UI and Prism profiles sourced from the root OAS.
 - [x] Keep them for manual exploration; contract tests remain the CI automation source.
-- [ ] Configure real dev, staging, and production base URLs when those environments are available.
-- [ ] Generate a Bruno debugging collection only if maintainers request one; no legacy collection exists today.
+
+Conditional: configure environment URLs when deployments exist. Keep a Bruno collection out of scope unless maintainers request one; no legacy collection is present.
 
 ### Phase 5 — Legacy migration
 
@@ -108,7 +121,7 @@ Not applicable with the supplied project: no legacy collection was provided. If 
 - [x] Compose the demo, seven language suites, Playwright provider and consumer tests, governance checks, fuzzing, and mock assertions.
 - [x] Have `run.sh` execute the full applicable suite and always tear down containers on success or failure.
 - [x] Keep GitHub Actions on Ubuntu; support Docker Desktop or Colima on macOS for local runs.
-- [ ] Confirm the full clean-checkout run in CI, including the stateful provider, Schemathesis phase, and all seven native lifecycle suites.
+- [x] Confirm the full clean-checkout run in CI, including the stateful provider, Schemathesis phase, and all seven native lifecycle suites (run 44052746009).
 
 ### Phase 7 — CI and security
 
@@ -117,36 +130,79 @@ Not applicable with the supplied project: no legacy collection was provided. If 
 - [x] Cover Rust, Go, Python, JavaScript/TypeScript, Java, C#, and GitHub Actions with CodeQL; use the language-appropriate build mode.
 - [x] Apply Specmatic's upstream OpenVEX assessment through the Trivy config for its bundled Guava finding.
 - [x] Confirm the updated Trivy scan accepts the VEX disposition and passes on Specmatic 2.56.3 (contract run 43933329023).
-- [ ] Review the new workflow results and set required status checks in GitHub repository settings.
+- [x] Review contract workflow results; full contract job passed in run 44052746009. Record the warning fixes in this patch and recheck on the next run.
+- [ ] Set required status checks in GitHub repository settings.
 
 ### Phase 8 — Docs
 
 - [x] Consolidate the README around the contract flow, runnable example, native suites, protocol scope, mock data, and contribution path.
 - [x] Document the example output and migration workflow.
+- [x] Distinguish provider and consumer contract tests from native API integration tests by their sources and targets.
 - [x] Keep roadmap status aligned with implementation and verification state.
 - [x] Replace the autoplay GIF with a manually controlled project showcase and a GitHub Pages deployment workflow.
+- [x] Map contract, security, and Pages workflow triggers and responsibilities in the README and interactive showcase.
+- [ ] Enable GitHub Pages with the Actions source so the showcase workflow can publish.
+- [x] Add executable repository evaluations for documentation, test entry points, pipeline wiring, and roadmap phases.
+- [x] Run the evaluation suite in the current checkout; 8/8 groups passed under the local Node.js runtime.
+- [ ] Confirm the new Compose evaluator service in a Docker-enabled run.
 
-### Phase 9 — Reusable scaffolder
+### Phase 9 — Reproducible dependencies
 
-- [ ] Build the optional `create-polycontract` CLI only after the new pipeline is stable.
+- [x] Commit package lockfiles for JavaScript, TypeScript, Playwright, and the dependency-free demo app; use `npm ci` in the JavaScript, TypeScript, and Playwright images.
+- [ ] Commit `Cargo.lock` and use `cargo test --locked` in the Rust image.
+- [ ] Commit `go.sum` and verify clean builds use `-mod=readonly`.
+- [x] Generate a hash-locked Python dependency file from the pinned `requirements.txt` and install with `--require-hashes` in a virtual environment.
+- [ ] Enable NuGet lock-file generation and locked restore for C#.
+- [x] Add Maven dependency-convergence and plugin-version checks; pin the Enforcer, Compiler, and Surefire plugins in the POM.
+- [ ] Run the full contract pipeline from a clean checkout and record the resolved dependency graph and result.
+
+### Phase 10 — Repository merge policy
+
+- [ ] Configure GitHub branch protection to require the contract and security workflows on pull requests.
+- [ ] Confirm the selected check names remain stable and cannot be bypassed by path filters.
+
+### Phase 11 — Showcase publishing
+
+- [ ] Enable Pages with GitHub Actions as its source and verify the showcase deploys from `docs/project-flow.html`.
+- [ ] Confirm the showcase URL in the README resolves to the deployed page.
+
+### Phase 12 — Performance baseline
+
+- [ ] Record stage timings for lint, compatibility, provider checks, fuzzing, client suites, and image scans.
+- [ ] Capture at least five clean-run and warm-cache samples before defining a baseline.
+- [ ] Report median and range with runner and cache conditions; retain raw timings as workflow artifacts.
+- [ ] Keep performance reporting informational until enough history exists to set a useful regression threshold.
+
+### Phase 13 — Optional reusable scaffolder
+
+- [ ] Gather maintainer requirements and define supported starter combinations before implementation.
+- [ ] Build the optional `create-polycontract` CLI only after Phases 9 and 10 are complete; use npm only as the distribution channel for this CLI.
 - [ ] Support `init` and additive `add` commands, non-interactive flags, safe prompts, and a manifest that prevents overwriting hand-edited files.
 - [ ] Generate only selected clients, gates, debug services, and CI configuration from maintained templates.
+- [ ] Verify generated starters with the same contract pipeline and test that updates preserve hand-edited files.
+- [ ] If npm distribution is selected, test the packed CLI in a clean directory before publishing and document supported Node versions and upgrade behavior.
 
 ## Remaining work and acceptance criteria
 
-These are the current gaps, in execution order. “Implemented” means files and wiring exist; it does not imply a successful CI run.
+These are the remaining gaps, in execution order. Repository configuration items require GitHub settings access; conditional items need an implementation or environment before work begins.
 
 | Priority | Gap | Status | Acceptance signal |
 |---|---|---|---|
-| P0 | Run the expanded contract and security workflows on this implementation | In progress; run 44043831606 passed stateless and stateful checks, all seven language suites, Playwright provider tests, and image scans. The Smart Mock assertion expected an inline OAS response where a request-matched fixture was needed. | All applicable contract jobs and image/filesystem scans pass; verify deterministic Specmatic mock examples and consumer tests, then record a full green run. |
-| P1 | Make language dependency installs reproducible | Needed | Commit JS/TS package locks, `Cargo.lock`, Go module sums, a hash-locked Python requirements file, and NuGet lock files; lock Maven dependency resolution. Use lock-enforcing installs in the container builds. |
-| P1 | Require contract and security checks before merge | Repository configuration needed | GitHub branch protection requires the named checks. This setting is managed outside this repository. |
-| P2 | Decide whether the root Product Catalog OAS remains contract-only | Decision needed | If it stays a scaffold, keep provider checks on the demo OAS. If a root provider is added, add provider and client examples against the root contract. |
-| Conditional | Exercise event protocols at runtime | Not applicable yet | Add a WebSocket or Kafka provider/broker and contract tests when the project includes one. The current AsyncAPI files are linted examples only. |
-| Conditional | Configure deployed debug URLs | Environment details needed | Add the real dev, staging, and production endpoints when those environments exist. |
-| Conditional | Migrate legacy requests and assertions | Not applicable yet | Inventory a supplied Postman or Bruno collection, move request shape to OAS, and port genuine business rules to one native suite. |
-| Later | Build the optional `create-polycontract` CLI | Deferred until P0 and P1 are complete | `init` and additive `add` generate a selected starter that passes this pipeline without overwriting hand-edited files. |
-| Optional | Add MCP support | Design only | Add it only if it wraps checked-in commands without creating another contract or test source of truth. |
+| P1 | Make language dependency installs reproducible | In progress; Phase 9 | npm and Python installs now use committed locks; Maven checks convergence. Add Rust and Go lockfiles, C# NuGet lock mode, then prove a clean checkout passes the full pipeline. |
+| P1 | Require contract and security checks before merge | GitHub settings needed; Phase 10 | Enable the stable contract and security checks as required pull request status checks and verify a pull request is blocked on failure. |
+| P2 | Publish the interactive showcase | GitHub Pages settings needed; Phase 11 | Enable Pages with GitHub Actions as the source, rerun the workflow, and confirm the README link resolves to the deployed showcase. |
+| P2 | Establish a representative performance baseline | No repeated samples yet; Phase 12 | Publish median and range from at least five clean and warm-cache runs with runner/cache conditions and stage timings. |
+| Conditional | Exercise event protocols at runtime | No event provider or broker is included | When one is added, choose its AsyncAPI binding, run the service/broker, validate provider behavior and compatibility, and include a runnable example in CI. |
+| Conditional | Configure deployed debug URLs | No deployment environments are included | When dev, staging, or production endpoints exist, define environment-specific server URLs and verify debug views target the selected environment. |
+| Conditional | Migrate legacy requests and assertions | No legacy Postman or Bruno collection was supplied | When a collection is provided, inventory requests, migrate interface shape to OAS, move setup to fixtures, and port business assertions to one native suite. |
+| Later | Build the optional `create-polycontract` CLI | Deferred to Phase 13 | After Phases 9 and 10, define starter combinations; implement `init` and additive `add`, protect hand-edited files, and verify generated starters with CI. |
+| Optional | Add MCP support | No concrete project integration identified | Define a user workflow first; expose checked-in commands without introducing another contract or test source of truth. |
+
+## Package suitability
+
+The repository is a multi-language reference implementation, not an importable library. Publishing the full repo as an npm package would mix demos, client suites, contracts, and CI files without giving consumers a stable runtime API.
+
+The useful package candidate is `create-polycontract`: a CLI that generates a selected starter from maintained templates. Keep the repository itself as the documentation and integration test source. A GitHub template repository is the lower-effort first distribution option; a CLI is justified if users need selective language, gate, or protocol choices. Add demand and supported-output requirements before Phase 13. GitHub template repositories copy a repository's default-branch files into a new project; npm distribution would add package versioning and release maintenance ([GitHub template repositories](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository), [npm publishing](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/)).
 
 ## Progress log
 
@@ -169,7 +225,7 @@ These are the current gaps, in execution order. “Implemented” means files an
 | 16 Nov 2026 | Contract run [43944423021](https://github.com/shoman2020/oas-polycontract/actions/runs/43944423021) passed the mock profile build, provider checks, fuzzing, and image scans, then Rust failed to compile because schema errors borrowed the response body. | Collect schema validation errors into owned strings, then rerun CI and continue through the remaining language clients. |
 | 16 Nov 2026 | The pre-fix Rust test blob had mixed endings (1 CRLF and 41 LF), triggering GitHub's editor warning. | The Rust fix normalizes the file; .gitattributes now pins Rust and Markdown files to LF. |
 | 16 Nov 2026 | Contract run [43958109468](https://github.com/shoman2020/oas-polycontract/actions/runs/43958109468) passed through Rust, then Go failed because `go mod download` without module arguments did not add archive checksums to `go.sum`. | Changed the Go image to `go mod download all`, which populates those checksums before `go test`. Re-run CI to verify the Go fix and remaining clients. |
-| 16 Nov 2026 | The README project overview used abrupt image changes between its architecture, pipeline, fuzzing, and performance views. | The Pillow generator now creates separate slides with horizontal transitions; the README alt text describes the slideshow. |
+| 16 Nov 2026 | The README project overview used abrupt image changes between its architecture, pipeline, fuzzing, and performance views. | A generated slide image was used briefly, then superseded on 17 Nov by the manually navigated HTML showcase. No image generator is part of the current project. |
 | 16 Nov 2026 | Contract run [43960107981](https://github.com/shoman2020/oas-polycontract/actions/runs/43960107981) passed Rust and stopped at Go because module metadata needed tidying. | The Go image now runs `go mod tidy`; stateful Order API integration tests are implemented and wired into all seven native language services. Push and verify the complete pipeline. |
 | 17 Nov 2026 | Contract run [44037412840](https://github.com/shoman2020/oas-polycontract/actions/runs/44037412840) passed lint, compatibility, WireMock, Specmatic, stateless fuzzing, and all image scans. | The stateful command activated the `test` profile without the `mock` profile required to resolve another test service's dependency. Updated both stateful commands and README instructions to enable both profiles. |
 | 17 Nov 2026 | Contract run [44038380564](https://github.com/shoman2020/oas-polycontract/actions/runs/44038380564) ran linked stateful tests and passed 122 of 123 scenarios. | Schemathesis found that the in-memory Order API did not enforce the OAS `sku.maxLength: 64`. Added Unicode code-point length validation and made shutdown include both Compose profiles; rerun CI. |
@@ -182,6 +238,15 @@ These are the current gaps, in execution order. “Implemented” means files an
 | 17 Nov 2026 | Replaced the automatic README project-flow GIF with a six-scene interactive showcase. | Added manual navigation, slide markers, keyboard controls, accessible status, reduced-motion handling, and a Pages deployment workflow; no slide timer is used. |
 | 17 Nov 2026 | Contract run [44046941415](https://github.com/shoman2020/oas-polycontract/actions/runs/44046941415) passed on the showcase commit. | Showcase run [44046941399](https://github.com/shoman2020/oas-polycontract/actions/runs/44046941399) failed at Configure Pages because GitHub Pages is not enabled for the repository. Updated the pinned configure-pages action to v6.0.0 (Node 24). Enable Pages with the GitHub Actions source in repository Settings > Pages, then rerun the showcase workflow. |
 | 17 Nov 2026 | Updated the implementation map and performance snapshot with the implemented language names, Docker Compose, and the passing contract job duration. | Removed overlapping Trivy filesystem secret scanning. Gitleaks handles repository secrets; `security.yml` keeps dependency and configuration checks, while `contract.yml` scans the built runtime images. |
+| 17 Nov 2026 | Audited tracked directories against actual files and Compose/workflow references. | Removed empty placeholders for unused `bin`, `legacy`, `debug`, contract-gate, and template paths. Updated the README tree to match maintained files and Compose-owned debug services. |
+| 17 Nov 2026 | Reconciled implementation status with passing contract run 44046941415. | Marked the full suite, both Schemathesis modes, native clients, Playwright targets, and Smart Mock examples verified; retained Pages publishing and required branch checks as repository-setting gaps. |
+| 17 Nov 2026 | Added explicit next-phase steps and acceptance criteria. | Phase 9 covers native dependency locks; Phase 10 covers required checks; Phase 11 covers Pages; Phase 12 establishes performance sampling; Phase 13 defers the optional scaffolder until its prerequisites and requirements are clear. |
+| 17 Nov 2026 | Added repository evaluations and placed them before contract gates in `run.sh`. | The evaluator checks README link and tree integrity, language test entry points, Compose/run wiring, and sequential roadmap phase tracking; verify against this checkout. |
+| 17 Nov 2026 | Ran `node evals/run.mjs` in the current checkout. | All 8 evaluation groups passed, including test-target, mock fixture, and workflow visual alignment. Docker CLI is not installed here, so Compose parsing and container execution still need CI verification. |
+| 17 Nov 2026 | Added a visual of workflow triggers, responsibilities, and scan ownership to the README and interactive showcase. | Added an evaluation check that keeps both visuals aligned with `contract.yml`, `security.yml`, `showcase.yml`, Dependency Review, Dependabot, and image scans. |
+| 17 Nov 2026 | Clarified test type ownership and targets in the README, client guide, and interactive overview. | Provider contract tests target the live Product API; consumer contract examples target the Specmatic Smart Mock; native language suites are API integration tests against the live Product and Order APIs. Added an evaluation that checks this map against Compose configuration. |
+| 17 Nov 2026 | Reviewed warnings from the latest green contract run [44052746009](https://github.com/shoman2020/oas-polycontract/actions/runs/44052746009). | Added OAS and AsyncAPI lint metadata, aligned Specmatic examples to their external request examples, passed cancellation tokens to C# reads, moved Rust test-only dependencies, used regular non-root UIDs, added locked Python installs, disabled only Spectral's upstream `DEP0040` warning, and addressed the Docker and Maven build notices. The next pipeline run must confirm the cleanup. |
+| 17 Nov 2026 | Implemented the first reproducible-install steps in Phase 9 and added `shift-left.nl` as the maintainer link in the interactive showcase. | Committed npm locks and `npm ci` builds; added Python hash-lock installation and Maven convergence enforcement. Cargo, Go, NuGet locks and clean-pipeline verification remain. |
 
 ## Run and expected result
 
@@ -193,10 +258,10 @@ The run lints contracts, checks compatibility, builds the demo and client test i
 
 ## Recommendations
 
-1. Run CI on the complete implementation and fix failures before declaring the client suites stable.
-2. Generate and commit native dependency lockfiles, then enforce locked installs so clean builds use the reviewed dependency graph.
-3. Require the contract and security checks in GitHub branch protection.
-4. Decide whether the root Product Catalog OAS remains contract-only; keep demo provider coverage separate either way.
+1. Add and enforce native dependency locks before expanding the supported starter matrix.
+2. Require the contract and security status checks and enable Pages in repository settings.
+3. Record repeated clean and warm-cache timings before describing pipeline performance as a baseline.
+4. Keep the root Product Catalog OAS as a design scaffold until a provider implementation is added.
 5. Add event runtime tests and deployed debug URLs only when the services and environments exist.
-6. Start Phase 9 after a green, reproducible end-to-end pipeline.
+6. Build the optional scaffolder only after the lockfiles and repository gates are stable and its supported outputs are agreed.
 7. Keep MCP optional and outside CI's contract source of truth.

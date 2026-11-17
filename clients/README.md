@@ -6,6 +6,11 @@ frameworks; Playwright adds a JavaScript `APIRequestContext` suite without
 launching a browser. Generated clients and model types are optional and do not
 replace runtime response validation.
 
+The JavaScript, TypeScript, and Playwright containers install from committed
+lockfiles with `npm ci`. Python installs from `requirements.lock` with hash
+verification. Rust, Go, and C# lock-mode work is tracked in Phase 9 of the
+[`ROADMAP.md`](../ROADMAP.md).
+
 ## Port a Postman or Bruno collection
 
 1. Export requests, remove credentials and environment-specific secrets, and
@@ -26,11 +31,13 @@ replace runtime response validation.
 
 ## What each test validates
 
-Each suite sends `GET /products/demo-sku`, validates the actual response
-status, content type, and JSON body with its language's OpenAPI-aware library,
-then checks the business result (`available` is 7). It also creates an order,
+The seven native language suites send `GET /products/demo-sku` to the live
+Product API, validate status, content type, and JSON body against OAS, then
+check the business result (`available` is 7). Each also creates an order,
 reads it, confirms it, deletes it, and verifies the next read returns `404`.
 Each lifecycle response is validated against `demo/stateful/openapi.yaml`.
+Playwright covers the Product API provider and consumer examples; its suite
+does not include the Order API lifecycle.
 
 | Language or runner | Test entry point | OAS validation |
 |---|---|---|
@@ -42,6 +49,21 @@ Each lifecycle response is validated against `demo/stateful/openapi.yaml`.
 | Playwright API (JavaScript) | `npm run test:provider` | Uses `APIRequestContext`; adapts the response to Fetch objects and validates it with `@oaverify/core`. |
 | Java | `mvn test` | REST Assured's Atlassian `OpenApiValidationFilter` validates request and response. |
 | C# | `dotnet test` | Reads the response schema and status from the OAS YAML, then uses `NJsonSchema`. |
+
+## Test roles and targets
+
+| Test type | Test source | Target | Expected evidence |
+|---|---|---|---|
+| Provider contract-based test | Compose `specmatic-provider` service | Running Product API at `app:8080` | Specmatic sends OAS-derived requests to the provider and validates its responses. |
+| Consumer contract-based test | `clients/js/contract.test.mjs` with the mock URL and `clients/playwright/consumer-contract.spec.mjs` | Specmatic Smart Mock at `specmatic-mock:9000` | Consumer examples work with responses generated from the shared Product OAS. |
+| Product API integration test | Seven language-native suites and `clients/playwright/contract.spec.mjs` | Running Product API at `app:8080` | Real HTTP responses pass OAS validation and a business assertion. |
+| Stateful API integration test | Seven native `stateful` test entry points | Running Order API at `stateful-app:8082` | The suite validates the full order lifecycle against its OAS. |
+| Downstream service integration test | `demo/app/tests/wiremock.integration.mjs` | Product API and WireMock | The app returns its response and the expected inventory call appears in WireMock's request journal. |
+
+The provider and consumer examples are contract-based tests with different
+targets. Native language suites are API integration tests against running
+services. Their OAS response validators check the interface as part of each
+integration test; business assertions remain explicit in test code.
 
 The Rust and C# starters resolve the operation response and schema from the
 contract but intentionally support local component `$ref`s only. For larger

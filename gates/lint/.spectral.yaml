@@ -9,8 +9,8 @@
 #   npx @stoplight/spectral-cli lint openapi/openapi.yaml \
 #     --ruleset gates/lint/.spectral.yaml
 #
-# Not yet run in CI, or at all in this sandbox (no network to npx it) —
-# see ROADMAP.md Phase 2.
+# This ruleset runs through the `spectral` and `spectral-asyncapi` services
+# in Docker Compose; see ROADMAP.md Phase 2 for current verification status.
 
 extends: ["spectral:oas"]
 

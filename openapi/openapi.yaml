@@ -3,19 +3,28 @@ info:
   title: Product Catalog API
   version: 1.0.0
   description: >
-    Canonical contract for the Product Catalog API. This is the one
-    hand-edited source of truth for this API boundary (see the guiding
-    rule in ROADMAP.md). Generated clients, Specmatic mocks, the Bruno
-    debug collection, and Swagger UI all derive from or validate against
-    this file — none of them is a second source of truth for it.
+    Design scaffold for the Product Catalog API. This hand-edited contract
+    is checked by Spectral and oasdiff and feeds the optional Swagger UI
+    and Prism views. No provider implements it yet; the runnable demo has
+    a separate contract at demo/openapi.yaml.
+  contact:
+    name: SHIFT-LEFT.NL and Ahmed Abdelwahab
+    url: https://shift-left.nl
 servers:
   - url: http://localhost:8080
     description: Local / CI
+tags:
+  - name: health
+    description: Service availability.
+  - name: products
+    description: Product catalog operations.
 paths:
   /healthz:
     get:
+      tags: [health]
       operationId: getHealth
       summary: Liveness check
+      description: Returns the current health status of the Product Catalog API.
       responses:
         "200":
           description: Service is healthy
@@ -25,8 +34,10 @@ paths:
                 $ref: "#/components/schemas/Health"
   /products:
     get:
+      tags: [products]
       operationId: listProducts
       summary: List products
+      description: Returns a page of products using the supplied pagination values.
       parameters:
         - name: limit
           in: query
@@ -49,8 +60,10 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProductPage"
     post:
+      tags: [products]
       operationId: createProduct
       summary: Create a product
+      description: Creates a product from the supplied product details.
       requestBody:
         required: true
         content:
@@ -72,8 +85,10 @@ paths:
                 $ref: "#/components/schemas/Error"
   /products/{sku}:
     get:
+      tags: [products]
       operationId: getProduct
       summary: Get a product by SKU
+      description: Returns the product identified by its stock keeping unit.
       parameters:
         - name: sku
           in: path

@@ -36,6 +36,10 @@ echo "==> Building demo, language-native clients, and Playwright API suites"
 "${compose[@]}" --profile test --profile mock build rust-contract-test go-contract-test python-contract-test \
   js-contract-test ts-contract-test playwright-contract-test playwright-consumer-test \
   java-contract-test csharp-contract-test
+
+echo "==> Evaluating repository structure, test coverage, pipeline wiring, and roadmap"
+"${compose[@]}" --profile test run --rm project-evals
+
 "${compose[@]}" up -d wiremock app
 
 # This service waits for both endpoints, exercises the app, and verifies the

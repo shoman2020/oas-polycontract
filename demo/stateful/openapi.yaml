@@ -5,6 +5,7 @@ info:
   description: Isolated in-memory API used to demonstrate linked stateful contract tests.
   contact:
     name: oas-polycontract maintainers
+    url: https://shift-left.nl
 servers:
   - url: http://stateful-app:8082
 tags:
@@ -15,6 +16,7 @@ paths:
     get:
       tags: [orders]
       summary: Check service health
+      description: Returns the health status of the Order API.
       operationId: getStatefulHealth
       responses:
         "200":
@@ -32,6 +34,7 @@ paths:
     post:
       tags: [orders]
       summary: Create an order
+      description: Creates an order in the initial created state.
       operationId: createOrder
       requestBody:
         required: true
@@ -86,6 +89,7 @@ paths:
     get:
       tags: [orders]
       summary: Read an order
+      description: Returns the current state of the identified order.
       operationId: getOrder
       responses:
         "200":
@@ -103,6 +107,7 @@ paths:
     patch:
       tags: [orders]
       summary: Move an order to a new state
+      description: Confirms or cancels the identified order.
       operationId: updateOrder
       requestBody:
         required: true
@@ -154,6 +159,7 @@ paths:
     delete:
       tags: [orders]
       summary: Delete an order
+      description: Deletes the identified order.
       operationId: deleteOrder
       responses:
         "204":

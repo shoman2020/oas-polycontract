@@ -6,10 +6,21 @@ info:
     Downstream inventory contract. This is the app's one dependency;
     WireMock's mapping under wiremock/mappings is checked against this
     contract by the specmatic-downstream service.
+  contact:
+    name: SHIFT-LEFT.NL and Ahmed Abdelwahab
+    url: https://shift-left.nl
+servers:
+  - url: http://localhost:8081
+    description: Inventory WireMock service on the local host.
+tags:
+  - name: inventory
+    description: Inventory availability operations.
 paths:
   /inventory/{sku}:
     get:
+      tags: [inventory]
       summary: Get inventory availability for a SKU
+      description: Returns the inventory availability for the supplied SKU.
       operationId: getInventory
       parameters:
         - name: sku

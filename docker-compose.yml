@@ -18,6 +18,7 @@ services:
       start_period: 2s
 
   app:
+    image: oas-polycontract-app:latest
     build:
       context: ./demo/app
       args:
@@ -55,6 +56,14 @@ services:
         condition: service_healthy
       wiremock:
         condition: service_healthy
+    profiles: [test]
+
+  project-evals:
+    image: oas-polycontract-app:latest
+    command: ["node", "/repo/evals/run.mjs"]
+    working_dir: /repo
+    volumes:
+      - ./:/repo:ro
     profiles: [test]
 
   specmatic-provider:
@@ -105,6 +114,9 @@ services:
     command: ["node", "tests/specmatic-mock.integration.mjs"]
     environment:
       MOCK_URL: http://specmatic-mock:9000
+      MOCK_EVALS_PATH: /evals/mock-data-evals.json
+    volumes:
+      - ./evals/mock-data-evals.json:/evals/mock-data-evals.json:ro
     depends_on:
       specmatic-mock:
         condition: service_started
@@ -112,6 +124,10 @@ services:
 
   spectral:
     image: stoplight/spectral:${SPECTRAL_VERSION:?Set SPECTRAL_VERSION in .github/versions.env}
+    environment:
+      # Spectral 6 currently triggers Node's deprecated built-in punycode module.
+      # Suppress only DEP0040 while retaining all other runtime warnings.
+      NODE_OPTIONS: --disable-warning=DEP0040
     entrypoint: ["/bin/sh", "-c"]
     command:
       - >-
@@ -126,6 +142,8 @@ services:
 
   spectral-asyncapi:
     image: stoplight/spectral:${SPECTRAL_VERSION:?Set SPECTRAL_VERSION in .github/versions.env}
+    environment:
+      NODE_OPTIONS: --disable-warning=DEP0040
     entrypoint: ["/bin/sh", "-c"]
     command:
       - >-

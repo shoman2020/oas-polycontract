@@ -1,7 +1,7 @@
 ARG RUST_VERSION=1.100.0
 FROM rust:${RUST_VERSION}-bookworm
 
-RUN useradd --system --uid 10001 --create-home app
+RUN useradd --uid 10001 --create-home app
 
 ENV HOME=/home/app \
     CARGO_HOME=/home/app/.cargo

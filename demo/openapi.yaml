@@ -5,10 +5,23 @@ info:
   description: >
     Demo provider API. Serves product details by looking up availability
     from a downstream inventory service (see demo/downstream/openapi.yaml).
+  contact:
+    name: SHIFT-LEFT.NL and Ahmed Abdelwahab
+    url: https://shift-left.nl
+servers:
+  - url: http://localhost:8080
+    description: Local demo service.
+tags:
+  - name: health
+    description: Service availability.
+  - name: products
+    description: Product lookup operations.
 paths:
   /healthz:
     get:
+      tags: [health]
       summary: Liveness check
+      description: Returns the current health status of the Product API.
       operationId: getHealth
       responses:
         "200":
@@ -35,7 +48,9 @@ paths:
                 $ref: "#/components/schemas/Error"
   /products/{sku}:
     get:
+      tags: [products]
       summary: Get a product by SKU
+      description: Returns product details and inventory availability for the supplied SKU.
       operationId: getProduct
       parameters:
         - name: sku
@@ -67,7 +82,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
               examples:
-                missing:
+                product-not-found:
                   value:
                     message: No inventory record for not-found-sku
         "400":
@@ -83,7 +98,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
               examples:
-                unavailable:
+                inventory-unavailable:
                   value:
                     message: Inventory service unavailable
         "405":

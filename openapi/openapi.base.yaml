@@ -3,11 +3,10 @@ info:
   title: Product Catalog API
   version: 1.0.0
   description: >
-    Canonical contract for the Product Catalog API. This is the one
-    hand-edited source of truth for this API boundary (see the guiding
-    rule in ROADMAP.md). Generated clients, Specmatic mocks, the Bruno
-    debug collection, and Swagger UI all derive from or validate against
-    this file — none of them is a second source of truth for it.
+    Design scaffold for the Product Catalog API. This hand-edited contract
+    is checked by Spectral and oasdiff and feeds the optional Swagger UI
+    and Prism views. No provider implements it yet; the runnable demo has
+    a separate contract at demo/openapi.yaml.
 servers:
   - url: http://localhost:8080
     description: Local / CI

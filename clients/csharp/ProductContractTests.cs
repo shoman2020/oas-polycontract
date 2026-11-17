@@ -14,7 +14,7 @@ public sealed class ProductContractTests
         var cancellationToken = TestContext.Current.CancellationToken;
 
         using var response = await api.GetProductAsync("demo-sku", cancellationToken);
-        var body = await response.Content.ReadAsStringAsync();
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
         await contract.ValidateAsync(response, body, "/products/{sku}", "get");
 
         using var parsed = JsonDocument.Parse(body);

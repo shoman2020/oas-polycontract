@@ -5,8 +5,8 @@ USER root
 
 # Refresh the base OS packages and remove Pebble, which this HTTP-only demo
 # does not use.
-RUN apt-get update \
-    && apt-get upgrade -y --no-install-recommends \
+RUN DEBIAN_FRONTEND=noninteractive apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y --no-install-recommends \
     && rm -f /usr/bin/pebble \
     && rm -rf /var/lib/apt/lists/*
 

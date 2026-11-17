@@ -1,6 +1,10 @@
 extends: ["spectral:asyncapi"]
 
 rules:
+  # The project uses the maintainer website and issue tracker for contact;
+  # it does not publish a support mailbox in the AsyncAPI metadata.
+  asyncapi-info-contact-properties: off
+
   house-operation-must-have-operationId:
     description: Every AsyncAPI operation needs a stable operationId.
     severity: error

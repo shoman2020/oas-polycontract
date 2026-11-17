@@ -1,0 +1,37 @@
+{
+  "name": "Specmatic mock-data evaluations",
+  "description": "Check deterministic fixture outputs and dictionary-backed fallback values without using a live AI service.",
+  "dictionary": "demo/openapi_dictionary.yaml",
+  "cases": [
+    {
+      "id": "demo-product-fixture",
+      "kind": "external-example",
+      "path": "/products/demo-sku",
+      "fixture": "demo/openapi_examples/product-demo.json",
+      "expected": {
+        "status": 200,
+        "body": { "sku": "demo-sku", "available": 7 }
+      }
+    },
+    {
+      "id": "vip-product-fixture",
+      "kind": "external-example",
+      "path": "/products/vip-sku",
+      "fixture": "demo/openapi_examples/product-vip.json",
+      "expected": {
+        "status": 200,
+        "body": { "sku": "vip-sku", "available": 25 }
+      }
+    },
+    {
+      "id": "dictionary-fallback",
+      "kind": "dictionary-fallback",
+      "path": "/products/not-in-examples",
+      "allowed": {
+        "sku": ["mock-sku-blue", "mock-sku-green", "mock-sku-red"],
+        "available": [0, 1, 4, 9]
+      },
+      "expectedStatus": 200
+    }
+  ]
+}

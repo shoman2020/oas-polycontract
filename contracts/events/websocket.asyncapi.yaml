@@ -5,7 +5,13 @@ info:
   description: Contract example for real-time product availability updates over WebSocket.
   contact:
     name: SHIFT-LEFT.NL and Ahmed Abdelwahab
-    url: https://github.com/shoman2020/oas-polycontract/issues
+    url: https://shift-left.nl
+  license:
+    name: MIT
+    url: https://opensource.org/license/mit
+tags:
+  - name: products
+    description: Product availability events.
 servers:
   local:
     url: localhost:8083
@@ -22,6 +28,7 @@ channels:
     publish:
       operationId: publishAvailabilityUpdates
       summary: Publish availability updates for one product.
+      description: Publishes an availability update for subscribers to the product channel.
       message:
         $ref: "#/components/messages/AvailabilityChanged"
 components:

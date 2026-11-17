@@ -1,0 +1,87 @@
+{
+  "name": "oas-polycontract repository evaluations",
+  "checks": [
+    {
+      "id": "readme-links",
+      "description": "README relative links resolve to repository files or directories",
+      "type": "readme-links"
+    },
+    {
+      "id": "readme-structure",
+      "description": "Every path in the README project tree exists",
+      "type": "readme-tree"
+    },
+    {
+      "id": "client-coverage",
+      "description": "Each documented native language and Playwright role has test entry points",
+      "type": "files-exist",
+      "paths": [
+        "clients/rust/tests/contract_test.rs",
+        "clients/go/contract_test.go",
+        "clients/go/stateful_contract_test.go",
+        "clients/python/test_contract.py",
+        "clients/python/test_stateful_contract.py",
+        "clients/js/contract.test.mjs",
+        "clients/js/stateful-contract.test.mjs",
+        "clients/ts/contract.test.ts",
+        "clients/ts/stateful-contract.test.ts",
+        "clients/java/src/test/java/nl/shiftleft/ProductContractTest.java",
+        "clients/java/src/test/java/nl/shiftleft/StatefulOrderContractTest.java",
+        "clients/csharp/ProductContractTests.cs",
+        "clients/csharp/StatefulOrderContractTests.cs",
+        "clients/playwright/contract.spec.mjs",
+        "clients/playwright/consumer-contract.spec.mjs"
+      ]
+    },
+    {
+      "id": "test-role-map",
+      "description": "Provider, consumer, and integration tests are distinguished by source and target",
+      "type": "test-role-map"
+    },
+    {
+      "id": "mock-data-evaluations",
+      "description": "Mock evaluation cases match their fixtures and dictionary values",
+      "type": "mock-data-evaluations",
+      "file": "evals/mock-data-evals.json"
+    },
+    {
+      "id": "pipeline-coverage",
+      "description": "Compose services are connected to the shared run entry point",
+      "type": "pipeline-services",
+      "services": [
+        "project-evals",
+        "spectral",
+        "spectral-asyncapi",
+        "oasdiff",
+        "wiremock-integration-test",
+        "specmatic-provider",
+        "specmatic-downstream",
+        "specmatic-examples-validate",
+        "schemathesis",
+        "stateful-schemathesis",
+        "rust-contract-test",
+        "go-contract-test",
+        "python-contract-test",
+        "js-contract-test",
+        "ts-contract-test",
+        "playwright-contract-test",
+        "java-contract-test",
+        "csharp-contract-test",
+        "specmatic-mock-integration-test",
+        "playwright-consumer-test"
+      ]
+    },
+    {
+      "id": "workflow-visuals",
+      "description": "README and interactive overview distinguish workflow ownership and triggers",
+      "type": "workflow-visuals"
+    },
+    {
+      "id": "roadmap-phases",
+      "description": "Roadmap defines sequential phases and records the latest verified contract run",
+      "type": "roadmap-phases",
+      "expectedPhases": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+      "verifiedRun": "44046941415"
+    }
+  ]
+}
