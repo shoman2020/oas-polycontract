@@ -2,9 +2,9 @@
 
 One hand-edited contract per API boundary. Native test suites validate live HTTP responses against that contract, while Specmatic checks provider and consumer behavior. The same command runs the examples locally and in CI.
 
-![Sliding project overview: contract flow, pipeline phases, stateless and stateful testing, and measured CI performance](docs/project-flow.gif)
+[Open the interactive project showcase](https://shoman2020.github.io/oas-polycontract/). Use the buttons, slide markers, or keyboard arrows to explore the contract flow, pipeline, test roles, and performance insights. The slides change only when you choose to move.
 
-The animation shows how the contracts flow through the pipeline, which phases are implemented, how to start a run, and what the latest performance sample does and does not prove. See the [roadmap](ROADMAP.md) for detailed progress.
+See the [roadmap](ROADMAP.md) for implementation and verification progress.
 
 ## Quick start
 
@@ -89,7 +89,7 @@ docker compose --env-file .github/versions.env --profile test --profile mock run
 docker compose --env-file .github/versions.env --profile test --profile mock run --rm playwright-consumer-test
 ```
 
-`bash ./run.sh` runs both roles, plus the JavaScript consumer example and checks for inline, external, and dictionary-backed mock data.
+`bash ./run.sh` runs both roles, plus the JavaScript consumer example and checks for deterministic external examples and dictionary-backed mock data.
 
 ```mermaid
 flowchart LR
@@ -150,11 +150,11 @@ The JavaScript and Playwright suites each run against both the live provider and
 
 The demo's Specmatic mock has three data sources, ordered by intent:
 
-1. **Exact scenarios:** operation examples in [`demo/openapi.yaml`](demo/openapi.yaml) describe common responses. Use these when a response must be fixed and visible with the API contract.
+1. **Contract examples:** operation examples in [`demo/openapi.yaml`](demo/openapi.yaml) describe common responses in the contract. They are schema examples; for a deterministic Smart Mock response to a particular request, add a request-response mapping under `demo/openapi_examples/`.
 2. **Named datasets:** files under [`demo/openapi_examples/`](demo/openapi_examples/) pair a concrete request with its deterministic response. The `vip-sku` request always returns the checked-in VIP response.
 3. **Domain-shaped fallback:** [`demo/openapi_dictionary.yaml`](demo/openapi_dictionary.yaml) supplies meaningful values when the mock has no matching example. Dictionary lists are sampled pseudo-randomly, so don't use them when a test needs a specific response.
 
-`bash ./run.sh` starts the Smart Mock and asserts the inline example, external VIP example, and dictionary-backed fallback. To keep the mock running for manual exploration, use `docker compose --profile mock up specmatic-mock`; it listens on `http://localhost:9000`.
+`bash ./run.sh` starts the Smart Mock and asserts deterministic demo and VIP examples plus a dictionary-backed fallback. To keep the mock running for manual exploration, use `docker compose --profile mock up specmatic-mock`; it listens on `http://localhost:9000`.
 
 AI can help draft realistic, varied mock datasets from schemas and approved domain vocabulary. Review and validate generated data, remove secrets and personal data, then commit fixtures or dictionaries. Do not make live AI generation part of the contract or a deterministic CI test. See [Specmatic dictionaries](https://docs.specmatic.io/features/dictionary.html), [external examples](https://docs.specmatic.io/features/external_examples.html), and [service virtualization](https://docs.specmatic.io/spec_driven_api_development/service_virtualization).
 
