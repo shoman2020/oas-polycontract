@@ -206,13 +206,13 @@
         <section class="scene" aria-labelledby="scene-title-8" hidden>
           <span class="eyebrow">08 · Performance insights</span>
           <h2 id="scene-title-8" tabindex="-1">Use timings as diagnostics, not a benchmark.</h2>
-          <p class="lead">The latest full contract CI job passed in 5 minutes 14 seconds. Earlier fuzzing timings are available as diagnostics; repeated cold and warm-cache runs are still needed for a stable benchmark.</p>
+          <p class="lead">The most recent green contract run completed in about 6 minutes 27 seconds. Earlier fuzzing timings are available as diagnostics; repeated cold and warm-cache runs are still needed for a stable benchmark.</p>
           <div class="grid">
-            <article class="card metric"><strong>Passing contract CI job</strong><span class="value">5m 14s</span><p>Contract gates, API suites, Playwright, and image scans.</p></article>
+            <article class="card metric"><strong>Most recent green contract run</strong><span class="value">6m 27s</span><p>Contract gates, API suites, Playwright, and image scans.</p></article>
             <article class="card metric"><strong>Earlier Schemathesis run</strong><span class="value">115 · 2.07s</span><p>Generated cases and fuzzing duration; diagnostic run.</p></article>
             <article class="card metric"><strong>Benchmark status</strong><span class="value">Baseline open</span><p>Collect repeated cold and warm-cache measurements.</p></article>
           </div>
-          <p style="margin-top:18px"><a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44046941415">Passing contract run</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603">Earlier fuzzing diagnostics</a> · <a href="https://github.com/shoman2020/oas-polycontract/blob/main/ROADMAP.md">Roadmap</a></p>
+          <p style="margin-top:18px"><a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44052746009">Most recent green contract run</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603">Earlier fuzzing diagnostics</a> · <a href="https://github.com/shoman2020/oas-polycontract/blob/main/ROADMAP.md">Roadmap</a></p>
         </section>
       </div>
       <nav class="controls" aria-label="Showcase controls">
@@ -245,6 +245,10 @@
     function showScene(index) {
       activeScene = Math.max(0, Math.min(index, scenes.length - 1));
       scenes.forEach((scene, sceneIndex) => { scene.hidden = sceneIndex !== activeScene; });
+      window.scrollTo({
+        top: 0,
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"
+      });
       [...dots.children].forEach((dot, dotIndex) => {
         if (dotIndex === activeScene) dot.setAttribute("aria-current", "step");
         else dot.removeAttribute("aria-current");

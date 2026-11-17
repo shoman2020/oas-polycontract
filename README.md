@@ -39,7 +39,7 @@ docker compose --env-file .github/versions.env --profile test --profile mock run
 
 ## Performance snapshot
 
-The latest full contract CI run passed in **5 minutes 14 seconds**, including API and contract checks, language suites, Playwright, and container image scans. An earlier cold run generated **115 Schemathesis cases in 2.07 seconds**, but failed on an unsupported-method response; that timing is diagnostic, not a passing benchmark. See the [passing contract run](https://github.com/shoman2020/oas-polycontract/actions/runs/44046941415) and [earlier diagnostic run](https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603). Repeated cold and warm-cache runs are needed for a stable baseline.
+The most recent green contract run completed in **about 6 minutes 27 seconds**, including API and contract checks, language suites, Playwright, and container image scans. An earlier cold run generated **115 Schemathesis cases in 2.07 seconds**, but failed on an unsupported-method response; that timing is diagnostic, not a passing benchmark. See the [passing contract run](https://github.com/shoman2020/oas-polycontract/actions/runs/44052746009) and [earlier diagnostic run](https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603). Repeated cold and warm-cache runs are needed for a stable baseline.
 
 Security workflows run CodeQL, Gitleaks, Trivy, and pull request dependency review. Runtime, image, and scanner versions are pinned in [`.github/versions.env`](.github/versions.env); Dependabot checks language package manifests weekly.
 

@@ -38,7 +38,7 @@ echo "==> Building demo, language-native clients, and Playwright API suites"
   java-contract-test csharp-contract-test
 
 echo "==> Evaluating repository structure, test coverage, pipeline wiring, and roadmap"
-"${compose[@]}" --profile test run --rm project-evals
+"${compose[@]}" --profile test --profile mock run --rm project-evals
 
 "${compose[@]}" up -d wiremock app
 

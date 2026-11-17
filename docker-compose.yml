@@ -124,10 +124,6 @@ services:
 
   spectral:
     image: stoplight/spectral:${SPECTRAL_VERSION:?Set SPECTRAL_VERSION in .github/versions.env}
-    environment:
-      # Spectral 6 currently triggers Node's deprecated built-in punycode module.
-      # Suppress only DEP0040 while retaining all other runtime warnings.
-      NODE_OPTIONS: --disable-warning=DEP0040
     entrypoint: ["/bin/sh", "-c"]
     command:
       - >-
@@ -142,8 +138,6 @@ services:
 
   spectral-asyncapi:
     image: stoplight/spectral:${SPECTRAL_VERSION:?Set SPECTRAL_VERSION in .github/versions.env}
-    environment:
-      NODE_OPTIONS: --disable-warning=DEP0040
     entrypoint: ["/bin/sh", "-c"]
     command:
       - >-
