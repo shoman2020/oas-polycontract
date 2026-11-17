@@ -70,8 +70,8 @@ async function handleRequest(request, response) {
       return;
     }
 
-    if (typeof input?.sku !== "string" || input.sku.trim() === ""
-      || [...input.sku].length > 64
+    const skuLength = typeof input?.sku === "string" ? [...input.sku].length : 0;
+    if (skuLength < 1 || skuLength > 64
       || !Number.isInteger(input.quantity) || input.quantity < 1 || input.quantity > 100) {
       sendError(response, 400, "sku and quantity are invalid");
       return;
