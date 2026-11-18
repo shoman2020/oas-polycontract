@@ -9,7 +9,7 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | No event provider or broker |
 | Tests | Testcontainers-orchestrated Specmatic provider/consumer, WireMock, stateless fuzzing, stateful workflows, seven native languages, Playwright; [contract run 44271676192 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676192) | Add event runtime examples only with a provider |
 | Legacy migration | Project-specific Postman and Bruno collections mapped to Product and Order OAS | Migrate team-owned collections if supplied |
-| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, OWASP SecureAI-Scan; [security run 44271676414 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676414) | SecureAI-Scan examples cover JS, TS, and Python; no AI runtime is present |
+| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, OWASP SecureAI-Scan; CI includes an isolated GenAI positive-control example with checked AI001 result and SARIF artifact | No application AI runtime is present |
 | Dependencies | Cargo, Go, NuGet, npm, Python, Maven, and Testcontainers locks; minimatch alert #3 fixed with glob 14.0.6/minimatch 11.0.9; contract and security runs passed | Replace the Picomatch patch when upstream publishes a fix |
 | Performance | Pre-Testcontainers [five-sample run](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941): 304s cold, 201s warm median (200–205s range); build 91s cold and 2s warm. Manual workflow now compares Ubuntu 24.04 and 26.04 | Re-run after the orchestration change, then compare runners before setting thresholds |
 | Showcase | Contract, pipeline, workflow, test-role, performance, and Postman/Bruno migration views; [latest deployment passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518106) | None |
@@ -57,10 +57,12 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 - [x] Run checks through `bash ./run.sh` and the Node.js Testcontainers runner.
 - [x] Use an isolated container network, health checks, one-shot task containers, and cleanup after success or failure.
 - [x] Run Ubuntu CI; support Docker Desktop or Colima locally on macOS and Docker Desktop with WSL/Git Bash on Windows.
+- [x] Validate version-pin configuration and run its Node.js tests before starting the container pipeline.
 
 ### Phase 7 — Security
 - [x] CodeQL for supported source languages and Actions; add Gitleaks and Trivy.
 - [x] Add Dependency Review, weekly Dependabot, and OWASP SecureAI-Scan with SARIF upload.
+- [x] Run an isolated vulnerable TypeScript example; require the expected AI001 high-severity gate result and retain its SARIF artifact.
 - [x] Keep image scans in contract CI and filesystem scans in security CI.
 
 ### Phase 8 — Documentation and evaluation
@@ -79,7 +81,7 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 - [ ] Confirm failed checks block merges and required checks stay stable.
 
 ### Phase 11 — Showcase publishing
-- [x] Publish the interactive showcase with GitHub Actions; latest deployment passed in [run 44256166300](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166300).
+- [x] Publish the interactive showcase with GitHub Actions; latest deployment passed in [run 44260518106](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518106).
 
 ### Phase 12 — Performance baseline
 - [x] Report per-stage timings in the contract run summary and CSV artifact.
@@ -104,6 +106,10 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 - [x] Document the runner, container runtime requirement, and native suite technologies.
 - [x] Pass the contract pipeline after the orchestration change; [run 44271676192](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676192) includes all image scans.
 
+### Phase 16 — Pipeline configuration
+- [x] Reject malformed, duplicate, and missing tool-version pins rather than silently accepting them.
+- [x] Cover the parser with Node.js tests and run them from the local pipeline entry point.
+
 ## Next
 
 1. Run the manual performance matrix on Ubuntu 24.04 and 26.04; compare results before setting thresholds.
@@ -117,6 +123,7 @@ This reference repository has no stable runtime API to package. A `create-polyco
 
 ## Progress
 
+- 18 Nov: Added a SecureAI-Scan positive-control run. The pinned 0.13.0 scanner reported `HIGH AI001` for prompt injection in a temporary TypeScript handler; the wrapper verified the SARIF and expected high-threshold exit. CI records the finding in the job summary and saves SARIF as an artifact. Added strict version-pin parsing and four Node.js tests; all four tests and 12/12 repository evaluations pass.
 - 18 Nov: Expanded the manual cold/warm benchmark to Ubuntu 24.04 and 26.04, with separate artifacts and summaries; removed the stale Go lock diagnostic workflow. Cross-runner results are pending.
 - 18 Nov: Replaced Compose-based CI orchestration with Testcontainers in the shared Node.js pipeline. Contract run [44271676192](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676192) passed with image scans; pipeline services use a private network without host port publication.
 - 18 Nov: Fixed Dependabot minimatch alert #3 by overriding glob to 14.0.6, resolving patched minimatch 11.0.9. A clean locked install and archiver-utils glob API smoke check passed locally; contract run [44271676192](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676192) and security run [44271676414](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676414) passed.

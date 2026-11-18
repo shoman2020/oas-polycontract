@@ -20,5 +20,6 @@ if [[ "$actual_node" != "$NODE_VERSION" || "$actual_npm" != "$NPM_VERSION" ]]; t
 fi
 
 npm ci --prefix pipeline --no-audit --no-fund
+npm --prefix pipeline test
 exec node pipeline/run.mjs
 

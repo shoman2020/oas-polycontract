@@ -336,6 +336,7 @@ function checkDependencyLocks() {
     [tsDockerfile.indexOf('COPY --chown=node:node patches/') < tsDockerfile.indexOf('RUN npm ci'), 'TypeScript image must copy the dependency patch before npm ci'],
     [tsTests.includes('node --test security/picomatch-redos.check.mjs') && !tsTests.includes('picomatch-redos.test.mjs'), 'The Node-only Picomatch check must stay outside Vitest discovery'],
     [pipelinePackage.devDependencies?.testcontainers === pipelineLock.packages?.['node_modules/testcontainers']?.version, 'Testcontainers version must be exact and locked'],
+    [pipelinePackage.scripts?.test === 'node --test config.test.mjs' && pipeline.includes("readVersionPins(") && readRepositoryFile('run.sh').includes('npm --prefix pipeline test'), 'The local runner must test strict, required version-pin parsing before starting containers'],
     [/^TESTCONTAINERS_RYUK_VERSION=\S+$/m.test(versions) && pipeline.includes('versions.TESTCONTAINERS_RYUK_VERSION'), 'Ryuk version must come from the shared versions file'],
     [pipeline.includes("args.map((key) => [key, versions[key]])") && pipeline.includes("'NPM_VERSION'"), 'Container build arguments must use shared version pins'],
     [readRepositoryFile('run.sh').includes('npm ci --prefix pipeline'), 'The shared runner must install the locked Testcontainers dependency'],
@@ -374,7 +375,7 @@ function checkWorkflowVisuals() {
     },
     {
       path: '.github/workflows/security.yml',
-      markers: ['branches: [main]', 'pull_request:', 'workflow_dispatch:', 'schedule:', 'gitleaks/gitleaks-action', 'scan-type: fs', 'scanners: vuln,misconfig', 'dependency-review-action', 'name: OWASP GenAI scan', 'secureai-scan@', '--fail-on high', 'upload-sarif@'],
+      markers: ['branches: [main]', 'pull_request:', 'workflow_dispatch:', 'schedule:', 'gitleaks/gitleaks-action', 'scan-type: fs', 'scanners: vuln,misconfig', 'dependency-review-action', 'name: OWASP GenAI scan', 'Demonstrate a detected OWASP GenAI risk', 'run-genai-example.mjs', 'secureai-genai-example', 'secureai-scan@', '--fail-on high', 'upload-sarif@'],
     },
     {
       path: '.github/workflows/showcase.yml',
@@ -391,7 +392,11 @@ function checkWorkflowVisuals() {
   ];
   const workflowNames = ['contract.yml', 'security.yml', 'showcase.yml', 'performance.yml'];
   const concepts = ['Dependency Review', 'Dependabot', 'Trivy image scans', 'OWASP GenAI scan', 'SecureAI-Scan'];
-  const readmeTriggers = ['Push to any branch', 'Push to main', 'Pull request', 'Weekly schedule', 'Manual workflow dispatch', 'manual benchmark'];
+  const readmeTriggers = [
+    'Contract CI runs on pushes, pull requests, and manual dispatch.',
+    'Security CI runs on pushes to `main`, pull requests, a weekly schedule, and manual dispatch.',
+    'manual benchmark',
+  ];
   const showcaseTriggers = ['Push · pull request · manual run', 'Main push · pull request · weekly · manual', 'Main push to showcase files · manual run', 'Manual benchmark · Ubuntu 24.04 and 26.04'];
 
   for (const path of workflowFiles) assertRepositoryPath(path, 'workflow-visuals');
@@ -484,6 +489,13 @@ function checkWorkflowVisuals() {
   }
   if (!/^SECUREAI_SCAN_VERSION=\S+$/m.test(readRepositoryFile('.github/versions.env'))) {
     failures.push('workflow-visuals: SecureAI-Scan version is not pinned');
+  }
+  const genaiExample = readRepositoryFile('gates/security/run-genai-example.mjs');
+  for (const marker of ['SECUREAI_SCAN_VERSION', "'AI001'", "'--fail-on'", "'high'", 'GITHUB_STEP_SUMMARY']) {
+    if (!genaiExample.includes(marker)) failures.push(`workflow-visuals: GenAI example omits ${marker}`);
+  }
+  if (!readme.includes('## Quality gates') || !readme.includes('HIGH AI001')) {
+    failures.push('workflow-visuals: README must document the quality gates and verified GenAI result');
   }
   const sceneCount = [...showcase.matchAll(/<section class="scene"/g)].length;
   const laneCount = [...showcase.matchAll(/class="workflow-lane"/g)].length;

@@ -141,13 +141,32 @@ Stateless Schemathesis fuzzing sends independent Product API requests. Only the 
 
 Specmatic mock data uses OAS examples, fixtures in `demo/openapi_examples`, and values in `demo/openapi_dictionary.yaml`. Repository evaluations check fixture responses and dictionary fallbacks. Keep sample data deterministic and review changes before committing.
 
-## Security gates
+## Quality gates
 
-contract.yml runs the demo pipeline and Trivy image scans. security.yml runs CodeQL, Gitleaks, Trivy filesystem checks, Dependency Review on pull requests, and the OWASP GenAI scan. Dependabot checks package manifests weekly.
+| Gate | Check | Workflow |
+|---|---|---|
+| Contract quality | Spectral lint and OAS compatibility | `contract.yml` |
+| API behavior | Specmatic provider and consumer checks, WireMock, Schemathesis, and native integration suites | `contract.yml` |
+| Project consistency | Repository evaluations check links, structure, test roles, workflows, and roadmap | `contract.yml` |
+| Source and dependencies | CodeQL, Gitleaks, Trivy filesystem scan, Dependency Review, and Dependabot | `security.yml` |
+| Container images | Trivy scans for the app, WireMock, and Specmatic | `contract.yml` |
+| GenAI code | SecureAI-Scan; fails on high findings and uploads SARIF | `security.yml` |
 
-Triggers: **Push to any branch**, **Push to main**, **Pull request**, **Weekly schedule**, and **Manual workflow dispatch**. See the [interactive workflow map](https://shoman2020.github.io/oas-polycontract/#workflows).
+Dependabot checks package manifests weekly. Contract CI runs on pushes, pull requests, and manual dispatch. Security CI runs on pushes to `main`, pull requests, a weekly schedule, and manual dispatch. See the [interactive workflow map](https://shoman2020.github.io/oas-polycontract/#workflows).
 
-The [OWASP SecureAI-Scan](https://genai.owasp.org/solution/secureai-scan/) gate checks AI, LLM, and MCP source, fails on high findings, and uploads SARIF. This project has no runtime AI or MCP integration.
+The [OWASP SecureAI-Scan](https://genai.owasp.org/solution/secureai-scan/) gate checks AI, LLM, and MCP source. This project has no runtime AI or MCP integration, so CI also runs an isolated positive-control example: the [example script](gates/security/run-genai-example.mjs) creates a temporary TypeScript chat handler with user input in a system prompt, runs the `AI001` rule, checks that the finding crosses the configured high threshold, and records the result in the job summary. The generated SARIF is saved as the `secureai-genai-example` workflow artifact. The temporary source is removed before the full repository scan.
+
+The verified example result is `HIGH AI001 — Prompt injection via user input`. SecureAI-Scan exits with code 1 at `--fail-on high`; the wrapper reports success only after confirming the SARIF contains `AI001`.
+
+Run the positive-control example locally from Bash after sourcing the pinned version:
+
+```sh
+source .github/versions.env
+export SECUREAI_SCAN_VERSION
+node gates/security/run-genai-example.mjs
+```
+
+The project scan remains a separate gate and uploads its SARIF to GitHub Code Scanning. The demo's expected finding is kept as an artifact so it is visible without appearing as a repository vulnerability.
 
 The workflow provides SecureAI-Scan examples for JavaScript, TypeScript, and Python. Run a focused scan when those folders contain AI or MCP code:
 
@@ -186,12 +205,12 @@ Each contract run reports stage timings and uploads a CSV artifact. The previous
 | legacy/ | Postman and Bruno collections adapted from project contracts |
 | clients/ | Rust, Go, Python, JS, TS, Java, C#, Playwright |
 | clients/rust/Cargo.lock; clients/go/go.sum; clients/csharp/packages.lock.json | Rust, Go, and .NET dependency locks |
-| gates/ | Lint and compatibility checks |
+| gates/ | Contract lint, compatibility checks, and security examples |
 | evals/ | Documentation, roles, and pipeline checks |
 | docs/project-flow.html | Interactive showcase source, published on GitHub Pages |
 | .github/workflows/ | Contract, security, performance, and showcase automation |
 | .github/versions.env | Central tool and runtime version pins |
-| pipeline/; run.sh | Testcontainers pipeline runner and local/CI entry point |
+| pipeline/; run.sh | Testcontainers runner, strict runtime-version parser and tests, local/CI entry point |
 
 ## Contribute
 
