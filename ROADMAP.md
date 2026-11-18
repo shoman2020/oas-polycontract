@@ -7,14 +7,16 @@ One reviewed specification contract per API boundary. Clear ownership means less
 | Area | Delivered | Remaining |
 |---|---|---|
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | Runtime event tests need a provider or broker |
-| Tests | Specmatic provider and consumer, WireMock, stateless fuzzing, stateful flows, seven native languages, Playwright; [contract run 44325433591 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44325433591) | — |
+| Tests | Specmatic provider and consumer, WireMock, stateless fuzzing, stateful flows, seven native languages, Playwright; [latest contract run 44339507531 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44339507531) | — |
 | Legacy migration | Project-specific Postman and Bruno collections follow Product and Order OAS | Import team-owned history if teams provide their collections |
-| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, SecureAI-Scan, and Semgrep GenAI examples; [security run 44325434450 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44325434450) | No application AI runtime; scan examples verify expected findings in temporary fixtures |
+| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, SecureAI-Scan, and Semgrep GenAI examples; [latest security run 44339507458 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44339507458) | No application AI runtime; scan examples verify expected findings in temporary fixtures |
 | Dependencies | Cargo, Go, NuGet, npm, Python, Maven, and Testcontainers pins or locks; minimatch alert #3 fixed | Replace the Picomatch patch when upstream publishes a fix |
 | Performance | Pre-Testcontainers [five-sample reference](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941): 304s cold, 201s warm median (200–205s range), build 91s cold and 2s warm | Dispatch the manual Ubuntu 24.04/26.04 matrix after Testcontainers migration |
-| Showcase | Interactive contract, test-role, pipeline, workflow, and performance views; last published by [run 44260518106](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518106) | Publish the current source after merge |
+| Showcase | Interactive contract, test-role, pipeline, workflow, and performance views; current source published by [run 44338380044](https://github.com/shoman2020/oas-polycontract/actions/runs/44338380044) | — |
 
 The shared test vocabulary and examples are in the [README testing model](README.md#testing-model-and-terminology). This roadmap tracks delivery and prerequisites; it is not a second testing guide.
+
+Two phase checklist actions remain: repository branch protection (Phase 10) and the post-migration performance dispatch (Phase 12). The conditional-work table below records separate items that depend on future services, environments, or team inputs.
 
 ## Phases
 
@@ -94,7 +96,7 @@ The shared test vocabulary and examples are in the [README testing model](README
 ### Phase 15 — Testcontainers orchestration
 - [x] Replace Compose-based CI orchestration with a Node.js Testcontainers runner.
 - [x] Keep tool versions centralized and runtime requirements consistent.
-- [x] Pass the pipeline after migration; [contract run 44325433591 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44325433591).
+- [x] Pass the pipeline after migration; [contract run 44339507531 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44339507531).
 
 ### Phase 16 — Pipeline configuration
 - [x] Reject malformed, duplicate, and missing tool/client runtime pins.
@@ -119,6 +121,7 @@ This reference repo has no stable runtime API to package. A `create-polycontract
 
 ## Progress
 
+- 18 Nov: Published the current interactive showcase; [deployment 44338380044](https://github.com/shoman2020/oas-polycontract/actions/runs/44338380044), [contract 44339507531](https://github.com/shoman2020/oas-polycontract/actions/runs/44339507531), and [security 44339507458](https://github.com/shoman2020/oas-polycontract/actions/runs/44339507458) passed. The only unchecked phase actions are branch protection and the post-migration performance dispatch.
 - 18 Nov: Added a SecureAI-Scan positive control. Version 0.13.0 detected `HIGH AI001` in the temporary example; CI verified the SARIF, recorded the finding, uploaded the artifact, and passed the clean project scan.
 - 18 Nov: Added Semgrep taint-rule examples for prompt-to-system-message flows in Rust, Go, Java, and C#. The custom rules target a defined pattern and need SDK-specific source/sink tuning in applications.
 - 18 Nov: Added strict, tested pipeline version validation; pin requirements now derive from the client build matrix.
