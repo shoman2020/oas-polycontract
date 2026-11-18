@@ -7,10 +7,10 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 | Area | Delivered | Remaining |
 |---|---|---|
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | No event provider or broker |
-| Tests | Testcontainers-orchestrated Specmatic provider/consumer, WireMock, stateless fuzzing, stateful workflows, seven native languages, Playwright | Verify the new runner in CI; add event runtime examples only with a provider |
+| Tests | Testcontainers-orchestrated Specmatic provider/consumer, WireMock, stateless fuzzing, stateful workflows, seven native languages, Playwright; [contract run 44271676192 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676192) | Add event runtime examples only with a provider |
 | Legacy migration | Project-specific Postman and Bruno collections mapped to Product and Order OAS | Migrate team-owned collections if supplied |
-| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, OWASP SecureAI-Scan; latest [security run 44260518424](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518424) passed | SecureAI-Scan examples cover JS, TS, and Python; no AI runtime is present |
-| Dependencies | Cargo, Go, NuGet, npm, Python, Maven, and Testcontainers locks; the Picomatch patch passed CI; minimatch alert #3 is locally resolved with glob 14.0.6/minimatch 11.0.9 | Verify the minimatch update in CI; replace the Picomatch patch when upstream publishes a fix |
+| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, OWASP SecureAI-Scan; [security run 44271676414 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676414) | SecureAI-Scan examples cover JS, TS, and Python; no AI runtime is present |
+| Dependencies | Cargo, Go, NuGet, npm, Python, Maven, and Testcontainers locks; minimatch alert #3 fixed with glob 14.0.6/minimatch 11.0.9; contract and security runs passed | Replace the Picomatch patch when upstream publishes a fix |
 | Performance | Pre-Testcontainers [five-sample run](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941): 304s cold, 201s warm median (200–205s range); build 91s cold and 2s warm. Manual workflow now compares Ubuntu 24.04 and 26.04 | Re-run after the orchestration change, then compare runners before setting thresholds |
 | Showcase | Contract, pipeline, workflow, test-role, performance, and Postman/Bruno migration views; [latest deployment passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518106) | None |
 
@@ -102,7 +102,7 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 - [x] Replace Compose orchestration with a Node.js Testcontainers runner.
 - [x] Keep versions centralized and use one runtime requirement for CI and local runs.
 - [x] Document the runner, container runtime requirement, and native suite technologies.
-- [ ] Pass the contract pipeline after the orchestration change and refresh the verified run reference.
+- [x] Pass the contract pipeline after the orchestration change; [run 44271676192](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676192) includes all image scans.
 
 ## Next
 
@@ -118,8 +118,8 @@ This reference repository has no stable runtime API to package. A `create-polyco
 ## Progress
 
 - 18 Nov: Expanded the manual cold/warm benchmark to Ubuntu 24.04 and 26.04, with separate artifacts and summaries; removed the stale Go lock diagnostic workflow. Cross-runner results are pending.
-- 18 Nov: Replaced Compose-based CI orchestration with Testcontainers in the shared Node.js pipeline. The compatibility and contract run is pending; pipeline services use a private network without host port publication.
-- 18 Nov: Addressed Dependabot minimatch alert #3 by overriding glob to 14.0.6, which resolves patched minimatch 11.0.9. The lock tree and archiver-utils glob API smoke check pass locally; CI verification is pending.
+- 18 Nov: Replaced Compose-based CI orchestration with Testcontainers in the shared Node.js pipeline. Contract run [44271676192](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676192) passed with image scans; pipeline services use a private network without host port publication.
+- 18 Nov: Fixed Dependabot minimatch alert #3 by overriding glob to 14.0.6, resolving patched minimatch 11.0.9. A clean locked install and archiver-utils glob API smoke check passed locally; contract run [44271676192](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676192) and security run [44271676414](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676414) passed.
 - 18 Nov: Public-use review made local image pull behavior explicit, disabled checkout credential persistence in contract and showcase workflows, and added repository evaluations for these controls.
 - 18 Nov: Commit [bc3f07c](https://github.com/shoman2020/oas-polycontract/commit/bc3f07cf4378f2d35c87b50631e3b4e6b6eed647) passed [contract run 44260518222](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518222), including image scans and 12/12 repository evaluations; [security run 44260518424](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518424) and [showcase deployment 44260518106](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518106) passed.
 - 18 Nov: Benchmark dispatch could not be completed from this session. Start the manual workflow from [Actions](https://github.com/shoman2020/oas-polycontract/actions/workflows/performance.yml) to collect cross-runner samples.

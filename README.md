@@ -94,7 +94,7 @@ bash ./run.sh
 
 `run.sh` checks the pinned Node.js/npm versions, installs the locked pipeline dependency, and starts an isolated Testcontainers network. It runs repository evaluations and contract gates, builds the project images, starts the APIs, executes Specmatic/WireMock examples, fuzzing and API suites, then stops the containers and network. Task containers receive only needed contract or fixture paths as read-only mounts. Use Docker Desktop or Colima on macOS, or Docker Desktop with WSL/Git Bash on Windows. CI uses Ubuntu.
 
-Last verified before the Testcontainers change: [contract run 44260518222 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518222), including image scans and 12/12 repository evaluations. [Security run 44260518424 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518424). [Showcase deployment 44260518106 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518106). The new orchestration run is pending.
+Verified 18 Nov 2026: [contract run 44271676192 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676192), including the Testcontainers pipeline and all three image scans. [Security run 44271676414 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676414). The contract run publishes stage timings as a CSV artifact.
 
 ## Contracts
 
@@ -174,7 +174,7 @@ Tool versions are in .github/versions.env.
 
 ## Performance
 
-Each contract run reports stage timings and uploads a CSV artifact. The previous five-sample runner measured a **304s cold total** and **201s warm median** (200–205s range); cached build time fell from 91s to 2s. Treat those numbers as a pre-Testcontainers reference, not an SLA. Re-run the manual benchmark on Ubuntu 24.04 and 26.04 before comparing the new orchestration. See the [run report](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941), [performance view](https://shoman2020.github.io/oas-polycontract/#performance), and [Phase 12](ROADMAP.md#phase-12--performance-baseline).
+Each contract run reports stage timings and uploads a CSV artifact. The previous five-sample runner measured a **304s cold total** and **201s warm median** (200–205s range); cached build time fell from 91s to 2s. These are pre-Testcontainers reference figures, not an SLA. The first Testcontainers run passed in [run 44271676192](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676192); rerun the manual benchmark on Ubuntu 24.04 and 26.04 before comparing performance. See the [previous benchmark](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941), [performance view](https://shoman2020.github.io/oas-polycontract/#performance), and [Phase 12](ROADMAP.md#phase-12--performance-baseline).
 
 ## Project structure
 
