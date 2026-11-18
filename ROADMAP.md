@@ -1,27 +1,20 @@
 # Roadmap
 
-One reviewed contract per API boundary. Clear ownership means less maintenance and more trust.
+One reviewed specification contract per API boundary. Clear ownership means less maintenance and more trust.
 
 ## Status — 18 November 2026
 
 | Area | Delivered | Remaining |
 |---|---|---|
-| Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | No event provider or broker |
-| Tests | Testcontainers-orchestrated Specmatic provider/consumer, WireMock, stateless fuzzing, stateful workflows, seven native languages, Playwright; [contract run 44271676192 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676192) | Add event runtime examples only with a provider |
-| Legacy migration | Project-specific Postman and Bruno collections mapped to Product and Order OAS | Migrate team-owned collections if supplied |
-| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, OWASP SecureAI-Scan; CI includes an isolated GenAI positive-control example with checked AI001 result and SARIF artifact | No application AI runtime is present |
-| Dependencies | Cargo, Go, NuGet, npm, Python, Maven, and Testcontainers locks; minimatch alert #3 fixed with glob 14.0.6/minimatch 11.0.9; contract and security runs passed | Replace the Picomatch patch when upstream publishes a fix |
-| Performance | Pre-Testcontainers [five-sample run](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941): 304s cold, 201s warm median (200–205s range); build 91s cold and 2s warm. Manual workflow now compares Ubuntu 24.04 and 26.04 | Re-run after the orchestration change, then compare runners before setting thresholds |
-| Showcase | Contract, pipeline, workflow, test-role, performance, and Postman/Bruno migration views; [latest deployment passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518106) | None |
+| Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | Runtime event tests need a provider or broker |
+| Tests | Specmatic provider and consumer, WireMock, stateless fuzzing, stateful flows, seven native languages, Playwright; [contract run 44325433591 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44325433591) | — |
+| Legacy migration | Project-specific Postman and Bruno collections follow Product and Order OAS | Import team-owned history if teams provide their collections |
+| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, SecureAI-Scan, and Semgrep GenAI examples; [security run 44325434450 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44325434450) | No application AI runtime; scan examples verify expected findings in temporary fixtures |
+| Dependencies | Cargo, Go, NuGet, npm, Python, Maven, and Testcontainers pins or locks; minimatch alert #3 fixed | Replace the Picomatch patch when upstream publishes a fix |
+| Performance | Pre-Testcontainers [five-sample reference](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941): 304s cold, 201s warm median (200–205s range), build 91s cold and 2s warm | Dispatch the manual Ubuntu 24.04/26.04 matrix after Testcontainers migration |
+| Showcase | Interactive contract, test-role, pipeline, workflow, and performance views; last published by [run 44260518106](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518106) | Publish the current source after merge |
 
-## Test model
-
-- **Provider contract:** Specmatic sends contract-derived requests to the live Product API.
-- **Consumer contract:** JavaScript and Playwright check expectations against the Specmatic Smart Mock generated from Product OAS.
-- **API integration:** Native clients call live APIs, validate responses against OAS, then assert behavior.
-- **Downstream integration:** The Product API calls WireMock; tests verify its request journal.
-- **Stateless fuzzing:** Schemathesis generates independent Product requests; only unavailable inventory allows the documented 502.
-- **Stateful testing:** Schemathesis and seven native suites follow linked Order create/read/confirm/delete operations.
+The shared test vocabulary and examples are in the [README testing model](README.md#testing-model-and-terminology). This roadmap tracks delivery and prerequisites; it is not a second testing guide.
 
 ## Phases
 
@@ -29,113 +22,106 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 - [x] Repository, ownership, contribution guide, and shared runner.
 
 ### Phase 1 — Contract source
-- [x] Reviewed Catalog contract and compatibility baseline.
-- [x] Separate runnable Product, Order, and Inventory contracts.
-- [ ] Generate a candidate spec before comparison if the root contract becomes code-first.
+- [x] Keep the reviewed Catalog OAS as the compatibility baseline.
+- [x] Add separate runnable Product, Order, and Inventory contracts.
+- [x] Keep the repository contract-first; candidate-spec generation is unnecessary while code does not generate the root OAS.
 
-### Phase 2 — Governance
-- [x] Lint OAS and AsyncAPI; check root compatibility.
-- [x] Run provider, consumer-mock, downstream, external-example, stateless, and stateful checks.
-- [ ] Require contract and security checks in branch protection.
+### Phase 2 — Contract governance
+- [x] Lint OAS and AsyncAPI and check root compatibility.
+- [x] Run provider, consumer-mock, downstream, examples, stateless fuzz, and stateful checks.
+- [x] Record the remaining repository merge-policy setting in Phase 10.
 
 ### Phase 3 — Native clients
-- [x] Rust, Go, Python, JavaScript, TypeScript, Java, and C# API suites.
-- [x] Product and stateful Order coverage in all seven languages.
-- [x] Separate provider, consumer-mock, and live API tests; add Playwright examples.
+- [x] Add Rust, Go, Python, JavaScript, TypeScript, Java, and C# API suites.
+- [x] Cover Product and stateful Order flows in the seven native languages.
+- [x] Separate provider, consumer-mock, and live API tests; add Playwright API examples.
 
 ### Phase 4 — Debug views
-- [x] Optional Swagger UI and Prism views of the root OAS.
-- [ ] Configure environment URLs when deployed environments exist.
+- [x] Add optional Swagger UI and Prism views of the root OAS.
 
 ### Phase 5 — Legacy migration
-- [x] Add project-specific Postman and Bruno collections for Product lookup and the stateful Order flow, based on public collection examples and project OAS.
-- [x] Document local service startup, import, and collection run order.
-- [x] Check collection methods and paths against the Product and Order OAS in repository evaluations.
-- [ ] Convert team-owned historic requests when an original collection is available.
+- [x] Add project-specific Postman and Bruno collections for Product and Order.
+- [x] Document import, local service startup, and request order.
+- [x] Evaluate collection paths and methods against OAS.
+- [x] Keep team-owned history migration conditional on receiving source collections.
 
 ### Phase 6 — Local and CI pipeline
 - [x] Run checks through `bash ./run.sh` and the Node.js Testcontainers runner.
-- [x] Use an isolated container network, health checks, one-shot task containers, and cleanup after success or failure.
-- [x] Run Ubuntu CI; support Docker Desktop or Colima locally on macOS and Docker Desktop with WSL/Git Bash on Windows.
-- [x] Validate version-pin configuration and run its Node.js tests before starting the container pipeline.
+- [x] Use an isolated network, health checks, one-shot tasks, and cleanup on success or failure.
+- [x] Support Ubuntu CI and local Docker Desktop or Colima with the documented shell setup.
+- [x] Validate all tool and client runtime pins before container startup.
 
 ### Phase 7 — Security
-- [x] CodeQL for supported source languages and Actions; add Gitleaks and Trivy.
-- [x] Add Dependency Review, weekly Dependabot, and OWASP SecureAI-Scan with SARIF upload.
-- [x] Run an isolated vulnerable TypeScript example; require the expected AI001 high-severity gate result and retain its SARIF artifact.
+- [x] Run CodeQL, Gitleaks, Trivy, Dependency Review, and weekly Dependabot.
+- [x] Add OWASP SecureAI-Scan with SARIF upload.
+- [x] Verify the scanner against a temporary vulnerable TypeScript example; require HIGH AI001 and retain its SARIF artifact.
+- [x] Verify Semgrep prompt-to-system-message rules against temporary Rust, Go, Java, and C# examples; retain their SARIF artifact.
 - [x] Keep image scans in contract CI and filesystem scans in security CI.
 
 ### Phase 8 — Documentation and evaluation
-- [x] Align README, client guide, interactive graphs, roles, and repository evaluations.
-- [x] Check links, structure, test sources/targets, workflows, and roadmap phases.
-- [x] Run repository evaluations on the current project structure and documentation.
+- [x] Use the README as the canonical overview, testing model, and glossary.
+- [x] Keep the client guide focused on frameworks, validators, and source files.
+- [x] Map contract, service, client, orchestration, configuration, and gate ownership in the README.
+- [x] Check documentation links, structure, test roles, workflows, and roadmap phases in repository evaluations.
 
 ### Phase 9 — Reproducible dependencies
 - [x] Commit Cargo, Go, and NuGet locks; enforce locked Rust/.NET and read-only Go builds.
-- [x] Keep npm, Python, and Maven dependencies pinned or locked.
-- [x] Pass a clean CI run with all lock enforcement enabled.
-- [x] Pin npm 12.2.2, apply the lock-hashed Picomatch patch, and pass the regression and TypeScript suites.
+- [x] Pin or lock npm, Python, Maven, and Testcontainers dependencies.
+- [x] Keep the Picomatch patch hashed in the lockfile and test its regression case.
+- [x] Fix minimatch alert #3 through glob 14.0.6, resolving patched minimatch 11.0.9.
 
 ### Phase 10 — Merge policy
-- [ ] Require contract and security checks on pull requests.
-- [ ] Confirm failed checks block merges and required checks stay stable.
+- [ ] Require contract and security checks in branch protection and verify failures block merges. This requires a repository administrator.
 
 ### Phase 11 — Showcase publishing
-- [x] Publish the interactive showcase with GitHub Actions; latest deployment passed in [run 44260518106](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518106).
+- [x] Publish the interactive showcase with GitHub Actions.
 
 ### Phase 12 — Performance baseline
-- [x] Report per-stage timings in the contract run summary and CSV artifact.
-- [x] Add a manual matrix workflow for one cold and four warm samples on Ubuntu 24.04 and 26.04.
-- [x] Run one cold and four warm samples; record medians and ranges.
-- [ ] Run the cross-runner samples and record results before setting thresholds.
+- [x] Report per-stage timings in the contract summary and CSV artifact.
+- [x] Add a manual one-cold/four-warm matrix for Ubuntu 24.04 and 26.04.
+- [ ] Run the matrix after Testcontainers migration and record comparable results before setting thresholds.
 
 ### Phase 13 — Optional scaffolder
-- [x] Assess package fit: defer `create-polycontract` until users need selective project generation; the repository is a template, not a runtime package.
-- [ ] If demand emerges, generate selected starters without overwriting existing files and test in a clean project before publishing.
+- [x] Assess package fit; defer `create-polycontract` because the project is a reference template without a runtime API.
+- [x] Revisit only if users need selective starters. A GitHub template already seeds the full project.
 
 ### Phase 14 — Public-use hardening
-- [x] Keep pipeline services on a private Testcontainers network; do not publish service ports during CI runs.
-- [x] Mount only required contract, fixture, and lint paths read-only into task containers.
-- [x] Set local image pull policy to never pull same-named registry images.
-- [x] Disable persisted checkout credentials in GitHub workflows.
-- [x] Add repository evaluations to prevent regressions in container isolation and local image policies.
+- [x] Keep pipeline services on a private Testcontainers network without host port publication.
+- [x] Mount only required contract, fixture, and lint paths read-only.
+- [x] Never pull same-named registry images for local project images.
+- [x] Disable persisted checkout credentials and evaluate these protections.
 
 ### Phase 15 — Testcontainers orchestration
-- [x] Replace Compose orchestration with a Node.js Testcontainers runner.
-- [x] Keep versions centralized and use one runtime requirement for CI and local runs.
-- [x] Document the runner, container runtime requirement, and native suite technologies.
-- [x] Pass the contract pipeline after the orchestration change; [run 44271676192](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676192) includes all image scans.
+- [x] Replace Compose-based CI orchestration with a Node.js Testcontainers runner.
+- [x] Keep tool versions centralized and runtime requirements consistent.
+- [x] Pass the pipeline after migration; [contract run 44325433591 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44325433591).
 
 ### Phase 16 — Pipeline configuration
-- [x] Reject malformed, duplicate, and missing tool-version pins rather than silently accepting them.
-- [x] Cover the parser with Node.js tests and run them from the local pipeline entry point.
+- [x] Reject malformed, duplicate, and missing tool/client runtime pins.
+- [x] Derive required client runtime pins from the image build matrix.
+- [x] Test pin parsing and run the tests before container startup.
 
-## Next
+## Conditional work
 
-1. Run the manual performance matrix on Ubuntu 24.04 and 26.04; compare results before setting thresholds.
-2. Confirm contract and security branch protection with a repository admin. The connected GitHub integration denies access to branch-protection settings.
-3. Convert team-owned legacy requests when an original collection is supplied; add event runtime examples when a provider exists.
-4. Revisit the optional CLI if users need selective starters.
+These items need an external input or repository setting before implementation:
+
+| Work | Prerequisite |
+|---|---|
+| Enforce required checks | Repository administrator configures branch protection. |
+| Compare runner performance | Maintainer dispatches the manual workflow. |
+| Test WebSocket or Kafka runtime | A service implementation and broker/server are available. |
+| Configure environment URLs | A deployed API environment exists. |
+| Migrate historic requests | The owning team supplies Postman/Bruno exports. |
 
 ## Package fit
 
-This reference repository has no stable runtime API to package. A `create-polycontract` CLI may help if users need selective starters. GitHub templates already seed repositories; npm adds a test and release lifecycle. This is a recommendation based on the current structure: [GitHub templates](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository) · [npm publishing](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/).
+This reference repo has no stable runtime API to package. A `create-polycontract` CLI may help if users request selective starters; npm would add a release lifecycle that a GitHub template does not need. See [GitHub template repositories](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository) and [npm publishing](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/).
 
 ## Progress
 
-- 18 Nov: Added a SecureAI-Scan positive-control run. The pinned 0.13.0 scanner reported `HIGH AI001` for prompt injection in a temporary TypeScript handler; the wrapper verified the SARIF and expected high-threshold exit. CI records the finding in the job summary and saves SARIF as an artifact. Added strict version-pin parsing and four Node.js tests; all four tests and 12/12 repository evaluations pass.
-- 18 Nov: Expanded the manual cold/warm benchmark to Ubuntu 24.04 and 26.04, with separate artifacts and summaries; removed the stale Go lock diagnostic workflow. Cross-runner results are pending.
-- 18 Nov: Replaced Compose-based CI orchestration with Testcontainers in the shared Node.js pipeline. Contract run [44271676192](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676192) passed with image scans; pipeline services use a private network without host port publication.
-- 18 Nov: Fixed Dependabot minimatch alert #3 by overriding glob to 14.0.6, resolving patched minimatch 11.0.9. A clean locked install and archiver-utils glob API smoke check passed locally; contract run [44271676192](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676192) and security run [44271676414](https://github.com/shoman2020/oas-polycontract/actions/runs/44271676414) passed.
-- 18 Nov: Public-use review made local image pull behavior explicit, disabled checkout credential persistence in contract and showcase workflows, and added repository evaluations for these controls.
-- 18 Nov: Commit [bc3f07c](https://github.com/shoman2020/oas-polycontract/commit/bc3f07cf4378f2d35c87b50631e3b4e6b6eed647) passed [contract run 44260518222](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518222), including image scans and 12/12 repository evaluations; [security run 44260518424](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518424) and [showcase deployment 44260518106](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518106) passed.
-- 18 Nov: Benchmark dispatch could not be completed from this session. Start the manual workflow from [Actions](https://github.com/shoman2020/oas-polycontract/actions/workflows/performance.yml) to collect cross-runner samples.
-- 18 Nov: Commit [f9913ae](https://github.com/shoman2020/oas-polycontract/commit/f9913ae2e94decd2b7e63ab6ad170c5bd0b1ff17) passed contract run [44256166253](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166253) in 4m 56s with 11/11 repository evaluations and image scans green. Security run [44256166254](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166254) and showcase deployment [44256166300](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166300) passed.
-- 18 Nov: Latest [contract run 44165402418](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402418) passed in 5m 34s, with 269s in `run.sh`, 11/11 repository evaluations, 88 native integration checks, and image scans green. [Security run 44165402574](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402574) and showcase deployment [44165402425](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402425) passed.
-
-- 17 Nov: Latest [contract run 44163949730](https://github.com/shoman2020/oas-polycontract/actions/runs/44163949730) (#105) passed in 5m 34s, with 269s in `run.sh`, 11/11 repository evaluations, 88 native integration checks, and image scans green. [Security run 44163949697](https://github.com/shoman2020/oas-polycontract/actions/runs/44163949697) passed. Showcase deployment [44163949994](https://github.com/shoman2020/oas-polycontract/actions/runs/44163949994) passed.
-- 17 Nov: [Contract run 44146222326](https://github.com/shoman2020/oas-polycontract/actions/runs/44146222326) (#98) passed in 5m 46s with 10/10 repository evaluations and all image scans green. [Security run 44152942046](https://github.com/shoman2020/oas-polycontract/actions/runs/44152942046) (#78) passed, including OWASP GenAI and CodeQL.
-- 17 Nov: Updated Go `x/text` to 0.41.0 to resolve Trivy findings and removed the temporary lock-generation workflow. The five-sample performance workflow completed in run 44146642941.
-- 17 Nov: Contract run [44152941995](https://github.com/shoman2020/oas-polycontract/actions/runs/44152941995) showed that npm 12 rejects transitive Git overrides. Replaced the override with npm's native, lockfile-hashed patch for the proposed Picomatch fix; contract verification is pending.
-- 17 Nov: Added Postman and Bruno collections mapped to Product and Order OAS. Team-owned legacy collection migration remains open until original exports are available.
-- 17 Nov: Commit [8af36c2](https://github.com/shoman2020/oas-polycontract/commit/8af36c2e7c0523b63b3761f087c7f39893440dbd) published the examples and refreshed docs. Its contract run [44159020664](https://github.com/shoman2020/oas-polycontract/actions/runs/44159020664) exposed npm 11 in the Node image; security run [44159020804](https://github.com/shoman2020/oas-polycontract/actions/runs/44159020804) flagged a missing non-root user. The next attempt pinned npm 12.2.2 and passed Trivy, but the contract build missed the patch-file copy before `npm ci` ([run 44160039157](https://github.com/shoman2020/oas-polycontract/actions/runs/44160039157)). The following run applied the patch and passed its Node check but Vitest also discovered the Node-only test file, causing a suite-collection failure ([run 44160845635](https://github.com/shoman2020/oas-polycontract/actions/runs/44160845635)). Renaming it resolved the issue; runs [44162411257](https://github.com/shoman2020/oas-polycontract/actions/runs/44162411257) and [44163949730](https://github.com/shoman2020/oas-polycontract/actions/runs/44163949730) passed.
+- 18 Nov: Added a SecureAI-Scan positive control. Version 0.13.0 detected `HIGH AI001` in the temporary example; CI verified the SARIF, recorded the finding, uploaded the artifact, and passed the clean project scan.
+- 18 Nov: Added Semgrep taint-rule examples for prompt-to-system-message flows in Rust, Go, Java, and C#. The custom rules target a defined pattern and need SDK-specific source/sink tuning in applications.
+- 18 Nov: Added strict, tested pipeline version validation; pin requirements now derive from the client build matrix.
+- 18 Nov: Contract and security pull request runs passed: [contract 44325433591](https://github.com/shoman2020/oas-polycontract/actions/runs/44325433591), [security 44325434450](https://github.com/shoman2020/oas-polycontract/actions/runs/44325434450). The aggregate CodeQL check reports a configuration warning; language jobs passed.
+- 18 Nov: Consolidated testing terminology in the README glossary; the client guide links to that source and retains only framework mappings and test entry points.
+- 18 Nov: Added an architecture map for contracts, demo services, native clients, orchestration, configuration, and quality checks.

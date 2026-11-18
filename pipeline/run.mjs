@@ -5,18 +5,6 @@ import { fileURLToPath } from 'node:url';
 import { readVersionPins } from './config.mjs';
 
 const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const versions = readVersionPins(join(repositoryRoot, '.github/versions.env'), [
-  'NODE_VERSION',
-  'OASDIFF_VERSION',
-  'SCHEMATHESIS_VERSION',
-  'SPECMATIC_VERSION',
-  'SPECTRAL_VERSION',
-  'TESTCONTAINERS_RYUK_VERSION',
-  'WIREMOCK_VERSION',
-]);
-
-process.env.RYUK_CONTAINER_IMAGE = `testcontainers/ryuk:${versions.TESTCONTAINERS_RYUK_VERSION}`;
-const { GenericContainer, Network, PullPolicy, Wait } = await import('testcontainers');
 
 const readOnlyMount = (path, target = `/repo/${path}`) => ({
   source: join(repositoryRoot, path),
@@ -55,6 +43,19 @@ const clientImages = [
   { key: 'java', context: 'clients/java', args: ['MAVEN_VERSION', 'JAVA_VERSION'] },
   { key: 'csharp', context: 'clients/csharp', args: ['DOTNET_VERSION'] },
 ];
+
+const versions = readVersionPins(join(repositoryRoot, '.github/versions.env'), [
+  'OASDIFF_VERSION',
+  'SCHEMATHESIS_VERSION',
+  'SPECMATIC_VERSION',
+  'SPECTRAL_VERSION',
+  'TESTCONTAINERS_RYUK_VERSION',
+  'WIREMOCK_VERSION',
+  ...new Set(clientImages.flatMap(({ args }) => args)),
+]);
+
+process.env.RYUK_CONTAINER_IMAGE = `testcontainers/ryuk:${versions.TESTCONTAINERS_RYUK_VERSION}`;
+const { GenericContainer, Network, PullPolicy, Wait } = await import('testcontainers');
 
 class ContractPipeline {
   constructor() {

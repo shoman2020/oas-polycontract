@@ -2,6 +2,8 @@
 
 These collections are project-specific examples for manual API debugging and migration. They follow the Product and Order OAS files; no team-owned exports were present to convert.
 
+For shared terms and the distinction between manual debugging, contract tests, and API integration tests, see the [README testing model](../README.md#testing-model-and-terminology).
+
 The Postman request and assertion structure is informed by [Newman's sample collection](https://github.com/postmanlabs/newman/blob/develop/examples/sample-collection.json). Bruno request and JSON assertion examples are informed by [bruno-collections/json-testing-examples](https://github.com/bruno-collections/json-testing-examples). The requests and payloads here are project-specific.
 
 To use the collections against local services, start the demo APIs from the repository root. These commands publish only loopback ports:

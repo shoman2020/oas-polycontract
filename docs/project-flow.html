@@ -165,7 +165,7 @@
               <p class="workflow-trigger">Main push · pull request · weekly · manual</p>
               <div class="workflow-chain">
                 <div class="workflow-step"><strong>CodeQL</strong><br>Source code and workflow analysis</div>
-                <div class="workflow-step"><strong>OWASP GenAI scan · SecureAI-Scan</strong><br>High-severity AI and MCP source findings; JavaScript, TypeScript, and Python</div>
+                <div class="workflow-step"><strong>OWASP GenAI scan · SecureAI-Scan and Semgrep</strong><br>SecureAI-Scan checks project source; temporary positive controls verify HIGH AI001 and prompt-flow rules for Rust, Go, Java, and C#</div>
                 <div class="workflow-step"><strong>Gitleaks</strong><br>Repository secret scanning</div>
                 <div class="workflow-step"><strong>Trivy filesystem</strong><br>Dependency and configuration findings</div>
               </div>
@@ -292,11 +292,11 @@
           <h2 id="scene-title-8" tabindex="-1">Compare stage timings before setting thresholds.</h2>
           <p class="lead">The <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941">five-sample run</a> measured 304s cold and a 201s warm median (200–205s range). The build stage fell from 91s to 2s; treat this single-runner sample as a reference, not an SLA.</p>
           <div class="grid">
-            <article class="card metric"><strong>Latest green contract run</strong><span class="value">5m 34s</span><p>Whole-run duration; image scans included. The run script took 269s.</p></article>
+            <article class="card metric"><strong>Verified Testcontainers run</strong><span class="value">Passed</span><p>Contract run 44325433591; see the CSV artifact for stage timings.</p></article>
             <article class="card metric"><strong>Fuzz diagnostic</strong><span class="value">115 · 2.07s</span><p>Cases generated and fuzzing duration.</p></article>
             <article class="card metric"><strong>Cold / warm median</strong><span class="value">304s / 201s</span><p>Warm range 200–205s; build 91s cold and 2s warm.</p></article>
           </div>
-          <p style="margin-top:18px"><a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44256166253">Latest green contract run</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941">Five-sample performance report</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/workflows/contract.yml">Contract timing artifacts</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/workflows/performance.yml">Run the benchmark again</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603">Fuzz diagnostic</a> · <a href="https://github.com/shoman2020/oas-polycontract/blob/main/ROADMAP.md">Roadmap</a></p>
+          <p style="margin-top:18px"><a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44325433591">Verified Testcontainers contract run</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941">Five-sample performance report</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/workflows/contract.yml">Contract timing artifacts</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/workflows/performance.yml">Run the benchmark again</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603">Fuzz diagnostic</a> · <a href="https://github.com/shoman2020/oas-polycontract/blob/main/ROADMAP.md">Roadmap</a></p>
         </section>
       </div>
       <nav class="controls" aria-label="Showcase controls">
