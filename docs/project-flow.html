@@ -165,7 +165,7 @@
               <p class="workflow-trigger">Main push · pull request · weekly · manual</p>
               <div class="workflow-chain">
                 <div class="workflow-step"><strong>CodeQL</strong><br>Source code and workflow analysis</div>
-                <div class="workflow-step"><strong>OWASP GenAI scan · SecureAI-Scan</strong><br>A temporary TypeScript positive control must produce HIGH AI001; retain its SARIF, then scan project source</div>
+                <div class="workflow-step"><strong>OWASP GenAI scan · SecureAI-Scan and Semgrep</strong><br>SecureAI-Scan checks project source; temporary positive controls verify HIGH AI001 and prompt-flow rules for Rust, Go, Java, and C#</div>
                 <div class="workflow-step"><strong>Gitleaks</strong><br>Repository secret scanning</div>
                 <div class="workflow-step"><strong>Trivy filesystem</strong><br>Dependency and configuration findings</div>
               </div>

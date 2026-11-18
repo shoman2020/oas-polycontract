@@ -70,7 +70,7 @@ flowchart TB
   Security --> CodeQL[CodeQL]
   Security --> Secrets[Gitleaks]
   Security --> FileScan[Trivy filesystem scan]
-  Security --> AIScan[OWASP GenAI scan: SecureAI-Scan]
+  Security --> AIScan[OWASP GenAI scan: SecureAI-Scan and Semgrep]
   PullRequest -.-> Review[Dependency Review]
 
   ShowcasePush[Main push to showcase files] --> Showcase[showcase.yml]
@@ -178,7 +178,7 @@ Specmatic mock data uses OAS examples, fixtures in `demo/openapi_examples`, and 
 | Project consistency | Repository evaluations check links, structure, test roles, workflows, and roadmap | `contract.yml` |
 | Source and dependencies | CodeQL, Gitleaks, Trivy filesystem scan, Dependency Review, and Dependabot | `security.yml` |
 | Container images | Trivy scans for the app, WireMock, and Specmatic | `contract.yml` |
-| GenAI code | SecureAI-Scan; fails on high findings and uploads SARIF | `security.yml` |
+| GenAI code | SecureAI-Scan for JavaScript, TypeScript, and Python; Semgrep positive-control rules for Rust, Go, Java, and C# | `security.yml` |
 
 Dependabot checks package manifests weekly. Contract CI runs on pushes, pull requests, and manual dispatch. Security CI runs on pushes to `main`, pull requests, a weekly schedule, and manual dispatch. See the [interactive workflow map](https://shoman2020.github.io/oas-polycontract/#workflows).
 
@@ -196,7 +196,7 @@ node gates/security/run-genai-example.mjs
 
 The project scan remains a separate gate and uploads its SARIF to GitHub Code Scanning. The demo's expected finding is kept as an artifact so it is visible without appearing as a repository vulnerability.
 
-The workflow provides SecureAI-Scan examples for JavaScript, TypeScript, and Python. Run a focused scan when those folders contain AI or MCP code:
+SecureAI-Scan provides AI and MCP source rules for JavaScript, TypeScript, and Python. Run a focused scan when those folders contain AI or MCP code:
 
 ```sh
 source .github/versions.env
@@ -205,19 +205,27 @@ npx --yes "secureai-scan@$SECUREAI_SCAN_VERSION" scan clients/ts --fail-on high
 npx --yes "secureai-scan@$SECUREAI_SCAN_VERSION" scan clients/python --fail-on high
 ```
 
-The current client directories contain API tests only. Rust, Go, Java, and C# are included in the CodeQL matrix; CodeQL is general static analysis, not an AI-specific ruleset.
+For Rust, Go, Java, and C#, the security workflow runs project-owned Semgrep taint rules against temporary prompt-injection examples. Each rule checks whether request prompt data flows into a system-message constructor. These are focused examples, not a universal GenAI ruleset; adapt the source and sink patterns to the AI SDK and request model in your application. Semgrep's language support includes all four languages, and its taint rules define sources and sinks explicitly ([language support](https://semgrep.dev/products/integrations/), [taint analysis](https://semgrep.dev/docs/writing-rules/data-flow/taint-mode/)).
 
-| Language | OWASP AI example | General source analysis |
+| Language | GenAI-specific check | General source analysis |
 |---|---|---|
-| JavaScript | `scan clients/js --fail-on high` | CodeQL `javascript-typescript` |
-| TypeScript | `scan clients/ts --fail-on high` | CodeQL `javascript-typescript` |
-| Python | `scan clients/python --fail-on high` | CodeQL `python` |
-| Rust | Not supported by SecureAI-Scan | CodeQL `rust` |
-| Go | Not supported by SecureAI-Scan | CodeQL `go` |
-| Java | Not supported by SecureAI-Scan | CodeQL `java-kotlin` |
-| C# | Not supported by SecureAI-Scan | CodeQL `csharp` |
+| JavaScript | SecureAI-Scan `scan clients/js --fail-on high` | CodeQL `javascript-typescript` |
+| TypeScript | SecureAI-Scan `scan clients/ts --fail-on high` | CodeQL `javascript-typescript` |
+| Python | SecureAI-Scan `scan clients/python --fail-on high` | CodeQL `python` |
+| Rust | Semgrep `genai-untrusted-system-prompt-rust` | CodeQL `rust` |
+| Go | Semgrep `genai-untrusted-system-prompt-go` | CodeQL `go` |
+| Java | Semgrep `genai-untrusted-system-prompt-java` | CodeQL `java-kotlin` |
+| C# | Semgrep `genai-untrusted-system-prompt-csharp` | CodeQL `csharp` |
 
-Tool versions are in .github/versions.env.
+The Rust, Go, Java, and C# examples are generated temporarily by [run-language-genai-example.mjs](gates/security/run-language-genai-example.mjs). The CI job verifies four findings and stores the SARIF report as the `semgrep-genai-language-examples` artifact. The custom rules are in [semgrep-genai.yml](gates/security/semgrep-genai.yml). Run them locally with Docker and the pinned Semgrep image:
+
+```sh
+source .github/versions.env
+export SEMGREP_VERSION
+node gates/security/run-language-genai-example.mjs
+```
+
+SecureAI-Scan and Semgrep versions are in `.github/versions.env`.
 
 ## Performance
 

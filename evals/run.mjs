@@ -416,7 +416,7 @@ function checkWorkflowVisuals() {
     },
     {
       path: '.github/workflows/security.yml',
-      markers: ['branches: [main]', 'pull_request:', 'workflow_dispatch:', 'schedule:', 'gitleaks/gitleaks-action', 'scan-type: fs', 'scanners: vuln,misconfig', 'dependency-review-action', 'name: OWASP GenAI scan', 'Demonstrate a detected OWASP GenAI risk', 'run-genai-example.mjs', 'secureai-genai-example', 'secureai-scan@', '--fail-on high', 'upload-sarif@'],
+      markers: ['branches: [main]', 'pull_request:', 'workflow_dispatch:', 'schedule:', 'gitleaks/gitleaks-action', 'scan-type: fs', 'scanners: vuln,misconfig', 'dependency-review-action', 'name: OWASP GenAI scan', 'Demonstrate a detected OWASP GenAI risk', 'run-genai-example.mjs', 'secureai-genai-example', 'Demonstrate language-specific GenAI checks', 'run-language-genai-example.mjs', 'semgrep-genai-language-examples', 'SEMGREP_VERSION', 'secureai-scan@', '--fail-on high', 'upload-sarif@'],
     },
     {
       path: '.github/workflows/showcase.yml',
@@ -432,7 +432,7 @@ function checkWorkflowVisuals() {
     },
   ];
   const workflowNames = ['contract.yml', 'security.yml', 'showcase.yml', 'performance.yml'];
-  const concepts = ['Dependency Review', 'Dependabot', 'Trivy image scans', 'OWASP GenAI scan', 'SecureAI-Scan'];
+  const concepts = ['Dependency Review', 'Dependabot', 'Trivy image scans', 'OWASP GenAI scan', 'SecureAI-Scan', 'Semgrep'];
   const readmeTriggers = [
     'Contract CI runs on pushes, pull requests, and manual dispatch.',
     'Security CI runs on pushes to `main`, pull requests, a weekly schedule, and manual dispatch.',
@@ -534,6 +534,21 @@ function checkWorkflowVisuals() {
   const genaiExample = readRepositoryFile('gates/security/run-genai-example.mjs');
   for (const marker of ['SECUREAI_SCAN_VERSION', "'AI001'", "'--fail-on'", "'high'", 'GITHUB_STEP_SUMMARY']) {
     if (!genaiExample.includes(marker)) failures.push(`workflow-visuals: GenAI example omits ${marker}`);
+  }
+  const languageGenaiExample = readRepositoryFile('gates/security/run-language-genai-example.mjs');
+  const semgrepRules = readRepositoryFile('gates/security/semgrep-genai.yml');
+  if (!/^SEMGREP_VERSION=\d+\.\d+\.\d+$/m.test(readRepositoryFile('.github/versions.env'))) {
+    failures.push('workflow-visuals: Semgrep version is not pinned');
+  }
+  for (const rule of [
+    'genai-untrusted-system-prompt-rust',
+    'genai-untrusted-system-prompt-go',
+    'genai-untrusted-system-prompt-java',
+    'genai-untrusted-system-prompt-csharp',
+  ]) {
+    if (!languageGenaiExample.includes(rule) || !semgrepRules.includes(`id: ${rule}`) || !readme.includes(rule)) {
+      failures.push(`workflow-visuals: language GenAI example, rule, or README is missing ${rule}`);
+    }
   }
   if (!readme.includes('## Quality gates') || !readme.includes('HIGH AI001')) {
     failures.push('workflow-visuals: README must document the quality gates and verified GenAI result');

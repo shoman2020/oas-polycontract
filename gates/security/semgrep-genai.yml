@@ -1,0 +1,40 @@
+rules:
+  - id: genai-untrusted-system-prompt-rust
+    message: Request input reaches an LLM system message. Keep system instructions static and pass user content as a user message.
+    severity: ERROR
+    languages: [rust]
+    mode: taint
+    pattern-sources:
+      - pattern: $REQUEST.prompt
+    pattern-sinks:
+      - pattern: ChatMessage::system($CONTENT)
+
+  - id: genai-untrusted-system-prompt-go
+    message: Request input reaches an LLM system message. Keep system instructions static and pass user content as a user message.
+    severity: ERROR
+    languages: [go]
+    mode: taint
+    pattern-sources:
+      - pattern: $REQUEST.Prompt
+    pattern-sinks:
+      - pattern: SystemMessage($CONTENT)
+
+  - id: genai-untrusted-system-prompt-java
+    message: Request input reaches an LLM system message. Keep system instructions static and pass user content as a user message.
+    severity: ERROR
+    languages: [java]
+    mode: taint
+    pattern-sources:
+      - pattern: $REQUEST.prompt()
+    pattern-sinks:
+      - pattern: ChatMessage.system($CONTENT)
+
+  - id: genai-untrusted-system-prompt-csharp
+    message: Request input reaches an LLM system message. Keep system instructions static and pass user content as a user message.
+    severity: ERROR
+    languages: [csharp]
+    mode: taint
+    pattern-sources:
+      - pattern: $REQUEST.Prompt
+    pattern-sinks:
+      - pattern: ChatMessage.System($CONTENT)
