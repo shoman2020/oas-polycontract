@@ -54,8 +54,9 @@ flowchart TB
   Manual --> Showcase
   Showcase --> Pages[GitHub Pages]
   Manual --> Performance[performance.yml]
-  Performance --> Samples[One cold and four warm runs]
-  Samples --> Timings[Stage medians and ranges]
+  Performance --> Runners[Ubuntu 24.04 and 26.04]
+  Runners --> Samples[One cold and four warm runs per runner]
+  Samples --> Timings[Per-runner stage medians and ranges]
   Dependabot[Dependabot weekly updates] --> UpdatePR[Dependency update pull request]
   UpdatePR --> PullRequest
 ```
@@ -70,7 +71,7 @@ bash ./run.sh
 
 `run.sh` runs contract lint and compatibility checks, Specmatic and WireMock examples, stateless fuzzing, stateful Order API tests, and live API suites in Rust, Go, Python, JavaScript, TypeScript, Java, C#, and Playwright. Compose removes services afterward. Use Docker Desktop or Colima on macOS, WSL or Git Bash on Windows. CI uses Ubuntu.
 
-Latest CI: [contract run 44163949730 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44163949730) in 5m 34s, including image scans; `run.sh` stages took 269s and repository evaluations passed 11/11. [Security run 44163949697 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44163949697).
+Latest CI: [contract run 44165402418 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402418) in 5m 34s, including image scans; `run.sh` stages took 269s and repository evaluations passed 11/11. [Security run 44165402574 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402574).
 
 ## Contracts
 
@@ -150,7 +151,7 @@ Tool versions are in .github/versions.env.
 
 ## Performance
 
-Each contract run reports stage timings and uploads a CSV artifact. Manual performance sampling measured a **304s cold total** and **201s warm median** (200–205s range); build time fell from 91s to 2s after caching. This five-sample, single-runner result is a reference, not an SLA. See the [run report](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941), [performance view](https://shoman2020.github.io/oas-polycontract/#performance), and [Phase 12](ROADMAP.md#phase-12--performance-baseline).
+Each contract run reports stage timings and uploads a CSV artifact. A five-sample run measured a **304s cold total** and **201s warm median** (200–205s range); build time fell from 91s to 2s after caching. This single-runner result is a reference, not an SLA. The manual benchmark now compares Ubuntu 24.04 and 26.04, with one cold and four warm runs on each. See the [run report](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941), [performance view](https://shoman2020.github.io/oas-polycontract/#performance), and [Phase 12](ROADMAP.md#phase-12--performance-baseline).
 
 ## Project structure
 

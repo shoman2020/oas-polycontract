@@ -2,17 +2,17 @@
 
 One reviewed contract per API boundary. Clear ownership means less maintenance and more trust.
 
-## Status — 17 November 2026
+## Status — 18 November 2026
 
 | Area | Delivered | Remaining |
 |---|---|---|
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | No event provider or broker |
 | Tests | Specmatic provider/consumer, WireMock, stateless fuzzing, stateful workflows, seven native languages, Playwright | Add runtime event examples only with a provider |
 | Legacy migration | Project-specific Postman and Bruno collections mapped to Product and Order OAS | Migrate team-owned collections if supplied |
-| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, OWASP SecureAI-Scan; latest [security run 44163949697](https://github.com/shoman2020/oas-polycontract/actions/runs/44163949697) passed | SecureAI-Scan examples cover JS, TS, and Python; no AI runtime is present |
+| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, OWASP SecureAI-Scan; latest [security run 44165402574](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402574) passed | SecureAI-Scan examples cover JS, TS, and Python; no AI runtime is present |
 | Dependencies | Cargo, Go, NuGet, npm, Python, and Maven locks; the Picomatch patch passed the TypeScript regression and CI suites | Replace the patch when upstream publishes a fix |
-| Performance | [Five-sample run](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941): 304s cold, 201s warm median (200–205s range); build 91s cold and 2s warm | Repeat on other runners or cache states before setting thresholds |
-| Showcase | Contract, pipeline, workflow, test-role, performance, and Postman/Bruno migration views; [latest deployment passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44163949994) | None |
+| Performance | [Five-sample run](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941): 304s cold, 201s warm median (200–205s range); build 91s cold and 2s warm. Manual workflow now compares Ubuntu 24.04 and 26.04 | Run the cross-runner benchmark and record both results before setting thresholds |
+| Showcase | Contract, pipeline, workflow, test-role, performance, and Postman/Bruno migration views; [latest deployment passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402425) | None |
 
 ## Test model
 
@@ -79,31 +79,33 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 - [ ] Confirm failed checks block merges and required checks stay stable.
 
 ### Phase 11 — Showcase publishing
-- [x] Publish the interactive showcase with GitHub Actions; latest deployment passed in [run 44163949994](https://github.com/shoman2020/oas-polycontract/actions/runs/44163949994).
+- [x] Publish the interactive showcase with GitHub Actions; latest deployment passed in [run 44165402425](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402425).
 
 ### Phase 12 — Performance baseline
 - [x] Report per-stage timings in the contract run summary and CSV artifact.
-- [x] Add a manual workflow for one cold and four warm pipeline samples.
+- [x] Add a manual matrix workflow for one cold and four warm samples on Ubuntu 24.04 and 26.04.
 - [x] Run one cold and four warm samples; record medians and ranges.
-- [ ] Repeat on other runners or cache states before setting thresholds.
+- [ ] Run the cross-runner samples and record results before setting thresholds.
 
 ### Phase 13 — Optional scaffolder
-- [ ] Confirm demand before building `create-polycontract`.
-- [ ] If useful, generate selected starters without overwriting hand-edited files.
-- [ ] Test in a clean project before publishing.
+- [x] Assess package fit: defer `create-polycontract` until users need selective project generation; the repository is a template, not a runtime package.
+- [ ] If demand emerges, generate selected starters without overwriting hand-edited files and test in a clean project before publishing.
 
 ## Next
 
-1. Repeat the performance sample across runners or cache states before setting thresholds.
-2. Require contract and security checks in branch protection.
+1. Run the manual performance matrix on Ubuntu 24.04 and 26.04; compare results before setting thresholds.
+2. Confirm contract and security branch protection with a repository admin. The connected GitHub integration denies access to branch-protection settings.
 3. Convert team-owned legacy requests when an original collection is supplied; add event runtime examples when a provider exists.
-4. Revisit the optional CLI when users need selective starters.
+4. Revisit the optional CLI if users need selective starters.
 
 ## Package fit
 
 This reference repository has no stable runtime API to package. A `create-polycontract` CLI may help if users need selective starters. GitHub templates already seed repositories; npm adds a test and release lifecycle. This is a recommendation based on the current structure: [GitHub templates](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository) · [npm publishing](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/).
 
 ## Progress
+
+- 18 Nov: Expanded the manual cold/warm benchmark to Ubuntu 24.04 and 26.04, with separate artifacts and summaries; removed the stale Go lock diagnostic workflow. Cross-runner results are pending.
+- 18 Nov: Latest [contract run 44165402418](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402418) passed in 5m 34s, with 269s in `run.sh`, 11/11 repository evaluations, 88 native integration checks, and image scans green. [Security run 44165402574](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402574) and showcase deployment [44165402425](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402425) passed.
 
 - 17 Nov: Latest [contract run 44163949730](https://github.com/shoman2020/oas-polycontract/actions/runs/44163949730) (#105) passed in 5m 34s, with 269s in `run.sh`, 11/11 repository evaluations, 88 native integration checks, and image scans green. [Security run 44163949697](https://github.com/shoman2020/oas-polycontract/actions/runs/44163949697) passed. Showcase deployment [44163949994](https://github.com/shoman2020/oas-polycontract/actions/runs/44163949994) passed.
 - 17 Nov: [Contract run 44146222326](https://github.com/shoman2020/oas-polycontract/actions/runs/44146222326) (#98) passed in 5m 46s with 10/10 repository evaluations and all image scans green. [Security run 44152942046](https://github.com/shoman2020/oas-polycontract/actions/runs/44152942046) (#78) passed, including OWASP GenAI and CodeQL.

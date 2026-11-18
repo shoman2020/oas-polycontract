@@ -367,7 +367,7 @@ function checkWorkflowVisuals() {
     },
     {
       path: '.github/workflows/performance.yml',
-      markers: ['workflow_dispatch:', 'one cold and four warm', 'bash ./run.sh', 'summarize-performance.mjs', 'actions/upload-artifact@'],
+      markers: ['workflow_dispatch:', 'ubuntu-24.04', 'ubuntu-26.04', 'matrix.runner', 'one cold and four warm', 'RUNNER_LABEL', 'bash ./run.sh', 'summarize-performance.mjs', 'pipeline-performance-${{ matrix.runner }}', 'actions/upload-artifact@'],
     },
     {
       path: '.github/dependabot.yml',
@@ -376,8 +376,8 @@ function checkWorkflowVisuals() {
   ];
   const workflowNames = ['contract.yml', 'security.yml', 'showcase.yml', 'performance.yml'];
   const concepts = ['Dependency Review', 'Dependabot', 'Trivy image scans', 'OWASP GenAI scan', 'SecureAI-Scan'];
-  const readmeTriggers = ['Push to any branch', 'Push to main', 'Pull request', 'Weekly schedule', 'Manual workflow dispatch', 'Manual performance sampling'];
-  const showcaseTriggers = ['Push · pull request · manual run', 'Main push · pull request · weekly · manual', 'Main push to showcase files · manual run', 'Manual five-run benchmark'];
+  const readmeTriggers = ['Push to any branch', 'Push to main', 'Pull request', 'Weekly schedule', 'Manual workflow dispatch', 'manual benchmark'];
+  const showcaseTriggers = ['Push · pull request · manual run', 'Main push · pull request · weekly · manual', 'Main push to showcase files · manual run', 'Manual benchmark · Ubuntu 24.04 and 26.04'];
 
   for (const path of workflowFiles) assertRepositoryPath(path, 'workflow-visuals');
   for (const policy of sourcePolicies) {

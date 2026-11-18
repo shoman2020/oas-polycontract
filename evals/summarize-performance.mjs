@@ -29,7 +29,7 @@ const stages = [...samples[0].rows.keys()];
 const lines = [
   '# Pipeline performance samples',
   '',
-  'One cold Docker-cache run, followed by four warm runs on the same GitHub runner.',
+  `Runner: ${process.env.RUNNER_LABEL ?? 'local'}. One cold Docker-cache run, followed by four warm runs on the same GitHub runner.`,
   '',
   '| Stage | Cold (s) | Warm median (s) | Warm range (s) |',
   '|---|---:|---:|---:|',
