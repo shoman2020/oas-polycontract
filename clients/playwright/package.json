@@ -12,7 +12,7 @@
     "@oaverify/syntax": "7.3.1"
   },
   "devDependencies": {
-    "@playwright/test": "1.65.0"
+    "@playwright/test": "1.65.1"
   }
 }
 
