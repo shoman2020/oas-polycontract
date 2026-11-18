@@ -36,7 +36,7 @@
     },
     {
       "id": "test-role-map",
-      "description": "Contract and integration methods match the client test files, Compose targets, and fuzz rules",
+      "description": "Contract and integration methods match the client test files, Testcontainers tasks, and fuzz rules",
       "type": "test-role-map"
     },
     {
@@ -52,36 +52,35 @@
     },
     {
       "id": "pipeline-coverage",
-      "description": "Compose services are connected to the shared run entry point",
-      "type": "pipeline-services",
-      "services": [
-        "project-evals",
-        "spectral",
-        "spectral-asyncapi",
-        "oasdiff",
-        "wiremock-integration-test",
-        "specmatic-provider",
-        "specmatic-downstream",
-        "specmatic-examples-validate",
-        "schemathesis",
-        "stateful-schemathesis",
-        "rust-api-integration-test",
-        "go-api-integration-test",
-        "python-api-integration-test",
-        "js-api-integration-test",
-        "js-consumer-contract-test",
-        "ts-api-integration-test",
-        "playwright-api-integration-test",
-        "java-api-integration-test",
-        "csharp-api-integration-test",
-        "specmatic-mock-integration-test",
-        "playwright-consumer-contract-test"
+      "description": "Contract, fuzz, integration, and consumer tasks are connected to the Testcontainers runner",
+      "type": "pipeline-tasks",
+      "tasks": [
+        "Repository evaluations",
+        "Spectral lint",
+        "OpenAPI compatibility",
+        "WireMock downstream integration",
+        "Specmatic downstream provider",
+        "Specmatic Product provider",
+        "Specmatic examples validation",
+        "Schemathesis stateless Product fuzzing",
+        "Schemathesis stateful Order flow",
+        "'Rust', localImages.rust",
+        "'Go', localImages.go",
+        "'Python', localImages.python",
+        "'JavaScript', localImages.js",
+        "'TypeScript', localImages.ts",
+        "'Playwright API', localImages.playwright",
+        "'Java', localImages.java",
+        "'C#', localImages.csharp",
+        "Specmatic mock data evaluations",
+        "JavaScript consumer contract tests",
+        "Playwright consumer contract tests"
       ]
     },
     {
-      "id": "compose-public-safety",
-      "description": "Demo ports bind to loopback and local images never pull from a registry",
-      "type": "compose-public-safety"
+      "id": "testcontainers-safety",
+      "description": "Pipeline containers use a private network, read-only source mounts, and local image pull controls",
+      "type": "testcontainers-safety"
     },
     {
       "id": "performance-sampling",
@@ -106,8 +105,8 @@
       "id": "roadmap-phases",
       "description": "Roadmap defines sequential phases and records the latest verified contract run",
       "type": "roadmap-phases",
-      "expectedPhases": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
-      "verifiedRun": "44256166253"
+      "expectedPhases": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+      "verifiedRun": "44260518222"
     }
   ]
 }

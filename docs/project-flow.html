@@ -69,6 +69,8 @@
     .test-flow-step { padding: 10px 11px; border: 1px solid #ffffff18; border-radius: 9px; color: var(--muted); font-size: .82rem; line-height: 1.4; }
     .test-flow-step strong { color: var(--text); }
     .test-flow-step:not(:last-child)::after { display: block; margin-top: 6px; color: var(--teal); content: "↓"; }
+    .native-framework-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+    .native-framework-grid .test-flow-step::after { content: none; }
     .metric { min-height: 180px; }
     .metric .value { display: block; margin: 7px 0 10px; color: var(--blue); font-size: clamp(1.8rem, 4vw, 2.65rem); font-weight: 800; letter-spacing: -.04em; }
     .note { margin-top: 20px; padding: 16px 18px; border-left: 3px solid var(--amber); background: #ffca7410; color: var(--muted); line-height: 1.55; }
@@ -136,13 +138,13 @@
         <section class="scene" id="pipeline" aria-labelledby="scene-title-3" hidden>
           <span class="eyebrow">03 · Pipeline</span>
           <h2 id="scene-title-3" tabindex="-1">One command runs the demonstration.</h2>
-          <p class="lead">Run <code>bash ./run.sh</code> locally or in Ubuntu CI. Compose validates its configuration and builds images, repository evaluations run before the contract gates, then Compose starts services, waits for health checks, and runs the API suites.</p>
+          <p class="lead">Run <code>bash ./run.sh</code> locally or in Ubuntu CI. The Node.js Testcontainers runner checks repository wiring, runs contract gates, builds the project images, then starts services on a private network. Health checks gate API tests; containers and the network are removed when the run ends.</p>
           <div class="grid">
             <article class="card"><span class="tag">Contract gates</span><strong>Lint and compatibility</strong><p>Spectral checks OpenAPI and AsyncAPI; oasdiff checks the root contract against its baseline.</p></article>
-            <article class="card"><span class="tag">Live services</span><strong>Node.js, WireMock, Specmatic</strong><p>Schemathesis and the API integration suites exercise the running Product and Order APIs.</p></article>
-            <article class="card"><span class="tag">API integration</span><strong>Rust, Go, Python, JavaScript, TypeScript, Java, C#</strong><p>The language suites call the Product API at <code>app:8080</code> and Order API at <code>stateful-app:8082</code>. Playwright adds a live API integration example.</p></article>
+            <article class="card"><span class="tag">Container orchestration</span><strong>Testcontainers for Node.js</strong><p>Builds the app and client images, creates an isolated network, waits for service health, runs one-shot checks, and cleans up without publishing ports.</p></article>
+            <article class="card"><span class="tag">API integration</span><strong>Native suites and Playwright</strong><p>Language suites call the Product API at <code>app:8080</code> and Order API at <code>stateful-app:8082</code>. See the framework box in the test-role map.</p></article>
           </div>
-          <div class="mini-flow"><span class="step"><b>Compose config and build</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Repository evals</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Contract and API checks</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Trivy image scans</b></span></div>
+          <div class="mini-flow"><span class="step"><b>Repository evaluations</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Contract gates</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Build and run Testcontainers</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Trivy image scans</b></span></div>
         </section>
         <section class="scene" id="workflows" aria-labelledby="scene-title-4" hidden>
           <span class="eyebrow">04 · GitHub workflows</span>
@@ -153,8 +155,8 @@
               <h3 id="workflow-contract">contract.yml</h3>
               <p class="workflow-trigger">Push · pull request · manual run</p>
               <div class="workflow-chain">
-                <div class="workflow-step"><strong>run.sh · config and build</strong><br>Validate Compose and build the app and test images</div>
-                <div class="workflow-step"><strong>Evaluations and gates</strong><br>Repository checks, Spectral, oasdiff, Compose tests, fuzzing</div>
+                <div class="workflow-step"><strong>run.sh · Testcontainers</strong><br>Node.js runner builds images and creates an isolated network</div>
+                <div class="workflow-step"><strong>Evaluations and gates</strong><br>Repository checks, Spectral, oasdiff, contract tests, and fuzzing</div>
                 <div class="workflow-step"><strong>Trivy image scans</strong><br>App, WireMock, and Specmatic images</div>
               </div>
             </section>
@@ -195,7 +197,7 @@
         <section class="scene" id="test-roles" aria-labelledby="scene-title-5" hidden>
           <span class="eyebrow">05 · Contract roles</span>
           <h2 id="scene-title-5" tabindex="-1">Contract tests and API integration tests have distinct targets.</h2>
-          <p class="lead">Specmatic provider and consumer checks use the Product OAS with different targets. Native language suites exercise the live APIs.</p>
+              <p class="lead">Specmatic provider and consumer checks use the Product OAS with different targets. Native language suites exercise the live APIs and validate responses against OAS.</p>
           <div class="test-flow-map" role="group" aria-label="Contract and API test flow diagram">
             <section class="test-flow-lane">
               <h3>Provider contract test</h3>
@@ -217,15 +219,30 @@
               <h3>Product API integration</h3>
               <div class="test-flow-chain">
                 <div class="test-flow-step"><strong>Product OAS</strong></div>
-                <div class="test-flow-step">Seven native suites, Playwright, and stateless Schemathesis</div>
+                <div class="test-flow-step">Native API suites · Product and Order coverage</div>
                 <div class="test-flow-step">Live Product API · <code>app:8080</code></div>
+                <div class="test-flow-step">Playwright APIRequestContext · Product API only</div>
+                <div class="test-flow-step">Stateless Schemathesis fuzzing</div>
+              </div>
+            </section>
+            <section class="test-flow-lane" aria-label="Native API suite frameworks">
+              <h3>Native API suite frameworks</h3>
+              <div class="native-framework-grid">
+                <div class="test-flow-step"><strong>Rust</strong><br>cargo test · reqwest · jsonschema</div>
+                <div class="test-flow-step"><strong>Go</strong><br>go test · net/http · kin-openapi</div>
+                <div class="test-flow-step"><strong>Python</strong><br>pytest · Requests · openapi-core</div>
+                <div class="test-flow-step"><strong>JavaScript</strong><br>node:test · Fetch · @oaverify/core</div>
+                <div class="test-flow-step"><strong>TypeScript</strong><br>Vitest · Fetch · @oaverify/core</div>
+                <div class="test-flow-step"><strong>Java</strong><br>JUnit · REST Assured · OpenAPI validator</div>
+                <div class="test-flow-step"><strong>C#</strong><br>xUnit · HttpClient · NJsonSchema</div>
+                <div class="test-flow-step"><strong>Playwright</strong><br>Playwright Test · APIRequestContext</div>
               </div>
             </section>
             <section class="test-flow-lane">
               <h3>Stateful Order tests</h3>
               <div class="test-flow-chain">
                 <div class="test-flow-step"><strong>Order OAS</strong></div>
-                <div class="test-flow-step">Stateful Schemathesis and seven native suites</div>
+                <div class="test-flow-step">Stateful Schemathesis and the native suites above</div>
                 <div class="test-flow-step">Live Order API · <code>stateful-app:8082</code></div>
                 <div class="test-flow-step">Create, read, confirm, delete, then verify 404</div>
               </div>

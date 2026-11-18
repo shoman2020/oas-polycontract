@@ -1,6 +1,7 @@
 # Generated Specmatic reports
 demo/build/
 node_modules/
+pipeline/node_modules/
 **/target/
 clients/*/bin/
 **/obj/

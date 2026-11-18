@@ -7,12 +7,12 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 | Area | Delivered | Remaining |
 |---|---|---|
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | No event provider or broker |
-| Tests | Specmatic provider/consumer, WireMock, stateless fuzzing, stateful workflows, seven native languages, Playwright | Add runtime event examples only with a provider |
+| Tests | Testcontainers-orchestrated Specmatic provider/consumer, WireMock, stateless fuzzing, stateful workflows, seven native languages, Playwright | Verify the new runner in CI; add event runtime examples only with a provider |
 | Legacy migration | Project-specific Postman and Bruno collections mapped to Product and Order OAS | Migrate team-owned collections if supplied |
-| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, OWASP SecureAI-Scan; latest [security run 44256166254](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166254) passed | SecureAI-Scan examples cover JS, TS, and Python; no AI runtime is present |
-| Dependencies | Cargo, Go, NuGet, npm, Python, and Maven locks; the Picomatch patch passed the TypeScript regression and CI suites | Replace the patch when upstream publishes a fix |
-| Performance | [Five-sample run](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941): 304s cold, 201s warm median (200–205s range); build 91s cold and 2s warm. Manual workflow now compares Ubuntu 24.04 and 26.04 | Run the cross-runner benchmark and record both results before setting thresholds |
-| Showcase | Contract, pipeline, workflow, test-role, performance, and Postman/Bruno migration views; [latest deployment passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166300) | None |
+| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, OWASP SecureAI-Scan; latest [security run 44260518424](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518424) passed | SecureAI-Scan examples cover JS, TS, and Python; no AI runtime is present |
+| Dependencies | Cargo, Go, NuGet, npm, Python, Maven, and Testcontainers locks; the Picomatch patch passed the TypeScript regression and CI suites | Replace the patch when upstream publishes a fix |
+| Performance | Pre-Testcontainers [five-sample run](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941): 304s cold, 201s warm median (200–205s range); build 91s cold and 2s warm. Manual workflow now compares Ubuntu 24.04 and 26.04 | Re-run after the orchestration change, then compare runners before setting thresholds |
+| Showcase | Contract, pipeline, workflow, test-role, performance, and Postman/Bruno migration views; [latest deployment passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518106) | None |
 
 ## Test model
 
@@ -54,9 +54,9 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 - [ ] Convert team-owned historic requests when an original collection is available.
 
 ### Phase 6 — Local and CI pipeline
-- [x] Run checks through `bash ./run.sh` and Docker Compose.
-- [x] Run Ubuntu CI; support Docker Desktop or Colima locally on macOS.
-- [x] Remove Compose services after success or failure.
+- [x] Run checks through `bash ./run.sh` and the Node.js Testcontainers runner.
+- [x] Use an isolated container network, health checks, one-shot task containers, and cleanup after success or failure.
+- [x] Run Ubuntu CI; support Docker Desktop or Colima locally on macOS and Docker Desktop with WSL/Git Bash on Windows.
 
 ### Phase 7 — Security
 - [x] CodeQL for supported source languages and Actions; add Gitleaks and Trivy.
@@ -92,10 +92,17 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 - [ ] If demand emerges, generate selected starters without overwriting existing files and test in a clean project before publishing.
 
 ### Phase 14 — Public-use hardening
-- [x] Bind demo and debug ports to loopback so local services are not exposed to the network by default.
-- [x] Set explicit pull policies for local images so Compose builds or reuses project images without pulling same-named registry images.
+- [x] Keep pipeline services on a private Testcontainers network; do not publish service ports during CI runs.
+- [x] Mount only required contract, fixture, and lint paths read-only into task containers.
+- [x] Set local image pull policy to never pull same-named registry images.
 - [x] Disable persisted checkout credentials in GitHub workflows.
-- [x] Add repository evaluations to prevent regressions in Compose port and image policies.
+- [x] Add repository evaluations to prevent regressions in container isolation and local image policies.
+
+### Phase 15 — Testcontainers orchestration
+- [x] Replace Compose orchestration with a Node.js Testcontainers runner.
+- [x] Keep versions centralized and use one runtime requirement for CI and local runs.
+- [x] Document the runner, container runtime requirement, and native suite technologies.
+- [ ] Pass the contract pipeline after the orchestration change and refresh the verified run reference.
 
 ## Next
 
@@ -111,7 +118,9 @@ This reference repository has no stable runtime API to package. A `create-polyco
 ## Progress
 
 - 18 Nov: Expanded the manual cold/warm benchmark to Ubuntu 24.04 and 26.04, with separate artifacts and summaries; removed the stale Go lock diagnostic workflow. Cross-runner results are pending.
-- 18 Nov: Public-use review narrowed Compose host ports to loopback, made local image pull behavior explicit, disabled checkout credential persistence in contract and showcase workflows, and added a repository evaluation for these controls.
+- 18 Nov: Replaced Compose-based CI orchestration with Testcontainers in the shared Node.js pipeline. The compatibility and contract run is pending; pipeline services use a private network without host port publication.
+- 18 Nov: Public-use review made local image pull behavior explicit, disabled checkout credential persistence in contract and showcase workflows, and added repository evaluations for these controls.
+- 18 Nov: Commit [bc3f07c](https://github.com/shoman2020/oas-polycontract/commit/bc3f07cf4378f2d35c87b50631e3b4e6b6eed647) passed [contract run 44260518222](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518222), including image scans and 12/12 repository evaluations; [security run 44260518424](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518424) and [showcase deployment 44260518106](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518106) passed.
 - 18 Nov: Benchmark dispatch could not be completed from this session. Start the manual workflow from [Actions](https://github.com/shoman2020/oas-polycontract/actions/workflows/performance.yml) to collect cross-runner samples.
 - 18 Nov: Commit [f9913ae](https://github.com/shoman2020/oas-polycontract/commit/f9913ae2e94decd2b7e63ab6ad170c5bd0b1ff17) passed contract run [44256166253](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166253) in 4m 56s with 11/11 repository evaluations and image scans green. Security run [44256166254](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166254) and showcase deployment [44256166300](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166300) passed.
 - 18 Nov: Latest [contract run 44165402418](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402418) passed in 5m 34s, with 269s in `run.sh`, 11/11 repository evaluations, 88 native integration checks, and image scans green. [Security run 44165402574](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402574) and showcase deployment [44165402425](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402425) passed.

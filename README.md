@@ -24,7 +24,17 @@ flowchart LR
   ProviderTest --> ProductAPI[Live Product API]
   ProductOAS --> SmartMock[Specmatic Smart Mock]
   SmartMock --> ConsumerTests[JavaScript and Playwright consumer tests]
-  ProductOAS --> NativeSuites["Native API suites<br/>Rust: cargo test + reqwest + jsonschema<br/>Go: go test + net/http + kin-openapi<br/>Python: pytest + Requests + openapi-core<br/>JavaScript: node:test + Fetch + @oaverify/core<br/>TypeScript: Vitest + Fetch + @oaverify/core<br/>Java: JUnit + REST Assured + OpenAPI validator<br/>C#: xUnit + HttpClient + NJsonSchema"]
+  ProductOAS --> NativeSuites
+  subgraph NativeSuites["Native API suites"]
+    direction TB
+    RustSuite["Rust<br/>cargo test · reqwest · jsonschema"]
+    GoSuite["Go<br/>go test · net/http · kin-openapi"]
+    PythonSuite["Python<br/>pytest · Requests · openapi-core"]
+    JavaScriptSuite["JavaScript<br/>node:test · Fetch · @oaverify/core"]
+    TypeScriptSuite["TypeScript<br/>Vitest · Fetch · @oaverify/core"]
+    JavaSuite["Java<br/>JUnit · REST Assured · OpenAPI validator"]
+    CSharpSuite["C#<br/>xUnit · HttpClient · NJsonSchema"]
+  end
   NativeSuites --> ProductAPI
   ProductOAS --> Playwright[Playwright APIRequestContext + @oaverify/core]
   Playwright --> ProductAPI
@@ -47,7 +57,10 @@ flowchart TB
   AnyPush[Push to any branch] --> Contract[contract.yml]
   PullRequest[Pull request] --> Contract
   Manual[Manual workflow dispatch] --> Contract
-  Contract --> Runner[run.sh: build, contract and API tests]
+  Contract --> Runner[Testcontainers runner in Node.js]
+  Runner --> Runtime[Docker-compatible container runtime]
+  Runtime --> Tasks[Build images, start services, run test containers]
+  Tasks --> Cleanup[Stop containers and network]
   Runner --> ImageScans[Trivy image scans]
 
   MainPush[Push to main] --> Security[security.yml]
@@ -73,15 +86,15 @@ flowchart TB
 
 ## Run
 
-Requires Docker Engine and Compose:
+Requires Node.js 26, npm 12.2.2, and a Docker-compatible container runtime. Testcontainers for Node.js manages the pipeline; Docker Compose is not required.
 
 ```sh
 bash ./run.sh
 ```
 
-`run.sh` runs contract lint and compatibility checks, Specmatic and WireMock examples, stateless fuzzing, stateful Order API tests, and live API suites in Rust, Go, Python, JavaScript, TypeScript, Java, C#, and Playwright. Compose removes services afterward. Use Docker Desktop or Colima on macOS, WSL or Git Bash on Windows. CI uses Ubuntu.
+`run.sh` checks the pinned Node.js/npm versions, installs the locked pipeline dependency, and starts an isolated Testcontainers network. It runs repository evaluations and contract gates, builds the project images, starts the APIs, executes Specmatic/WireMock examples, fuzzing and API suites, then stops the containers and network. Task containers receive only needed contract or fixture paths as read-only mounts. Use Docker Desktop or Colima on macOS, or Docker Desktop with WSL/Git Bash on Windows. CI uses Ubuntu.
 
-Latest CI: [contract run 44256166253 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166253) in 4m 56s, including image scans; repository evaluations passed 11/11. [Security run 44256166254 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166254).
+Last verified before the Testcontainers change: [contract run 44260518222 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518222), including image scans and 12/12 repository evaluations. [Security run 44260518424 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518424). [Showcase deployment 44260518106 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44260518106). The new orchestration run is pending.
 
 ## Contracts
 
@@ -161,7 +174,7 @@ Tool versions are in .github/versions.env.
 
 ## Performance
 
-Each contract run reports stage timings and uploads a CSV artifact. A five-sample run measured a **304s cold total** and **201s warm median** (200–205s range); build time fell from 91s to 2s after caching. This single-runner result is a reference, not an SLA. The manual benchmark now compares Ubuntu 24.04 and 26.04, with one cold and four warm runs on each. See the [run report](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941), [performance view](https://shoman2020.github.io/oas-polycontract/#performance), and [Phase 12](ROADMAP.md#phase-12--performance-baseline).
+Each contract run reports stage timings and uploads a CSV artifact. The previous five-sample runner measured a **304s cold total** and **201s warm median** (200–205s range); cached build time fell from 91s to 2s. Treat those numbers as a pre-Testcontainers reference, not an SLA. Re-run the manual benchmark on Ubuntu 24.04 and 26.04 before comparing the new orchestration. See the [run report](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941), [performance view](https://shoman2020.github.io/oas-polycontract/#performance), and [Phase 12](ROADMAP.md#phase-12--performance-baseline).
 
 ## Project structure
 
@@ -176,8 +189,9 @@ Each contract run reports stage timings and uploads a CSV artifact. A five-sampl
 | gates/ | Lint and compatibility checks |
 | evals/ | Documentation, roles, and pipeline checks |
 | docs/project-flow.html | Interactive showcase source, published on GitHub Pages |
-| .github/workflows/ | Contract, security, and showcase automation |
-| docker-compose.yml; run.sh | Local and CI pipeline |
+| .github/workflows/ | Contract, security, performance, and showcase automation |
+| .github/versions.env | Central tool and runtime version pins |
+| pipeline/; run.sh | Testcontainers pipeline runner and local/CI entry point |
 
 ## Contribute
 

@@ -2,7 +2,7 @@
 
 Seven native suites call the live Product and stateful Order APIs. Playwright adds APIRequestContext coverage. Each response is validated against the reviewed OAS.
 
-Run all examples with bash ./run.sh. CI uses the same entry point.
+Run all examples with `bash ./run.sh`. Testcontainers coordinates the local containers; Docker Compose is not required. CI uses the same entry point.
 
 ## Contract-based testing
 
@@ -27,16 +27,16 @@ These suites call live services, validate status, media type, and response schem
 
 [Postman](../legacy/postman/oas-polycontract.postman_collection.json) and [Bruno](../legacy/bruno/) collections follow the Product and Order OAS for interactive debugging and legacy migration. CI uses Specmatic for provider and consumer contract checks, plus Schemathesis, WireMock, and code-based integration suites. See [legacy/README.md](../legacy/README.md) for local setup.
 
-| Language | Validator |
+| Language | Test runner and OAS validator |
 |---|---|
-| Rust | reqwest and jsonschema |
-| Go | net/http and kin-openapi |
-| Python | Requests and openapi-core |
-| JavaScript | Fetch and @oaverify/core |
-| TypeScript | Fetch and @oaverify/core |
-| Java | REST Assured OpenAPI validator |
-| C# | HttpClient and NJsonSchema |
-| Playwright | APIRequestContext and @oaverify/core; Product API only |
+| Rust | cargo test, reqwest, and jsonschema |
+| Go | go test, net/http, and kin-openapi |
+| Python | pytest, Requests, and openapi-core |
+| JavaScript | node:test, Fetch, and @oaverify/core |
+| TypeScript | Vitest, Fetch, and @oaverify/core |
+| Java | JUnit, REST Assured, and OpenAPI validator |
+| C# | xUnit, HttpClient, and NJsonSchema |
+| Playwright | Playwright Test, APIRequestContext, and @oaverify/core; Product API only |
 
 ## Test files
 

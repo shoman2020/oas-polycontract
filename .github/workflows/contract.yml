@@ -27,14 +27,27 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Load pinned runtime and scanner versions
+        run: |
+          source .github/versions.env
+          echo "NODE_VERSION=$NODE_VERSION" >> "$GITHUB_ENV"
+          echo "NPM_VERSION=$NPM_VERSION" >> "$GITHUB_ENV"
+          echo "TRIVY_VERSION=$TRIVY_VERSION" >> "$GITHUB_ENV"
+          echo "SPECMATIC_VERSION=$SPECMATIC_VERSION" >> "$GITHUB_ENV"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install pinned npm
+        run: npm install --global npm@${NPM_VERSION}
+
       - name: Check shell syntax
         run: bash -n run.sh
 
-      - name: Load pinned scanner version
-        run: |
-          source .github/versions.env
-          echo "TRIVY_VERSION=$TRIVY_VERSION" >> "$GITHUB_ENV"
-          echo "SPECMATIC_VERSION=$SPECMATIC_VERSION" >> "$GITHUB_ENV"
+      - name: Check Testcontainers runner syntax
+        run: node --check pipeline/run.mjs
 
       - name: Run the local contract pipeline
         env:

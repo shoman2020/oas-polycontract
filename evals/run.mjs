@@ -188,7 +188,7 @@ function checkTestRoleMap() {
   const readme = readRepositoryFile('README.md');
   const clientGuide = readRepositoryFile('clients/README.md');
   const showcase = readRepositoryFile('docs/project-flow.html');
-  const compose = readRepositoryFile('docker-compose.yml');
+  const pipeline = readRepositoryFile('pipeline/run.mjs');
   const runner = readRepositoryFile('run.sh');
   const playwrightPackage = readRepositoryFile('clients/playwright/package.json');
   const schemathesisConfig = readRepositoryFile('demo/schemathesis.toml');
@@ -200,13 +200,13 @@ function checkTestRoleMap() {
     'Downstream service integration test',
   ];
   const targets = [
-    'command: ["test", "openapi.yaml", "--testBaseURL=http://app:8080"]',
-    'command: ["mock", "openapi.yaml"]',
-    'MOCK_URL: http://specmatic-mock:9000',
-    'API_BASE_URL: http://app:8080',
-    'API_BASE_URL: http://specmatic-mock:9000',
-    'STATEFUL_API_BASE_URL: http://stateful-app:8082',
-    'command: ["node", "tests/wiremock.integration.mjs"]',
+    "'--testBaseURL=http://app:8080'",
+    "command: ['mock', '/repo/demo/openapi.yaml']",
+    "MOCK_URL: 'http://specmatic-mock:9000'",
+    "API_BASE_URL: 'http://app:8080'",
+    "API_BASE_URL: 'http://specmatic-mock:9000'",
+    "STATEFUL_API_BASE_URL: 'http://stateful-app:8082'",
+    "'node', 'tests/wiremock.integration.mjs'",
   ];
   const visualLabels = [
     'Provider contract test',
@@ -239,12 +239,9 @@ function checkTestRoleMap() {
     'playwright/product-api-integration.spec.mjs',
   ];
   const testCommands = [
-    'command: ["npm", "run", "test:provider"]',
-    'command: ["npm", "run", "test:consumer"]',
-    'run --rm js-api-integration-test',
-    'run --rm js-consumer-contract-test',
-    'run --rm playwright-api-integration-test',
-    'run --rm playwright-consumer-contract-test',
+    '${name} API integration suite',
+    'JavaScript consumer contract tests',
+    'Playwright consumer contract tests',
   ];
   for (const role of documentedRoles) {
     if (!readme.includes(role)) failures.push(`test-role-map: README omits ${role}`);
@@ -258,15 +255,15 @@ function checkTestRoleMap() {
     if (!clientGuide.includes(`(${source})`)) failures.push(`test-role-map: client guide does not link the implemented test source ${source}`);
   }
   for (const target of targets) {
-    if (!compose.includes(target)) failures.push(`test-role-map: Compose target is missing or changed: ${target}`);
+    if (!pipeline.includes(target)) failures.push(`test-role-map: Testcontainers target is missing or changed: ${target}`);
   }
-  if (!compose.includes('/contracts/schemathesis.toml')) failures.push('test-role-map: Compose does not load the Product API Schemathesis configuration');
+  if (!pipeline.includes('/repo/demo/schemathesis.toml')) failures.push('test-role-map: Testcontainers does not load the Product API Schemathesis configuration');
   if (!schemathesisConfig.includes('include-name = "GET /products/{sku}"')
       || !schemathesisConfig.includes('["2xx", "3xx", "4xx", "502"]')) {
     failures.push('test-role-map: Schemathesis must allow only the documented 502 on the Product lookup operation');
   }
   for (const command of testCommands) {
-    if (!compose.includes(command) && !runner.includes(command) && !playwrightPackage.includes(command)) {
+    if (!pipeline.includes(command) && !runner.includes(command) && !playwrightPackage.includes(command)) {
       failures.push(`test-role-map: implemented test structure is not wired to the documented role: ${command}`);
     }
   }
@@ -276,55 +273,29 @@ function checkTestRoleMap() {
   return documentedRoles.length + targets.length + visualLabels.length + documentedSections.length + clientTestSources.length + testCommands.length;
 }
 
-function checkPipelineServices(services) {
-  const compose = readRepositoryFile('docker-compose.yml');
-  const runner = readRepositoryFile('run.sh');
-  const composeServices = new Set([...compose.matchAll(/^  ([a-z0-9-]+):\s*$/gm)].map((match) => match[1]));
-
-  for (const service of services) {
-    if (!composeServices.has(service)) failures.push(`pipeline-coverage: ${service} is not defined in docker-compose.yml`);
-    if (!runner.includes(service)) failures.push(`pipeline-coverage: ${service} is not invoked by run.sh`);
+function checkPipelineTasks(tasks) {
+  const pipeline = readRepositoryFile('pipeline/run.mjs');
+  for (const task of tasks) {
+    if (!pipeline.includes(task)) failures.push(`pipeline-coverage: Testcontainers task is missing: ${task}`);
   }
-  return services.length;
+  return tasks.length;
 }
 
-function checkComposePublicSafety() {
-  const composeLines = readRepositoryFile('docker-compose.yml').split(/\r?\n/);
-  const serviceBlocks = [];
-  for (let index = 0; index < composeLines.length; index += 1) {
-    const service = composeLines[index].match(/^  ([a-z0-9-]+):$/);
-    if (!service) continue;
-    let end = index + 1;
-    while (end < composeLines.length && !/^  [a-z0-9-]+:$/.test(composeLines[end])) end += 1;
-    serviceBlocks.push({ name: service[1], content: composeLines.slice(index + 1, end).join('\n') });
-    index = end - 1;
-  }
-
-  let checkedPorts = 0;
-  for (const { name, content } of serviceBlocks) {
-    const ports = content.match(/^    ports:\r?\n((?:      .*\r?\n?)*)/m)?.[1] ?? '';
-    for (const [, value] of ports.matchAll(/^\s+-\s+(.+?)\s*$/gm)) {
-      const mapping = value.trim().replace(/^['"]|['"]$/g, '');
-      if (!/^\d+:\d+$/.test(mapping) && !/^[^:]+:\d+:\d+$/.test(mapping)) {
-        failures.push(`compose-public-safety: ${name} has an unrecognized host port mapping: ${mapping}`);
-        continue;
-      }
-      checkedPorts += 1;
-      if (!/^127\.0\.0\.1:\d+:\d+$/.test(mapping)) {
-        failures.push(`compose-public-safety: ${name} publishes ${mapping} beyond loopback`);
-      }
-    }
-
-    if (!/image:\s+oas-polycontract-[^\s]+/.test(content)) continue;
-    const hasBuild = /^    build:$/m.test(content);
-    const expectedPolicy = hasBuild ? 'build' : 'never';
-    if (!new RegExp(`^    pull_policy: ${expectedPolicy}$`, 'm').test(content)) {
-      failures.push(`compose-public-safety: ${name} must use pull_policy: ${expectedPolicy} for its local image`);
-    }
-  }
-
-  if (checkedPorts === 0) failures.push('compose-public-safety: no host port bindings were checked');
-  return checkedPorts + serviceBlocks.length;
+function checkTestcontainersSafety() {
+  const pipeline = readRepositoryFile('pipeline/run.mjs');
+  const packageJson = JSON.parse(readRepositoryFile('pipeline/package.json'));
+  const composeExists = existsSync(resolve(repositoryRoot, 'docker-compose.yml'));
+  const required = [
+    [!composeExists, 'Docker Compose orchestration should be removed'],
+    [pipeline.includes('const readOnlyMount') && pipeline.includes("mode: 'ro'") && !pipeline.includes("source: repositoryRoot") && !pipeline.includes("target: '/repo'"), 'only selected source paths may be mounted read-only'],
+    [pipeline.includes("readOnlyMount('demo')") && pipeline.includes("readOnlyMount('openapi')"), 'contract and fixture mounts must be explicit'],
+    [pipeline.includes('PullPolicy.neverPull()'), 'local project images must never be pulled from a registry'],
+    [pipeline.includes('.withNetwork(this.network)') && pipeline.includes('.withNetworkAliases(alias)'), 'service containers must use the isolated Testcontainers network'],
+    [!pipeline.includes('withExposedPorts('), 'pipeline containers must not publish host ports'],
+    [typeof packageJson.devDependencies?.testcontainers === 'string', 'Testcontainers dependency must be pinned'],
+  ];
+  for (const [passed, message] of required) if (!passed) failures.push(`testcontainers-safety: ${message}`);
+  return required.length;
 }
 
 function checkDependencyLocks() {
@@ -341,7 +312,9 @@ function checkDependencyLocks() {
   const tsLock = JSON.parse(readRepositoryFile('clients/ts/package-lock.json'));
   const tsDockerfile = readRepositoryFile('clients/ts/Dockerfile');
   const tsTests = tsPackage.scripts?.test ?? '';
-  const compose = readRepositoryFile('docker-compose.yml');
+  const pipelinePackage = JSON.parse(readRepositoryFile('pipeline/package.json'));
+  const pipelineLock = JSON.parse(readRepositoryFile('pipeline/package-lock.json'));
+  const pipeline = readRepositoryFile('pipeline/run.mjs');
   const required = [
     [cargoLock.includes('version = 4') && cargoLock.includes('name = "reqwest"\nversion = "0.13.5"'), 'Rust lockfile must record reqwest 0.13.5'],
     [rustDockerfile.includes('cargo fetch --locked') && rustDockerfile.includes('"test", "--locked"'), 'Rust image must fetch and test with --locked'],
@@ -362,7 +335,10 @@ function checkDependencyLocks() {
     [tsDockerfile.includes('npm@${NPM_VERSION}') && tsDockerfile.includes('USER node'), 'TypeScript image must install the pinned npm version and run as non-root'],
     [tsDockerfile.indexOf('COPY --chown=node:node patches/') < tsDockerfile.indexOf('RUN npm ci'), 'TypeScript image must copy the dependency patch before npm ci'],
     [tsTests.includes('node --test security/picomatch-redos.check.mjs') && !tsTests.includes('picomatch-redos.test.mjs'), 'The Node-only Picomatch check must stay outside Vitest discovery'],
-    [compose.includes('NPM_VERSION: ${NPM_VERSION:?Set NPM_VERSION'), 'Compose must pass the pinned npm version to the TypeScript build'],
+    [pipelinePackage.devDependencies?.testcontainers === pipelineLock.packages?.['node_modules/testcontainers']?.version, 'Testcontainers version must be exact and locked'],
+    [/^TESTCONTAINERS_RYUK_VERSION=\S+$/m.test(versions) && pipeline.includes('versions.TESTCONTAINERS_RYUK_VERSION'), 'Ryuk version must come from the shared versions file'],
+    [pipeline.includes("args.map((key) => [key, versions[key]])") && pipeline.includes("'NPM_VERSION'"), 'Container build arguments must use shared version pins'],
+    [readRepositoryFile('run.sh').includes('npm ci --prefix pipeline'), 'The shared runner must install the locked Testcontainers dependency'],
   ];
   for (const [passed, message] of required) if (!passed) failures.push(`dependency-locks: ${message}`);
   return required.length;
@@ -394,7 +370,7 @@ function checkWorkflowVisuals() {
   const sourcePolicies = [
     {
       path: '.github/workflows/contract.yml',
-      markers: ['  push:', '  pull_request:', '  workflow_dispatch:', 'PIPELINE_TIMINGS_FILE:', 'pipeline-timings.csv', 'actions/upload-artifact@', 'bash ./run.sh', 'image-ref: oas-polycontract-app:latest', 'image-ref: oas-polycontract-wiremock:latest'],
+      markers: ['  push:', '  pull_request:', '  workflow_dispatch:', 'actions/setup-node@', 'npm install --global npm@${NPM_VERSION}', 'node --check pipeline/run.mjs', 'PIPELINE_TIMINGS_FILE:', 'pipeline-timings.csv', 'actions/upload-artifact@', 'bash ./run.sh', 'image-ref: oas-polycontract-app:latest', 'image-ref: oas-polycontract-wiremock:latest'],
     },
     {
       path: '.github/workflows/security.yml',
@@ -455,6 +431,18 @@ function checkWorkflowVisuals() {
   if (!readme.includes('### Contract and test flow') || !readme.includes('```mermaid\nflowchart LR')) {
     failures.push('workflow-visuals: README contract and test flow diagram is missing');
   }
+  const nativeSuiteBox = readme.match(/subgraph NativeSuites\["Native API suites"\]([\s\S]*?)\n  end/)?.[1] ?? '';
+  for (const technology of [
+    'cargo test',
+    'go test',
+    'pytest',
+    'node:test',
+    'Vitest',
+    'JUnit',
+    'xUnit',
+  ]) {
+    if (!nativeSuiteBox.includes(technology)) failures.push(`workflow-visuals: native suite box omits ${technology}`);
+  }
   if (!readme.includes('### CI workflow') || !readme.includes('```mermaid\nflowchart TB')) {
     failures.push('workflow-visuals: README CI workflow diagram is missing');
   }
@@ -471,6 +459,14 @@ function checkWorkflowVisuals() {
     'Specmatic Smart Mock',
     'stateful-app:8082',
     'WireMock downstream service',
+    'Native API suite frameworks',
+    'cargo test · reqwest · jsonschema',
+    'go test · net/http · kin-openapi',
+    'pytest · Requests · openapi-core',
+    'node:test · Fetch · @oaverify/core',
+    'Vitest · Fetch · @oaverify/core',
+    'JUnit · REST Assured · OpenAPI validator',
+    'xUnit · HttpClient · NJsonSchema',
     'Manual API debugging',
     'localhost:8083',
   ]) {
@@ -497,7 +493,7 @@ function checkWorkflowVisuals() {
   if (!readme.includes('```mermaid\nflowchart LR')) failures.push('workflow-visuals: README contract and test diagram is missing');
   if (sceneCount !== 8) failures.push(`workflow-visuals: expected 8 showcase slides, found ${sceneCount}`);
   if (laneCount !== 4) failures.push(`workflow-visuals: expected 4 workflow lanes, found ${laneCount}`);
-  if (testFlowLaneCount !== 6) failures.push(`workflow-visuals: expected 6 interactive test-flow lanes, found ${testFlowLaneCount}`);
+  if (testFlowLaneCount !== 7) failures.push(`workflow-visuals: expected 7 interactive test-flow lanes, found ${testFlowLaneCount}`);
   if (workflowMapReferences < 6) failures.push(`workflow-visuals: expected 6 README links to interactive maps, found ${workflowMapReferences}`);
   if (!showcase.includes('aria-valuemax="8"')) failures.push('workflow-visuals: showcase progress range is not updated for 8 slides');
   return workflowFiles.length + sourcePolicies.length + concepts.length + readmeTriggers.length + showcaseTriggers.length + sceneCount + laneCount;
@@ -510,8 +506,8 @@ const evaluators = {
   'test-role-map': () => checkTestRoleMap(),
   'mock-data-evaluations': (check) => checkMockDataEvaluations(check.file),
   'legacy-collections': () => checkLegacyCollections(),
-  'pipeline-services': (check) => checkPipelineServices(check.services),
-  'compose-public-safety': () => checkComposePublicSafety(),
+  'pipeline-tasks': (check) => checkPipelineTasks(check.tasks),
+  'testcontainers-safety': () => checkTestcontainersSafety(),
   'workflow-visuals': () => checkWorkflowVisuals(),
   'dependency-locks': () => checkDependencyLocks(),
   'roadmap-phases': (check) => checkRoadmapPhases(check.expectedPhases, check.verifiedRun),
