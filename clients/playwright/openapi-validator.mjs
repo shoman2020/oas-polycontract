@@ -2,7 +2,7 @@ import { createValidator } from "@oaverify/core";
 import { loadSpecSync } from "@oaverify/syntax";
 
 const specPath = process.env.OPENAPI_SPEC;
-if (!specPath) throw new Error("OPENAPI_SPEC must point to the hand-edited OpenAPI contract");
+if (!specPath) throw new Error("OPENAPI_SPEC must point to the reviewed OpenAPI contract");
 
 const { document } = loadSpecSync({ entry: specPath });
 const validator = createValidator(document);

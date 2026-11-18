@@ -1,6 +1,6 @@
 # Client suites
 
-Seven native suites call the live Product and stateful Order APIs. Playwright adds APIRequestContext coverage. Each response is validated against the hand-edited OAS.
+Seven native suites call the live Product and stateful Order APIs. Playwright adds APIRequestContext coverage. Each response is validated against the reviewed OAS.
 
 Run all examples with bash ./run.sh. CI uses the same entry point.
 

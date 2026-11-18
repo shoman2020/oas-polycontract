@@ -29,7 +29,7 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 - [x] Repository, ownership, contribution guide, and shared runner.
 
 ### Phase 1 — Contract source
-- [x] Hand-edited Catalog contract and compatibility baseline.
+- [x] Reviewed Catalog contract and compatibility baseline.
 - [x] Separate runnable Product, Order, and Inventory contracts.
 - [ ] Generate a candidate spec before comparison if the root contract becomes code-first.
 
@@ -89,7 +89,7 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 
 ### Phase 13 — Optional scaffolder
 - [x] Assess package fit: defer `create-polycontract` until users need selective project generation; the repository is a template, not a runtime package.
-- [ ] If demand emerges, generate selected starters without overwriting hand-edited files and test in a clean project before publishing.
+- [ ] If demand emerges, generate selected starters without overwriting existing files and test in a clean project before publishing.
 
 ## Next
 
