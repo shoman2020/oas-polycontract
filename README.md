@@ -4,7 +4,11 @@ One reviewed contract per API boundary. Specmatic checks provider behavior again
 
 ## Purpose
 
-API testing gets harder when teams maintain overlapping specifications, duplicate requests, and unclear test ownership. This project demonstrates a contract-first model: keep the API contract under review, use it to drive provider and consumer checks, and validate live behavior in code-based integration suites. Specmatic and Schemathesis cover their contract and fuzzing roles. Swagger UI and Prism preview the root Catalog scaffold; Postman and Bruno examples target the runnable Product and Order APIs. Reducing duplicate specs and overlapping tools can lower maintenance and tooling costs. Standard contracts stay usable when teams change clients, test frameworks, or vendors. One contract owner means less maintenance and more trust.
+- Keep one reviewed contract for each API boundary; use it for provider and consumer checks.
+- Validate live behavior with native integration suites. Specmatic covers contract tests; Schemathesis covers fuzzing and stateful flows.
+- Use Swagger UI and Prism to inspect the Catalog scaffold; use the Postman and Bruno examples with the runnable Product and Order APIs.
+- Reduce duplicate specs and overlapping tools to lower maintenance and tooling costs.
+- Keep contracts usable across clients, test frameworks, and vendors. One contract owner means less maintenance and more trust.
 
 [Interactive showcase](https://shoman2020.github.io/oas-polycontract/) · [Contracts](https://shoman2020.github.io/oas-polycontract/#contracts) · [Test roles](https://shoman2020.github.io/oas-polycontract/#test-roles) · [Test behavior](https://shoman2020.github.io/oas-polycontract/#test-behavior) · [Pipeline](https://shoman2020.github.io/oas-polycontract/#pipeline) · [Workflows](https://shoman2020.github.io/oas-polycontract/#workflows) · [Performance](https://shoman2020.github.io/oas-polycontract/#performance) · [Roadmap](ROADMAP.md)
 
