@@ -10,7 +10,7 @@ permissions:
 
 concurrency:
   group: contract-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   contract-examples:
