@@ -95,10 +95,13 @@ function verifyReport(sarif) {
   })));
 
   for (const example of examples) {
-    const suffix = `/fixtures/${example.language}/${example.filename}`;
-    const matches = findings.filter(({ ruleId, uri }) => ruleId === example.rule && uri.endsWith(suffix));
+    const suffix = `${example.language}/${example.filename}`;
+    const matches = findings.filter(({ ruleId, uri }) =>
+      ruleId === example.rule && uri.endsWith(suffix),
+    );
     if (matches.length !== 1) {
-      throw new Error(`Expected one ${example.rule} finding in ${suffix}; found ${matches.length}.`);
+      const actual = findings.map(({ ruleId, uri, line }) => `${ruleId} at ${uri}:${line ?? '?'}`).join('; ');
+      throw new Error(`Expected one ${example.rule} finding in ${suffix}; found ${matches.length}. Actual findings: ${actual || 'none'}`);
     }
     console.log(`Detected ${example.rule} at ${basename(example.filename)}:${matches[0].line ?? '?'}`);
   }
@@ -142,11 +145,11 @@ try {
   const localReportPath = join(reportDirectory, 'language-genai.sarif');
   if (!existsSync(localReportPath)) throw new Error('Semgrep did not create the expected SARIF report.');
 
-  const findings = verifyReport(JSON.parse(readFileSync(localReportPath, 'utf8')));
   if (process.env.SEMGREP_GENAI_REPORT) {
     mkdirSync(dirname(reportPath), { recursive: true });
     copyFileSync(localReportPath, reportPath);
   }
+  const findings = verifyReport(JSON.parse(readFileSync(localReportPath, 'utf8')));
 
   const title = 'Semgrep language-specific GenAI examples: 4/4 detected';
   const detail = `Semgrep ${scannerVersion} detected untrusted request input flowing into system-message sinks in Rust, Go, Java, and C#. The SARIF report contains ${findings.length} findings.`;
