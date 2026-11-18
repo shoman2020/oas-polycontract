@@ -9,10 +9,10 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | No event provider or broker |
 | Tests | Specmatic provider/consumer, WireMock, stateless fuzzing, stateful workflows, seven native languages, Playwright | Add runtime event examples only with a provider |
 | Legacy migration | Project-specific Postman and Bruno collections mapped to Product and Order OAS | Migrate team-owned collections if supplied |
-| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, OWASP SecureAI-Scan; latest [security run 44165402574](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402574) passed | SecureAI-Scan examples cover JS, TS, and Python; no AI runtime is present |
+| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, OWASP SecureAI-Scan; latest [security run 44256166254](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166254) passed | SecureAI-Scan examples cover JS, TS, and Python; no AI runtime is present |
 | Dependencies | Cargo, Go, NuGet, npm, Python, and Maven locks; the Picomatch patch passed the TypeScript regression and CI suites | Replace the patch when upstream publishes a fix |
 | Performance | [Five-sample run](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941): 304s cold, 201s warm median (200–205s range); build 91s cold and 2s warm. Manual workflow now compares Ubuntu 24.04 and 26.04 | Run the cross-runner benchmark and record both results before setting thresholds |
-| Showcase | Contract, pipeline, workflow, test-role, performance, and Postman/Bruno migration views; [latest deployment passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402425) | None |
+| Showcase | Contract, pipeline, workflow, test-role, performance, and Postman/Bruno migration views; [latest deployment passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166300) | None |
 
 ## Test model
 
@@ -79,7 +79,7 @@ One reviewed contract per API boundary. Clear ownership means less maintenance a
 - [ ] Confirm failed checks block merges and required checks stay stable.
 
 ### Phase 11 — Showcase publishing
-- [x] Publish the interactive showcase with GitHub Actions; latest deployment passed in [run 44165402425](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402425).
+- [x] Publish the interactive showcase with GitHub Actions; latest deployment passed in [run 44256166300](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166300).
 
 ### Phase 12 — Performance baseline
 - [x] Report per-stage timings in the contract run summary and CSV artifact.
@@ -105,6 +105,8 @@ This reference repository has no stable runtime API to package. A `create-polyco
 ## Progress
 
 - 18 Nov: Expanded the manual cold/warm benchmark to Ubuntu 24.04 and 26.04, with separate artifacts and summaries; removed the stale Go lock diagnostic workflow. Cross-runner results are pending.
+- 18 Nov: Benchmark dispatch could not be completed from this session. Start the manual workflow from [Actions](https://github.com/shoman2020/oas-polycontract/actions/workflows/performance.yml) to collect cross-runner samples.
+- 18 Nov: Commit [f9913ae](https://github.com/shoman2020/oas-polycontract/commit/f9913ae2e94decd2b7e63ab6ad170c5bd0b1ff17) passed contract run [44256166253](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166253) in 4m 56s with 11/11 repository evaluations and image scans green. Security run [44256166254](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166254) and showcase deployment [44256166300](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166300) passed.
 - 18 Nov: Latest [contract run 44165402418](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402418) passed in 5m 34s, with 269s in `run.sh`, 11/11 repository evaluations, 88 native integration checks, and image scans green. [Security run 44165402574](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402574) and showcase deployment [44165402425](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402425) passed.
 
 - 17 Nov: Latest [contract run 44163949730](https://github.com/shoman2020/oas-polycontract/actions/runs/44163949730) (#105) passed in 5m 34s, with 269s in `run.sh`, 11/11 repository evaluations, 88 native integration checks, and image scans green. [Security run 44163949697](https://github.com/shoman2020/oas-polycontract/actions/runs/44163949697) passed. Showcase deployment [44163949994](https://github.com/shoman2020/oas-polycontract/actions/runs/44163949994) passed.

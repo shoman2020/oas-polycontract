@@ -71,7 +71,7 @@ bash ./run.sh
 
 `run.sh` runs contract lint and compatibility checks, Specmatic and WireMock examples, stateless fuzzing, stateful Order API tests, and live API suites in Rust, Go, Python, JavaScript, TypeScript, Java, C#, and Playwright. Compose removes services afterward. Use Docker Desktop or Colima on macOS, WSL or Git Bash on Windows. CI uses Ubuntu.
 
-Latest CI: [contract run 44165402418 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402418) in 5m 34s, including image scans; `run.sh` stages took 269s and repository evaluations passed 11/11. [Security run 44165402574 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44165402574).
+Latest CI: [contract run 44256166253 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166253) in 4m 56s, including image scans; repository evaluations passed 11/11. [Security run 44256166254 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44256166254).
 
 ## Contracts
 
