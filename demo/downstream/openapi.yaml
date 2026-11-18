@@ -13,7 +13,7 @@ servers:
   - url: http://localhost:8081
     description: Inventory WireMock service from the local host.
   - url: http://wiremock:8080
-    description: WireMock service on the Docker Compose network.
+    description: WireMock service on the isolated Testcontainers network.
 tags:
   - name: inventory
     description: Inventory availability operations.

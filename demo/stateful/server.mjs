@@ -3,8 +3,30 @@ import { pathToFileURL } from "node:url";
 
 const DEFAULT_PORT = 8082;
 const MAX_REQUEST_BYTES = 64 * 1024;
-const orders = new Map();
-let nextOrderId = 1;
+
+class InMemoryOrderStore {
+  #orders = new Map();
+  #nextOrderId = 1;
+
+  create(input) {
+    const order = {
+      id: `order-${this.#nextOrderId++}`,
+      sku: input.sku,
+      quantity: input.quantity,
+      status: "created",
+    };
+    this.#orders.set(order.id, order);
+    return order;
+  }
+
+  get(orderId) {
+    return this.#orders.get(orderId);
+  }
+
+  delete(orderId) {
+    return this.#orders.delete(orderId);
+  }
+}
 
 function sendJson(response, status, body, headers = {}) {
   response.writeHead(status, {
@@ -51,7 +73,7 @@ function parseOrderId(pathname) {
   }
 }
 
-async function handleRequest(request, response) {
+async function handleRequest(request, response, orders) {
   const url = new URL(request.url ?? "/", "http://localhost");
 
   if (url.pathname === "/healthz") {
@@ -85,13 +107,7 @@ async function handleRequest(request, response) {
       return;
     }
 
-    const order = {
-      id: `order-${nextOrderId++}`,
-      sku: input.sku,
-      quantity: input.quantity,
-      status: "created",
-    };
-    orders.set(order.id, order);
+    const order = orders.create(input);
     sendJson(response, 201, order, {
       Location: `/orders/${encodeURIComponent(order.id)}`,
     });
@@ -163,9 +179,9 @@ async function handleRequest(request, response) {
   sendError(response, 405, "Method not allowed", { Allow: "GET, PATCH, DELETE" });
 }
 
-export function createStatefulApp() {
+export function createStatefulApp({ orderStore = new InMemoryOrderStore() } = {}) {
   return http.createServer((request, response) => {
-    void handleRequest(request, response).catch(() => {
+    void handleRequest(request, response, orderStore).catch(() => {
       if (!response.headersSent) {
         sendError(response, 500, "Internal server error");
       } else {

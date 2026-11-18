@@ -231,8 +231,8 @@ function checkTestRoleMap() {
     'AsyncAPI',
     'Specification',
     'Contract',
-    'Provider contract test',
-    'Consumer contract test',
+    'Provider contract verification',
+    'Consumer mock check',
     'Smart Mock',
     'API integration test',
     'Schema validation',
@@ -250,8 +250,8 @@ function checkTestRoleMap() {
     "'node', 'tests/wiremock.integration.mjs'",
   ];
   const visualLabels = [
-    'Provider contract test',
-    'Consumer contract test',
+    'Provider contract verification',
+    'Consumer mock check',
     'API integration',
     'app:8080',
     'specmatic-mock:9000',
@@ -278,8 +278,8 @@ function checkTestRoleMap() {
   ];
   const testCommands = [
     '${name} API integration suite',
-    'JavaScript consumer contract tests',
-    'Playwright consumer contract tests',
+    'JavaScript consumer mock checks',
+    'Playwright consumer mock checks',
   ];
   for (const term of documentedTerms) {
     if (!readme.includes(`| ${term} |`)) failures.push(`test-role-map: README glossary omits ${term}`);
@@ -436,7 +436,7 @@ function checkWorkflowVisuals() {
   const readmeTriggers = [
     'Contract CI runs on pushes, pull requests, and manual dispatch.',
     'Security CI runs on pushes to `main`, pull requests, a weekly schedule, and manual dispatch.',
-    'manual benchmark',
+    'manual performance benchmark',
   ];
   const showcaseTriggers = ['Push · pull request · manual run', 'Main push · pull request · weekly · manual', 'Main push to showcase files · manual run', 'Manual benchmark · Ubuntu 24.04 and 26.04'];
 
@@ -477,7 +477,7 @@ function checkWorkflowVisuals() {
   if (!readme.includes('### Contract and test flow') || !readme.includes('```mermaid\nflowchart LR')) {
     failures.push('workflow-visuals: README contract and test flow diagram is missing');
   }
-  const nativeSuiteBox = readme.match(/subgraph NativeSuites\["Native API suites"\]([\s\S]*?)\n  end/)?.[1] ?? '';
+  const nativeSuiteBox = readme.match(/subgraph NativeSuites\["Native API integration suites"\]([\s\S]*?)\n  end/)?.[1] ?? '';
   for (const technology of [
     'cargo test',
     'go test',
@@ -501,7 +501,7 @@ function checkWorkflowVisuals() {
   }
   for (const diagramElement of [
     'aria-label="Contract and API test flow diagram"',
-    'Specmatic provider test',
+    'Specmatic provider verification',
     'Specmatic Smart Mock',
     'stateful-app:8082',
     'WireMock downstream service',
@@ -512,7 +512,7 @@ function checkWorkflowVisuals() {
     'node:test · Fetch · @oaverify/core',
     'Vitest · Fetch · @oaverify/core',
     'JUnit · REST Assured · OpenAPI validator',
-    'xUnit · HttpClient · NJsonSchema',
+    'xUnit · HttpClient · project-scoped NJsonSchema adapter',
     'Manual API debugging',
     'localhost:8083',
   ]) {

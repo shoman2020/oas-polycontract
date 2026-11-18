@@ -9,8 +9,8 @@
 #   npx @stoplight/spectral-cli lint openapi/openapi.yaml \
 #     --ruleset gates/lint/.spectral.yaml
 #
-# This ruleset runs through the `spectral` and `spectral-asyncapi` services
-# in Docker Compose; see ROADMAP.md Phase 2 for current verification status.
+# The Testcontainers runner executes the pinned Spectral image against the
+# contracts; see pipeline/run.mjs and ROADMAP.md Phase 2.
 
 extends: ["spectral:oas"]
 

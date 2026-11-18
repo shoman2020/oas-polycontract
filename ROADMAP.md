@@ -7,16 +7,18 @@ One reviewed specification contract per API boundary. Clear ownership means less
 | Area | Delivered | Remaining |
 |---|---|---|
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | Runtime event tests need a provider or broker |
-| Tests | Specmatic provider and consumer, WireMock, stateless fuzzing, stateful flows, seven native languages, Playwright; [latest contract run 44339507531 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44339507531) | — |
+| Tests | Specmatic provider verification and provider-spec consumer mock checks (not CDC), WireMock, fuzzing, stateful flows, seven native languages, Playwright; [latest contract run 44343691774 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44343691774) | Pilot against representative company APIs |
 | Legacy migration | Project-specific Postman and Bruno collections follow Product and Order OAS | Import team-owned history if teams provide their collections |
-| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, SecureAI-Scan, and Semgrep GenAI examples; [latest security run 44339507458 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44339507458) | No application AI runtime; scan examples verify expected findings in temporary fixtures |
+| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, and SecureAI-Scan; [latest security run 44343691576 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44343691576) | GenAI positive controls are manual demos; no application AI runtime |
 | Dependencies | Cargo, Go, NuGet, npm, Python, Maven, and Testcontainers pins or locks; minimatch alert #3 fixed | Replace the Picomatch patch when upstream publishes a fix |
 | Performance | Pre-Testcontainers [five-sample reference](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941): 304s cold, 201s warm median (200–205s range), build 91s cold and 2s warm | Dispatch the manual Ubuntu 24.04/26.04 matrix after Testcontainers migration |
+| Enterprise adoption | Scope limits and a selective local language-suite option are documented | Add CDC artifacts, validator coverage, approved runtime matrix, and production-like test environments based on a pilot |
+| Review response | Stale Compose wording removed; CDC, validator, state, scan, cost, and benchmark limits clarified | Run contract and security workflows against these updates |
 | Showcase | Interactive contract, test-role, pipeline, workflow, and performance views; current source published by [run 44338380044](https://github.com/shoman2020/oas-polycontract/actions/runs/44338380044) | — |
 
 The shared test vocabulary and examples are in the [README testing model](README.md#testing-model-and-terminology). This roadmap tracks delivery and prerequisites; it is not a second testing guide.
 
-Two phase checklist actions remain: repository branch protection (Phase 10) and the post-migration performance dispatch (Phase 12). The conditional-work table below records separate items that depend on future services, environments, or team inputs.
+Two existing CI checklist actions remain: requiring contract and security checks on `main` (Phase 10; branch protection is currently disabled) and running the post-migration performance matrix (Phase 12). Phase 17 tracks broader enterprise adoption work that needs a representative pilot.
 
 ## Phases
 
@@ -73,7 +75,7 @@ Two phase checklist actions remain: repository branch protection (Phase 10) and 
 - [x] Fix minimatch alert #3 through glob 14.0.6, resolving patched minimatch 11.0.9.
 
 ### Phase 10 — Merge policy
-- [ ] Require contract and security checks in branch protection and verify failures block merges. This requires a repository administrator.
+- [ ] Require `contract-examples (ubuntu-26.04)`, all seven CodeQL checks, `Secret scan`, `Dependency and configuration scan`, `Dependency review`, and `OWASP GenAI scan`; verify failures block merges. This requires repository rules access.
 
 ### Phase 11 — Showcase publishing
 - [x] Publish the interactive showcase with GitHub Actions.
@@ -103,6 +105,17 @@ Two phase checklist actions remain: repository branch protection (Phase 10) and 
 - [x] Derive required client runtime pins from the image build matrix.
 - [x] Test pin parsing and run the tests before container startup.
 
+### Phase 17 — Enterprise adoption
+- [x] Distinguish provider verification, provider-spec mock checks, and live API integration tests; state that the mock checks are not CDC.
+- [x] Scope the C# NJsonSchema adapter and document that language validators do not provide identical OAS coverage.
+- [x] Scope in-memory Order data to each app instance and document its non-production limits.
+- [x] Allow local runs to select native suites with `POLYCONTRACT_NATIVE_CLIENTS`; CI runs all seven by default.
+- [x] Keep SecureAI and Semgrep positive-control fixtures manual while scanning repository source on regular security triggers.
+- [ ] Pilot with representative company APIs, auth flows, pagination, error cases, versioning, and real downstream dependencies.
+- [ ] Agree an OAS feature support matrix and the validator strategy for each supported language.
+- [ ] Add consumer-owned CDC artifacts and provider verification if pilot teams require CDC guarantees.
+- [ ] Validate the approved company runtime matrix and isolated test-environment requirements.
+
 ## Conditional work
 
 These items need an external input or repository setting before implementation:
@@ -111,6 +124,7 @@ These items need an external input or repository setting before implementation:
 |---|---|
 | Enforce required checks | Repository administrator configures branch protection. |
 | Compare runner performance | Maintainer dispatches the manual workflow. |
+| Validate enterprise adoption | A pilot team supplies representative API contracts and approved runtime requirements. |
 | Test WebSocket or Kafka runtime | A service implementation and broker/server are available. |
 | Configure environment URLs | A deployed API environment exists. |
 | Migrate historic requests | The owning team supplies Postman/Bruno exports. |
@@ -121,7 +135,8 @@ This reference repo has no stable runtime API to package. A `create-polycontract
 
 ## Progress
 
-- 18 Nov: Published the current interactive showcase; [deployment 44338380044](https://github.com/shoman2020/oas-polycontract/actions/runs/44338380044), [contract 44339507531](https://github.com/shoman2020/oas-polycontract/actions/runs/44339507531), and [security 44339507458](https://github.com/shoman2020/oas-polycontract/actions/runs/44339507458) passed. The only unchecked phase actions are branch protection and the post-migration performance dispatch.
+- 18 Nov: Applied the review findings: clarified that provider-spec mock checks are not CDC, documented enterprise adoption requirements and validator limits, isolated Order state per app instance, added selective local language suites, moved positive controls to manual runs, and corrected stale Compose references. Local evaluation passed 13/13 and pipeline configuration tests passed 6/6; GitHub Actions must run the full container pipeline for this revision.
+- 18 Nov: Published the current interactive showcase; [deployment 44338380044](https://github.com/shoman2020/oas-polycontract/actions/runs/44338380044), [contract 44343691774](https://github.com/shoman2020/oas-polycontract/actions/runs/44343691774), and [security 44343691576](https://github.com/shoman2020/oas-polycontract/actions/runs/44343691576) passed. Branch protection remains disabled; the post-migration benchmark still needs a manual dispatch.
 - 18 Nov: Added a SecureAI-Scan positive control. Version 0.13.0 detected `HIGH AI001` in the temporary example; CI verified the SARIF, recorded the finding, uploaded the artifact, and passed the clean project scan.
 - 18 Nov: Added Semgrep taint-rule examples for prompt-to-system-message flows in Rust, Go, Java, and C#. The custom rules target a defined pattern and need SDK-specific source/sink tuning in applications.
 - 18 Nov: Added strict, tested pipeline version validation; pin requirements now derive from the client build matrix.

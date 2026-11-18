@@ -37,3 +37,24 @@ export function parseVersionPins(contents, requiredKeys = []) {
 export function readVersionPins(path, requiredKeys = []) {
   return parseVersionPins(readFileSync(path, 'utf8'), requiredKeys);
 }
+
+export function parseNativeClientSelection(value, supportedClients) {
+  if (typeof value !== 'string' || value.trim() === '') return [...supportedClients];
+
+  const selected = value.split(',').map((client) => client.trim().toLowerCase());
+  if (selected.some((client) => client === '')) {
+    throw new Error('POLYCONTRACT_NATIVE_CLIENTS must be a comma-separated list of client keys');
+  }
+
+  const duplicates = selected.filter((client, index) => selected.indexOf(client) !== index);
+  if (duplicates.length > 0) {
+    throw new Error(`POLYCONTRACT_NATIVE_CLIENTS contains duplicate client: ${duplicates[0]}`);
+  }
+
+  const unsupported = selected.filter((client) => !supportedClients.includes(client));
+  if (unsupported.length > 0) {
+    throw new Error(`Unsupported native client '${unsupported[0]}'; choose from ${supportedClients.join(', ')}`);
+  }
+
+  return selected;
+}

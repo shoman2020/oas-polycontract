@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { readVersionPins } from './config.mjs';
+import { parseNativeClientSelection, readVersionPins } from './config.mjs';
 
 const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 
@@ -44,6 +44,22 @@ const clientImages = [
   { key: 'csharp', context: 'clients/csharp', args: ['DOTNET_VERSION'] },
 ];
 
+// Keep these images available for consumer mock checks in focused local runs.
+const consumerClientImages = new Set(['js', 'playwright']);
+const clientKeyBySuiteName = new Map([
+  ['Rust', 'rust'],
+  ['Go', 'go'],
+  ['Python', 'python'],
+  ['JavaScript', 'js'],
+  ['TypeScript', 'ts'],
+  ['Java', 'java'],
+  ['C#', 'csharp'],
+]);
+const selectedNativeClients = new Set(parseNativeClientSelection(
+  process.env.POLYCONTRACT_NATIVE_CLIENTS,
+  clientImages.filter(({ key }) => key !== 'playwright').map(({ key }) => key),
+));
+
 const versions = readVersionPins(join(repositoryRoot, '.github/versions.env'), [
   'OASDIFF_VERSION',
   'SCHEMATHESIS_VERSION',
@@ -81,7 +97,7 @@ class ContractPipeline {
       await this.stage('Stateless fuzzing', () => this.runStatelessFuzzing());
       await this.stage('Stateful API tests', () => this.runStatefulTests());
       await this.stage('Native API integration suites', () => this.runNativeSuites());
-      await this.stage('Consumer contract tests and mock evaluations', () => this.runConsumerTests());
+      await this.stage('Consumer mock checks and evaluations', () => this.runConsumerTests());
       console.log('==> Contract pipeline passed');
     } catch (error) {
       failure = error;
@@ -134,6 +150,7 @@ class ContractPipeline {
     });
 
     for (const client of clientImages) {
+      if (!consumerClientImages.has(client.key) && !selectedNativeClients.has(client.key)) continue;
       const buildArgs = Object.fromEntries(client.args.map((key) => [key, versions[key]]));
       await this.buildImage(localImages[client.key], client.context, buildArgs);
     }
@@ -352,6 +369,8 @@ class ContractPipeline {
     ];
 
     for (const [name, image, environment, command] of suites) {
+      const nativeClientKey = clientKeyBySuiteName.get(name);
+      if (nativeClientKey && !selectedNativeClients.has(nativeClientKey)) continue;
       await this.runTask(`${name} API integration suite`, image, {
         localImage: true,
         environment,
@@ -381,7 +400,7 @@ class ContractPipeline {
       environment: mockEnvironment,
       mounts: [readOnlyMount('evals/mock-data-evals.json')],
     });
-    await this.runTask('JavaScript consumer contract tests', localImages.js, {
+    await this.runTask('JavaScript consumer mock checks', localImages.js, {
       localImage: true,
       command: ['npm', 'run', 'test:consumer'],
       environment: {
@@ -390,7 +409,7 @@ class ContractPipeline {
       },
       mounts: [readOnlyMount('demo')],
     });
-    await this.runTask('Playwright consumer contract tests', localImages.playwright, {
+    await this.runTask('Playwright consumer mock checks', localImages.playwright, {
       localImage: true,
       command: ['npm', 'run', 'test:consumer'],
       environment: {

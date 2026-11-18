@@ -1,11 +1,11 @@
 # oas-polycontract
 
-Give each API boundary one shared specification: OAS for HTTP and AsyncAPI for events. Reuse it across provider verification, consumer mocks, and native integration suites to reduce duplicate definitions and maintenance costs while keeping tools replaceable.
+oas-polycontract is a runnable reference template for specification-led API testing. It shows how one contract per interface can guide provider checks, consumer mock development, and native API integration tests. The sample APIs are intentionally small; they demonstrate the workflow, not enterprise-scale coverage.
 
 ## Purpose
 
-- Keep one reviewed contract for each API boundary; use it for provider and consumer checks.
-- Validate live behavior with native integration suites. Specmatic covers contract tests; Schemathesis covers fuzzing and stateful flows.
+- Keep one reviewed contract for each API boundary and use it to guide provider verification and consumer mock checks.
+- Validate live behavior with native integration suites. Specmatic verifies the provider and serves a provider-spec mock; Schemathesis covers fuzzing and stateful flows.
 - Use Swagger UI and Prism to inspect the Catalog scaffold; use the Postman and Bruno examples with the runnable Product and Order APIs.
 - Reduce duplicate specs and overlapping tools to lower maintenance and tooling costs.
 - Keep contracts usable across clients, test frameworks, and vendors. One contract owner means less maintenance and more trust.
@@ -20,12 +20,12 @@ These diagrams render in this README. Open the [interactive showcase](https://sh
 
 ```mermaid
 flowchart LR
-  ProductOAS[Product OAS] --> ProviderTest[Specmatic provider test]
+  ProductOAS[Product OAS] --> ProviderTest[Specmatic provider verification]
   ProviderTest --> ProductAPI[Live Product API]
   ProductOAS --> SmartMock[Specmatic Smart Mock]
-  SmartMock --> ConsumerTests[JavaScript and Playwright consumer tests]
+  SmartMock --> ConsumerTests[Consumer mock checks · not CDC]
   ProductOAS --> NativeSuites
-  subgraph NativeSuites["Native API suites"]
+  subgraph NativeSuites["Native API integration suites"]
     direction TB
     RustSuite["Rust<br/>cargo test · reqwest · jsonschema"]
     GoSuite["Go<br/>go test · net/http · kin-openapi"]
@@ -33,7 +33,7 @@ flowchart LR
     JavaScriptSuite["JavaScript<br/>node:test · Fetch · @oaverify/core"]
     TypeScriptSuite["TypeScript<br/>Vitest · Fetch · @oaverify/core"]
     JavaSuite["Java<br/>JUnit · REST Assured · OpenAPI validator"]
-    CSharpSuite["C#<br/>xUnit · HttpClient · NJsonSchema"]
+    CSharpSuite["C#<br/>xUnit · HttpClient · scoped NJsonSchema adapter"]
   end
   NativeSuites --> ProductAPI
   ProductOAS --> Playwright[Playwright APIRequestContext + @oaverify/core]
@@ -48,7 +48,7 @@ flowchart LR
   OrderOAS --> Collections
 ```
 
-Native suites are code-based API integration tests: they call the running API, validate responses against OAS, and assert behavior in each language's test framework. Specmatic separates contract roles: provider tests hit the live Product API, and consumer tests hit the Smart Mock. Schemathesis generates Product fuzz cases and stateful Order flows. Playwright uses APIRequestContext, not browser UI automation.
+Native suites are code-based API integration tests: they call the running APIs, validate exercised responses with language-specific tools, and assert behavior in each test framework. Specmatic provider verification targets the live Product API. Consumer mock checks target a Smart Mock generated from the provider OAS; they are not consumer-driven contract testing (CDC) and do not publish consumer-owned contracts. Schemathesis generates Product fuzz cases and stateful Order flows. Playwright uses APIRequestContext, not browser UI automation.
 
 ### CI workflow
 
@@ -92,9 +92,33 @@ Requires Node.js 26, npm 12.2.2, and a Docker-compatible container runtime. Test
 bash ./run.sh
 ```
 
-`run.sh` checks the pinned Node.js/npm versions, installs the locked pipeline dependency, and starts an isolated Testcontainers network. It runs repository evaluations and contract gates, builds the project images, starts the APIs, executes Specmatic/WireMock examples, fuzzing and API suites, then stops the containers and network. Task containers receive only needed contract or fixture paths as read-only mounts. Use Docker Desktop or Colima on macOS, or Docker Desktop with WSL/Git Bash on Windows. CI uses Ubuntu.
+`run.sh` checks the pinned Node.js/npm versions, installs the locked pipeline dependency, and starts an isolated Testcontainers network. It runs repository evaluations and contract gates, builds 11 local images for the demo services and client suites, starts the APIs, executes Specmatic/WireMock examples, fuzzing and API suites, then stops the containers and network. Task containers receive only needed contract or fixture paths as read-only mounts. Use Docker Desktop or Colima on macOS, or Docker Desktop with WSL/Git Bash on Windows. CI uses Ubuntu.
 
-Last remote pull request checks, 18 Nov 2026: [contract run 44325433591 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44325433591) and [security run 44325434450 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44325434450). The contract workflow publishes stage timings as a CSV artifact.
+Last confirmed main workflow checks before these adoption updates, 18 Nov 2026: [contract run 44343691774 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44343691774) and [security run 44343691576 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44343691576). The contract workflow publishes stage timings as a CSV artifact.
+
+The default runs all seven native language suites. For a focused local run, select a comma-separated subset; JavaScript and Playwright remain available for consumer mock checks:
+
+```sh
+POLYCONTRACT_NATIVE_CLIENTS=rust,python bash ./run.sh
+```
+
+## Enterprise adoption
+
+Treat this repository as a pilot template. Before adopting it across teams, adapt these boundaries to the company’s API portfolio and engineering standards:
+
+| Area | Current example | Adoption step |
+|---|---|---|
+| API coverage | One Product lookup and one in-memory Order lifecycle | Pilot with representative APIs, including authentication, errors, pagination, versioning, and downstream failure modes. |
+| Consumer ownership | Provider OAS generates the Smart Mock; no consumer-owned CDC artifact | Add a versioned contract per consumer and a provider verification flow if teams need CDC guarantees. |
+| Validators | Each language uses a different validator; the C# adapter covers this demo’s status, JSON media type, schema, and local references | Agree a supported OAS feature matrix and test each language against it. Use the shared Spectral, Specmatic, and Schemathesis gates for contract-wide checks. |
+| Runtime state | Order data is in memory, scoped to one app instance, and lost on restart | Use isolated test data and a service-backed store for tests that need persistence, parallel environments, or multi-instance behavior. |
+| Runtime versions | CI tests one centrally pinned toolchain | Align pins with approved company versions and add compatibility jobs for the runtimes teams support. |
+| CI cost | The full run builds 11 local images and runs all client suites | Measure the full workflow in the target CI environment before making it a required check; use the CSV stage timings to tune parallelism and coverage. |
+| Merge governance | Workflows report checks; `main` does not currently require them | Require the contract and security checks in repository rules before using the template as a merge gate. |
+
+The Order service remains a stateful test fixture, not a production implementation. Its in-memory store isolates each server instance but does not provide persistence or coordination between replicas. The pinned toolchain is a tested reference set, not a promise of compatibility with every company runtime.
+
+For a multi-team rollout, assign an accountable owner to each API boundary instead of routing all contract changes through a central test team. Providers version and verify their specifications; consumers own separate CDC contracts when their integration needs require them. Share approved templates and CI policies while letting each service choose its test environment and supported runtime matrix.
 
 ## Contracts
 
@@ -114,7 +138,7 @@ OpenAPI describes HTTP operations and payloads such as JSON and XML. AsyncAPI de
 |---|---|---|
 | Specifications | Define each API boundary and examples; one OAS for HTTP and AsyncAPI for events | `openapi/`, `demo/`, `contracts/events/` |
 | Demo services | Implement Product, Order, and WireMock-backed Inventory examples | `demo/` |
-| Native clients | Encapsulate HTTP calls; validators check OAS conformance and tests assert API behavior | `clients/` |
+| Native clients | Encapsulate HTTP calls; language validators check exercised responses and tests assert behavior | `clients/` |
 | Orchestration | Compose pipeline stages, containers, network, and cleanup | `pipeline/run.mjs` |
 | Shared configuration | Parse and validate required runtime pins before container startup | `pipeline/config.mjs`, `.github/versions.env` |
 | Quality checks | Validate contracts, project wiring, security, and dependencies | `gates/`, `evals/`, `.github/workflows/` |
@@ -131,8 +155,8 @@ Use these terms consistently across the contracts, tests, and pipeline:
 | AsyncAPI | Specification for event-driven interfaces such as Kafka and WebSocket messages. |
 | Specification | Machine-readable interface definition, such as OAS or AsyncAPI. |
 | Contract | The agreed interface behavior expressed by its specification. |
-| Provider contract test | Specmatic sends contract-derived requests to the running Product API. |
-| Consumer contract test | JavaScript and Playwright consumer tests check expected responses from a Specmatic Smart Mock generated from the Product OAS. |
+| Provider contract verification | Specmatic sends contract-derived requests to the running Product API. |
+| Consumer mock check (not CDC) | JavaScript and Playwright tests check expected responses from a Specmatic Smart Mock generated from the provider OAS. |
 | Smart Mock | Specmatic server that returns responses defined by the provider's contract and examples. |
 | API integration test | A native suite calls a running application, validates status, media type, and schema, then asserts behavior. |
 | Schema validation | Checks response shape and declared media type; it does not replace behavior assertions. |
@@ -140,14 +164,14 @@ Use these terms consistently across the contracts, tests, and pipeline:
 | Stateful testing | Linked operations share returned data; Order tests follow create, read, confirm, delete, then 404. |
 | Quality gate | A CI check that reports whether a change meets a stated requirement; merge enforcement is configured separately. |
 
-The provider and consumer tests share the Product OAS but target different systems. API integration suites exercise live services. Consumers use the provider OAS; this project does not publish a separate CDC artifact.
+Provider verification and consumer mock checks share the Product OAS but target different systems. The mock check helps a consumer develop against the provider’s declared interface; it does not establish consumer-driven expectations because this project has no consumer-owned contract artifact. API integration suites exercise live services.
 
 ### Contract-based testing
 
 | Role | Implementation | Target |
 |---|---|---|
 | Provider | Specmatic provider verification | Live Product API, app:8080 |
-| Consumer | JavaScript and Playwright tests | Specmatic Smart Mock, specmatic-mock:9000 |
+| Consumer mock check | JavaScript and Playwright tests | Specmatic Smart Mock, specmatic-mock:9000 |
 
 ### API integration testing
 
@@ -165,7 +189,7 @@ See the [client guide](clients/README.md) for test entry points, validators, mig
 
 ## Fuzzing and mock data
 
-Stateless Schemathesis fuzzing sends independent Product API requests. Only the unavailable-inventory lookup allows the documented 502. Stateful Schemathesis follows linked Order operations and reuses returned IDs; the Order service starts empty per run.
+Stateless Schemathesis fuzzing sends independent Product API requests. Only the unavailable-inventory lookup allows the documented 502. Stateful Schemathesis follows linked Order operations and reuses returned IDs; each Order app instance starts with empty, in-memory state.
 
 Specmatic mock data uses OAS examples, fixtures in `demo/openapi_examples`, and values in `demo/openapi_dictionary.yaml`. Repository evaluations check fixture responses and dictionary fallbacks. Keep sample data deterministic and review changes before committing.
 
@@ -174,15 +198,15 @@ Specmatic mock data uses OAS examples, fixtures in `demo/openapi_examples`, and 
 | Gate | Check | Workflow |
 |---|---|---|
 | Contract quality | Spectral lint and OAS compatibility | `contract.yml` |
-| API behavior | Specmatic provider and consumer checks, WireMock, Schemathesis, and native integration suites | `contract.yml` |
+| API behavior | Specmatic provider verification and consumer mock checks, WireMock, Schemathesis, and native integration suites | `contract.yml` |
 | Project consistency | Repository evaluations check links, structure, test roles, workflows, and roadmap | `contract.yml` |
 | Source and dependencies | CodeQL, Gitleaks, Trivy filesystem scan, Dependency Review, and Dependabot | `security.yml` |
 | Container images | Trivy scans for the app, WireMock, and Specmatic | `contract.yml` |
-| GenAI code | SecureAI-Scan for JavaScript, TypeScript, and Python; Semgrep positive-control rules for Rust, Go, Java, and C# | `security.yml` |
+| GenAI code | SecureAI-Scan scans repository source; manual positive controls demonstrate SecureAI-Scan and Semgrep rules | `security.yml` |
 
 Dependabot checks package manifests weekly. Contract CI runs on pushes, pull requests, and manual dispatch. Security CI runs on pushes to `main`, pull requests, a weekly schedule, and manual dispatch. See the [interactive workflow map](https://shoman2020.github.io/oas-polycontract/#workflows).
 
-The [OWASP SecureAI-Scan](https://genai.owasp.org/solution/secureai-scan/) gate checks AI, LLM, and MCP source. This project has no runtime AI or MCP integration, so CI also runs an isolated positive-control example: the [example script](gates/security/run-genai-example.mjs) creates a temporary TypeScript chat handler with user input in a system prompt, runs the `AI001` rule, checks that the finding crosses the configured high threshold, and records the result in the job summary. The generated SARIF is saved as the `secureai-genai-example` workflow artifact. The temporary source is removed before the full repository scan.
+The [OWASP SecureAI-Scan](https://genai.owasp.org/solution/secureai-scan/) gate scans repository source for AI, LLM, and MCP risks. This project has no runtime AI or MCP integration. Manual `workflow_dispatch` runs can also execute isolated positive controls: the [SecureAI example](gates/security/run-genai-example.mjs) creates a temporary TypeScript chat handler with user input in a system prompt, checks for the expected high `AI001` finding, and saves its SARIF artifact. The temporary source is removed before the repository scan. Manual-only fixtures keep demonstration code out of routine pull-request scans.
 
 The verified example result is `HIGH AI001 — Prompt injection via user input`. SecureAI-Scan exits with code 1 at `--fail-on high`; the wrapper reports success only after confirming the SARIF contains `AI001`.
 
@@ -205,7 +229,7 @@ npx --yes "secureai-scan@$SECUREAI_SCAN_VERSION" scan clients/ts --fail-on high
 npx --yes "secureai-scan@$SECUREAI_SCAN_VERSION" scan clients/python --fail-on high
 ```
 
-For Rust, Go, Java, and C#, the security workflow runs project-owned Semgrep taint rules against temporary prompt-injection examples. Each rule checks whether request prompt data flows into a system-message constructor. These are focused examples, not a universal GenAI ruleset; adapt the source and sink patterns to the AI SDK and request model in your application. Semgrep's language support includes all four languages, and its taint rules define sources and sinks explicitly ([language support](https://semgrep.dev/products/integrations/), [taint analysis](https://semgrep.dev/docs/writing-rules/data-flow/taint-mode/)).
+For Rust, Go, Java, and C#, manual `workflow_dispatch` runs can execute project-owned Semgrep taint rules against temporary prompt-injection examples. Each rule checks whether request prompt data flows into a system-message constructor. These focused examples are not a universal GenAI ruleset; adapt source and sink patterns to the AI SDK and request model in your application. Semgrep's language support includes all four languages, and its taint rules define sources and sinks explicitly ([language support](https://semgrep.dev/products/integrations/), [taint analysis](https://semgrep.dev/docs/writing-rules/data-flow/taint-mode/)).
 
 | Language | GenAI-specific check | General source analysis |
 |---|---|---|
@@ -217,7 +241,7 @@ For Rust, Go, Java, and C#, the security workflow runs project-owned Semgrep tai
 | Java | Semgrep `genai-untrusted-system-prompt-java` | CodeQL `java-kotlin` |
 | C# | Semgrep `genai-untrusted-system-prompt-csharp` | CodeQL `csharp` |
 
-The Rust, Go, Java, and C# examples are generated temporarily by [run-language-genai-example.mjs](gates/security/run-language-genai-example.mjs). The CI job verifies four findings and stores the SARIF report as the `semgrep-genai-language-examples` artifact. The custom rules are in [semgrep-genai.yml](gates/security/semgrep-genai.yml). Run them locally with Docker and the pinned Semgrep image:
+The Rust, Go, Java, and C# examples are generated temporarily by [run-language-genai-example.mjs](gates/security/run-language-genai-example.mjs). A manual workflow verifies four findings and stores the SARIF report as the `semgrep-genai-language-examples` artifact. The custom rules are in [semgrep-genai.yml](gates/security/semgrep-genai.yml). Run them locally with Docker and the pinned Semgrep image:
 
 ```sh
 source .github/versions.env
@@ -229,7 +253,7 @@ SecureAI-Scan and Semgrep versions are in `.github/versions.env`.
 
 ## Performance
 
-Each contract run reports stage timings and uploads a CSV artifact. The previous five-sample runner measured a **304s cold total** and **201s warm median** (200–205s range); cached build time fell from 91s to 2s. These are pre-Testcontainers reference figures, not an SLA. The Testcontainers workflow passed in [run 44325433591](https://github.com/shoman2020/oas-polycontract/actions/runs/44325433591). Rerun the manual benchmark on Ubuntu 24.04 and 26.04 before comparing performance. See the [previous benchmark](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941), [performance view](https://shoman2020.github.io/oas-polycontract/#performance), and [Phase 12](ROADMAP.md#phase-12--performance-baseline).
+Each contract run reports stage timings and uploads a CSV artifact. The last five-sample baseline measured **304s cold** and **201s warm median** (200–205s range), with cached build time falling from 91s to 2s. This baseline predates the Testcontainers migration; it is not comparable to current runs or an SLA. Run the manual performance benchmark on Ubuntu 24.04/26.04 and record the new results before making performance claims. See the [previous baseline](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941), [performance view](https://shoman2020.github.io/oas-polycontract/#performance), and [Phase 12](ROADMAP.md#phase-12--performance-baseline).
 
 ## Project structure
 
