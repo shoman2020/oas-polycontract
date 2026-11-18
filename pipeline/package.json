@@ -11,5 +11,8 @@
   },
   "devDependencies": {
     "testcontainers": "12.2.1"
+  },
+  "overrides": {
+    "glob": "14.0.6"
   }
 }
