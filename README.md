@@ -94,7 +94,7 @@ bash ./run.sh
 
 `run.sh` checks the pinned Node.js/npm versions, installs the locked pipeline dependency, and starts an isolated Testcontainers network. It runs repository evaluations and contract gates, builds 11 local images for the demo services and client suites, starts the APIs, executes Specmatic/WireMock examples, fuzzing and API suites, then stops the containers and network. Task containers receive only needed contract or fixture paths as read-only mounts. Use Docker Desktop or Colima on macOS, or Docker Desktop with WSL/Git Bash on Windows. CI uses Ubuntu.
 
-Last confirmed main workflow checks before these adoption updates, 18 Nov 2026: [contract run 44343691774 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44343691774) and [security run 44343691576 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44343691576). The contract workflow publishes stage timings as a CSV artifact.
+The enterprise adoption implementation in [commit 2fe49dc](https://github.com/shoman2020/oas-polycontract/commit/2fe49dc8e897c1b53acb985c4758cd255f44d31e) passed [contract run 44349546211](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546211) and [security run 44349546212](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546212) on 18 Nov 2026. The contract workflow publishes stage timings as a CSV artifact.
 
 The default runs all seven native language suites. For a focused local run, select a comma-separated subset; JavaScript and Playwright remain available for consumer mock checks:
 
