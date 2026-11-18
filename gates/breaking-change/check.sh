@@ -7,9 +7,9 @@
 #
 # Diffs the candidate spec (default: openapi/openapi.yaml) against the
 # pinned openapi/openapi.base.yaml and exits non-zero if oasdiff finds a
-# breaking change. Not yet wired into run.sh or CI, and not yet run here —
-# this sandbox has neither the oasdiff binary nor network access to fetch
-# it. See ROADMAP.md Phase 2.
+# breaking change. This is a manual/local convenience and requires a local
+# oasdiff binary. Contract CI runs the same check through runOasDiff() in
+# pipeline/run.mjs using the pinned oasdiff container.
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
