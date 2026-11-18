@@ -97,7 +97,7 @@ function verifyReport(sarif) {
   for (const example of examples) {
     const suffix = `${example.language}/${example.filename}`;
     const matches = findings.filter(({ ruleId, uri }) =>
-      ruleId === example.rule && uri.endsWith(suffix),
+      (ruleId === example.rule || ruleId.endsWith(`.${example.rule}`)) && uri.endsWith(suffix),
     );
     if (matches.length !== 1) {
       const actual = findings.map(({ ruleId, uri, line }) => `${ruleId} at ${uri}:${line ?? '?'}`).join('; ');
