@@ -1,61 +1,38 @@
-# Client suites
+# Client test guide
 
-Seven native suites call the live Product and stateful Order APIs. Playwright adds APIRequestContext coverage. Each response is validated against the reviewed OAS.
+This guide lists the native runners, validators, and test entry points. The project's canonical [testing model and terminology](../README.md#testing-model-and-terminology) explains the distinction between provider contract tests, consumer contract tests, and API integration tests.
 
-Run all examples with `bash ./run.sh`. Testcontainers coordinates the local containers; Docker Compose is not required. CI uses the same entry point.
+Run all suites with `bash ./run.sh`. The Node.js Testcontainers runner starts the Product API, Order API, WireMock, and Specmatic Smart Mock on a private network. A Docker-compatible runtime is required; Docker Compose is not.
 
-## Contract-based testing
+## Native stacks
 
-| Test | Source | Target |
-|---|---|---|
-| Provider contract-based test | Specmatic provider verification | Live Product API at app:8080 |
-| Consumer contract-based test | JavaScript and Playwright consumer suites | Specmatic Smart Mock at specmatic-mock:9000 |
+| Language | Test runner | HTTP client | OAS response validator |
+|---|---|---|---|
+| Rust | cargo test | reqwest | jsonschema |
+| Go | go test | net/http | kin-openapi |
+| Python | pytest | Requests | openapi-core |
+| JavaScript | node:test | Fetch | @oaverify/core |
+| TypeScript | Vitest | Fetch | @oaverify/core |
+| Java | JUnit | REST Assured | OpenAPI validator |
+| C# | xUnit | HttpClient | NJsonSchema |
+| Playwright | Playwright Test | APIRequestContext | @oaverify/core; Product API only |
 
-Consumers check client expectations against responses generated from the provider OAS; they do not publish a separate CDC contract.
+## Test entry points
 
-## API integration testing
-
-These suites call live services, validate status, media type, and response schema, then check behavior.
-
-| Test | Source | Target |
-|---|---|---|
-| Product API integration test | Seven native suites and Playwright | Live Product API |
-| Stateful API integration test | Seven native suites | Order API lifecycle: create, read, confirm, delete, verify 404 |
-| Downstream service integration test | WireMock integration suite | Product API and WireMock request journal |
-
-## Manual debugging and collection migration
-
-[Postman](../legacy/postman/oas-polycontract.postman_collection.json) and [Bruno](../legacy/bruno/) collections follow the Product and Order OAS for interactive debugging and legacy migration. CI uses Specmatic for provider and consumer contract checks, plus Schemathesis, WireMock, and code-based integration suites. See [legacy/README.md](../legacy/README.md) for local setup.
-
-| Language | Test runner and OAS validator |
-|---|---|
-| Rust | cargo test, reqwest, and jsonschema |
-| Go | go test, net/http, and kin-openapi |
-| Python | pytest, Requests, and openapi-core |
-| JavaScript | node:test, Fetch, and @oaverify/core |
-| TypeScript | Vitest, Fetch, and @oaverify/core |
-| Java | JUnit, REST Assured, and OpenAPI validator |
-| C# | xUnit, HttpClient, and NJsonSchema |
-| Playwright | Playwright Test, APIRequestContext, and @oaverify/core; Product API only |
-
-## Test files
-
-| Role | Implemented source |
+| Test role | Implemented source |
 |---|---|
 | Consumer contract | [JavaScript](js/consumer-contract.test.mjs), [Playwright](playwright/consumer-contract.spec.mjs) |
 | Product API integration | [Rust](rust/tests/api_integration_test.rs), [Go](go/product_api_integration_test.go), [Python](python/test_product_api_integration.py), [JavaScript](js/product-api-integration.test.mjs), [TypeScript](ts/product-api-integration.test.ts), [Java](java/src/test/java/nl/shiftleft/ProductApiIntegrationTest.java), [C#](csharp/ProductApiIntegrationTests.cs), [Playwright](playwright/product-api-integration.spec.mjs) |
-| Stateful API integration | [Rust](rust/tests/api_integration_test.rs), [Go](go/stateful_order_api_integration_test.go), [Python](python/test_stateful_order_api_integration.py), [JavaScript](js/stateful-order-api-integration.test.mjs), [TypeScript](ts/stateful-order-api-integration.test.ts), [Java](java/src/test/java/nl/shiftleft/StatefulOrderApiIntegrationTest.java), [C#](csharp/StatefulOrderApiIntegrationTests.cs) |
+| Stateful Order integration | [Rust](rust/tests/api_integration_test.rs), [Go](go/stateful_order_api_integration_test.go), [Python](python/test_stateful_order_api_integration.py), [JavaScript](js/stateful-order-api-integration.test.mjs), [TypeScript](ts/stateful-order-api-integration.test.ts), [Java](java/src/test/java/nl/shiftleft/StatefulOrderApiIntegrationTest.java), [C#](csharp/StatefulOrderApiIntegrationTests.cs) |
 
-Product tests call `GET /products/demo-sku`; native suites also run the linked Order lifecycle. The Product API is GET-only, and Order state is isolated per run. The downstream suite checks the WireMock journal. Smart Mock examples and dictionary fallbacks use deterministic evaluations.
+Product tests call `GET /products/demo-sku`. Native suites also run the linked Order lifecycle; each pipeline run starts with empty Order state. The downstream integration test verifies the WireMock request journal. Consumer tests and mock-data evaluations use deterministic Smart Mock responses.
 
-## Migration and design
+## Migrating request collections
 
-1. Group requests by API boundary; remove secrets.
-2. Review OAS operations, status codes, media types, and schemas.
-3. Move setup, auth, and chaining into native helpers.
-4. Keep schema checks in validators and behavior checks in tests.
+1. Group requests by API boundary and remove credentials.
+2. Compare methods, paths, parameters, media types, and schemas with the matching OAS.
+3. Move reusable setup, authentication, and request chaining into a native API client.
+4. Keep response schema validation in the validator and business assertions in tests.
 5. Run `bash ./run.sh`.
 
-Keep a small API client for base URLs, requests, and timeouts. Separate schema validation from business assertions. Use native structs, dataclasses, or classes. Page Object Model is for browser UI; these are API tests.
-
-CI also checks committed Rust, Go, and NuGet locks. Each native suite validates live API responses against its contract before checking business behavior.
+Use a small client object for base URLs, requests, and timeouts. Use language-native types and tests. Page Object Model applies to browser UI tests; these examples use Playwright's APIRequestContext, so they do not need page objects. Postman and Bruno remain available for manual debugging; see [legacy collection setup](../legacy/README.md).

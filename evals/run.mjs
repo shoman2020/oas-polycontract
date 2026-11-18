@@ -55,6 +55,40 @@ function checkReadmeTree() {
   return paths.length;
 }
 
+function checkArchitectureMap() {
+  const readme = readRepositoryFile('README.md');
+  const start = readme.indexOf('## Architecture');
+  const end = start < 0 ? -1 : readme.indexOf('\n## ', start + '## Architecture'.length);
+  if (start < 0 || end < 0) {
+    failures.push('architecture-map: README architecture section was not found');
+    return 0;
+  }
+  const architecture = readme.slice(start, end);
+
+  const layers = [
+    ['Specifications', '`openapi/`, `demo/`, `contracts/events/`'],
+    ['Demo services', '`demo/`'],
+    ['Native clients', '`clients/`'],
+    ['Orchestration', '`pipeline/run.mjs`'],
+    ['Shared configuration', '`pipeline/config.mjs`, `.github/versions.env`'],
+    ['Quality checks', '`gates/`, `evals/`, `.github/workflows/`'],
+  ];
+  for (const [layer, source] of layers) {
+    if (!architecture.includes(`| ${layer} |`) || !architecture.includes(source)) {
+      failures.push(`architecture-map: README does not map ${layer} to ${source}`);
+    }
+  }
+
+  const config = readRepositoryFile('pipeline/config.mjs');
+  const runner = readRepositoryFile('pipeline/run.mjs');
+  if (!config.includes('export function parseVersionPins')
+      || !config.includes('export function readVersionPins')
+      || !runner.includes('readVersionPins(')) {
+    failures.push('architecture-map: runtime pin parsing is not separated from pipeline orchestration');
+  }
+  return layers.length;
+}
+
 function checkFilesExist(paths, checkId) {
   for (const path of paths) assertRepositoryPath(path, checkId);
   return paths.length;
@@ -192,12 +226,19 @@ function checkTestRoleMap() {
   const runner = readRepositoryFile('run.sh');
   const playwrightPackage = readRepositoryFile('clients/playwright/package.json');
   const schemathesisConfig = readRepositoryFile('demo/schemathesis.toml');
-  const documentedRoles = [
-    'Provider contract-based test',
-    'Consumer contract-based test',
-    'Product API integration test',
-    'Stateful API integration test',
-    'Downstream service integration test',
+  const documentedTerms = [
+    'OAS',
+    'AsyncAPI',
+    'Specification',
+    'Contract',
+    'Provider contract test',
+    'Consumer contract test',
+    'Smart Mock',
+    'API integration test',
+    'Schema validation',
+    'Stateless fuzzing',
+    'Stateful testing',
+    'Quality gate',
   ];
   const targets = [
     "'--testBaseURL=http://app:8080'",
@@ -216,10 +257,7 @@ function checkTestRoleMap() {
     'specmatic-mock:9000',
     'stateful-app:8082',
   ];
-  const documentedSections = [
-    { readme: '### Contract-based testing', clientGuide: '## Contract-based testing' },
-    { readme: '### API integration testing', clientGuide: '## API integration testing' },
-  ];
+  const documentedSections = ['### Contract-based testing', '### API integration testing'];
   const clientTestSources = [
     'js/consumer-contract.test.mjs',
     'playwright/consumer-contract.spec.mjs',
@@ -243,13 +281,14 @@ function checkTestRoleMap() {
     'JavaScript consumer contract tests',
     'Playwright consumer contract tests',
   ];
-  for (const role of documentedRoles) {
-    if (!readme.includes(role)) failures.push(`test-role-map: README omits ${role}`);
-    if (!clientGuide.includes(role)) failures.push(`test-role-map: client guide omits ${role}`);
+  for (const term of documentedTerms) {
+    if (!readme.includes(`| ${term} |`)) failures.push(`test-role-map: README glossary omits ${term}`);
   }
   for (const section of documentedSections) {
-    if (!readme.includes(section.readme)) failures.push(`test-role-map: README omits the ${section.readme} section`);
-    if (!clientGuide.includes(section.clientGuide)) failures.push(`test-role-map: client guide omits the ${section.clientGuide} section`);
+    if (!readme.includes(section)) failures.push(`test-role-map: README omits the ${section} section`);
+  }
+  if (!clientGuide.includes('../README.md#testing-model-and-terminology')) {
+    failures.push('test-role-map: client guide must link to the canonical testing model');
   }
   for (const source of clientTestSources) {
     if (!clientGuide.includes(`(${source})`)) failures.push(`test-role-map: client guide does not link the implemented test source ${source}`);
@@ -270,7 +309,7 @@ function checkTestRoleMap() {
   for (const label of visualLabels) {
     if (!showcase.includes(label)) failures.push(`test-role-map: interactive overview omits ${label}`);
   }
-  return documentedRoles.length + targets.length + visualLabels.length + documentedSections.length + clientTestSources.length + testCommands.length;
+  return documentedTerms.length + targets.length + visualLabels.length + documentedSections.length + clientTestSources.length + testCommands.length;
 }
 
 function checkPipelineTasks(tasks) {
@@ -315,6 +354,8 @@ function checkDependencyLocks() {
   const pipelinePackage = JSON.parse(readRepositoryFile('pipeline/package.json'));
   const pipelineLock = JSON.parse(readRepositoryFile('pipeline/package-lock.json'));
   const pipeline = readRepositoryFile('pipeline/run.mjs');
+  const clientBuildArgs = [...pipeline.matchAll(/args: \[([^\]]+)\]/g)]
+    .flatMap(([, args]) => [...args.matchAll(/'([A-Z][A-Z0-9_]*)'/g)].map(([, key]) => key));
   const required = [
     [cargoLock.includes('version = 4') && cargoLock.includes('name = "reqwest"\nversion = "0.13.5"'), 'Rust lockfile must record reqwest 0.13.5'],
     [rustDockerfile.includes('cargo fetch --locked') && rustDockerfile.includes('"test", "--locked"'), 'Rust image must fetch and test with --locked'],
@@ -336,8 +377,9 @@ function checkDependencyLocks() {
     [tsDockerfile.indexOf('COPY --chown=node:node patches/') < tsDockerfile.indexOf('RUN npm ci'), 'TypeScript image must copy the dependency patch before npm ci'],
     [tsTests.includes('node --test security/picomatch-redos.check.mjs') && !tsTests.includes('picomatch-redos.test.mjs'), 'The Node-only Picomatch check must stay outside Vitest discovery'],
     [pipelinePackage.devDependencies?.testcontainers === pipelineLock.packages?.['node_modules/testcontainers']?.version, 'Testcontainers version must be exact and locked'],
+    [pipelinePackage.scripts?.test === 'node --test config.test.mjs' && pipeline.includes("readVersionPins(") && readRepositoryFile('run.sh').includes('npm --prefix pipeline test'), 'The local runner must test strict, required version-pin parsing before starting containers'],
     [/^TESTCONTAINERS_RYUK_VERSION=\S+$/m.test(versions) && pipeline.includes('versions.TESTCONTAINERS_RYUK_VERSION'), 'Ryuk version must come from the shared versions file'],
-    [pipeline.includes("args.map((key) => [key, versions[key]])") && pipeline.includes("'NPM_VERSION'"), 'Container build arguments must use shared version pins'],
+    [pipeline.includes('...new Set(clientImages.flatMap(({ args }) => args))') && clientBuildArgs.includes('NPM_VERSION') && pipeline.includes('args.map((key) => [key, versions[key]])'), 'Required client runtime pins must derive from the image build matrix and use the shared versions file'],
     [readRepositoryFile('run.sh').includes('npm ci --prefix pipeline'), 'The shared runner must install the locked Testcontainers dependency'],
   ];
   for (const [passed, message] of required) if (!passed) failures.push(`dependency-locks: ${message}`);
@@ -374,7 +416,7 @@ function checkWorkflowVisuals() {
     },
     {
       path: '.github/workflows/security.yml',
-      markers: ['branches: [main]', 'pull_request:', 'workflow_dispatch:', 'schedule:', 'gitleaks/gitleaks-action', 'scan-type: fs', 'scanners: vuln,misconfig', 'dependency-review-action', 'name: OWASP GenAI scan', 'secureai-scan@', '--fail-on high', 'upload-sarif@'],
+      markers: ['branches: [main]', 'pull_request:', 'workflow_dispatch:', 'schedule:', 'gitleaks/gitleaks-action', 'scan-type: fs', 'scanners: vuln,misconfig', 'dependency-review-action', 'name: OWASP GenAI scan', 'Demonstrate a detected OWASP GenAI risk', 'run-genai-example.mjs', 'secureai-genai-example', 'secureai-scan@', '--fail-on high', 'upload-sarif@'],
     },
     {
       path: '.github/workflows/showcase.yml',
@@ -391,7 +433,11 @@ function checkWorkflowVisuals() {
   ];
   const workflowNames = ['contract.yml', 'security.yml', 'showcase.yml', 'performance.yml'];
   const concepts = ['Dependency Review', 'Dependabot', 'Trivy image scans', 'OWASP GenAI scan', 'SecureAI-Scan'];
-  const readmeTriggers = ['Push to any branch', 'Push to main', 'Pull request', 'Weekly schedule', 'Manual workflow dispatch', 'manual benchmark'];
+  const readmeTriggers = [
+    'Contract CI runs on pushes, pull requests, and manual dispatch.',
+    'Security CI runs on pushes to `main`, pull requests, a weekly schedule, and manual dispatch.',
+    'manual benchmark',
+  ];
   const showcaseTriggers = ['Push · pull request · manual run', 'Main push · pull request · weekly · manual', 'Main push to showcase files · manual run', 'Manual benchmark · Ubuntu 24.04 and 26.04'];
 
   for (const path of workflowFiles) assertRepositoryPath(path, 'workflow-visuals');
@@ -485,6 +531,13 @@ function checkWorkflowVisuals() {
   if (!/^SECUREAI_SCAN_VERSION=\S+$/m.test(readRepositoryFile('.github/versions.env'))) {
     failures.push('workflow-visuals: SecureAI-Scan version is not pinned');
   }
+  const genaiExample = readRepositoryFile('gates/security/run-genai-example.mjs');
+  for (const marker of ['SECUREAI_SCAN_VERSION', "'AI001'", "'--fail-on'", "'high'", 'GITHUB_STEP_SUMMARY']) {
+    if (!genaiExample.includes(marker)) failures.push(`workflow-visuals: GenAI example omits ${marker}`);
+  }
+  if (!readme.includes('## Quality gates') || !readme.includes('HIGH AI001')) {
+    failures.push('workflow-visuals: README must document the quality gates and verified GenAI result');
+  }
   const sceneCount = [...showcase.matchAll(/<section class="scene"/g)].length;
   const laneCount = [...showcase.matchAll(/class="workflow-lane"/g)].length;
   const testFlowLaneCount = [...showcase.matchAll(/class="test-flow-lane"/g)].length;
@@ -502,6 +555,7 @@ function checkWorkflowVisuals() {
 const evaluators = {
   'readme-links': () => checkReadmeLinks(),
   'readme-tree': () => checkReadmeTree(),
+  'architecture-map': () => checkArchitectureMap(),
   'files-exist': (check) => checkFilesExist(check.paths, check.id),
   'test-role-map': () => checkTestRoleMap(),
   'mock-data-evaluations': (check) => checkMockDataEvaluations(check.file),

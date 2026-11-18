@@ -1,18 +1,10 @@
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readVersionPins } from './config.mjs';
 
 const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const versions = Object.fromEntries(
-  readFileSync(join(repositoryRoot, '.github/versions.env'), 'utf8')
-    .split(/\r?\n/)
-    .filter((line) => line && !line.startsWith('#'))
-    .map((line) => line.split(/=(.*)/s).slice(0, 2)),
-);
-
-process.env.RYUK_CONTAINER_IMAGE = `testcontainers/ryuk:${versions.TESTCONTAINERS_RYUK_VERSION}`;
-const { GenericContainer, Network, PullPolicy, Wait } = await import('testcontainers');
 
 const readOnlyMount = (path, target = `/repo/${path}`) => ({
   source: join(repositoryRoot, path),
@@ -51,6 +43,19 @@ const clientImages = [
   { key: 'java', context: 'clients/java', args: ['MAVEN_VERSION', 'JAVA_VERSION'] },
   { key: 'csharp', context: 'clients/csharp', args: ['DOTNET_VERSION'] },
 ];
+
+const versions = readVersionPins(join(repositoryRoot, '.github/versions.env'), [
+  'OASDIFF_VERSION',
+  'SCHEMATHESIS_VERSION',
+  'SPECMATIC_VERSION',
+  'SPECTRAL_VERSION',
+  'TESTCONTAINERS_RYUK_VERSION',
+  'WIREMOCK_VERSION',
+  ...new Set(clientImages.flatMap(({ args }) => args)),
+]);
+
+process.env.RYUK_CONTAINER_IMAGE = `testcontainers/ryuk:${versions.TESTCONTAINERS_RYUK_VERSION}`;
+const { GenericContainer, Network, PullPolicy, Wait } = await import('testcontainers');
 
 class ContractPipeline {
   constructor() {

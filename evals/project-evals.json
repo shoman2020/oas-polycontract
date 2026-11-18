@@ -12,6 +12,11 @@
       "type": "readme-tree"
     },
     {
+      "id": "architecture-map",
+      "description": "README architecture layers map to repository components, with configuration parsing separated from orchestration",
+      "type": "architecture-map"
+    },
+    {
       "id": "client-coverage",
       "description": "Each documented native language and Playwright role has test entry points",
       "type": "files-exist",
@@ -105,8 +110,8 @@
       "id": "roadmap-phases",
       "description": "Roadmap defines sequential phases and records the latest verified contract run",
       "type": "roadmap-phases",
-      "expectedPhases": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-      "verifiedRun": "44260518222"
+      "expectedPhases": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+      "verifiedRun": "44325433591"
     }
   ]
 }
