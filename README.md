@@ -24,8 +24,12 @@ flowchart LR
   ProviderTest --> ProductAPI[Live Product API]
   ProductOAS --> SmartMock[Specmatic Smart Mock]
   SmartMock --> ConsumerTests[JavaScript and Playwright consumer tests]
-  ProductOAS --> ProductTests[Native API suites, Playwright, and Schemathesis]
-  ProductTests --> ProductAPI
+  ProductOAS --> NativeSuites["Native API suites<br/>Rust: cargo test + reqwest + jsonschema<br/>Go: go test + net/http + kin-openapi<br/>Python: pytest + Requests + openapi-core<br/>JavaScript: node:test + Fetch + @oaverify/core<br/>TypeScript: Vitest + Fetch + @oaverify/core<br/>Java: JUnit + REST Assured + OpenAPI validator<br/>C#: xUnit + HttpClient + NJsonSchema"]
+  NativeSuites --> ProductAPI
+  ProductOAS --> Playwright[Playwright APIRequestContext + @oaverify/core]
+  Playwright --> ProductAPI
+  ProductOAS --> ProductFuzzing[Schemathesis stateless fuzzing]
+  ProductFuzzing --> ProductAPI
   OrderOAS[Order OAS] --> StatefulTests[Stateful Schemathesis and native suites]
   StatefulTests --> OrderAPI[Live Order API]
   ProductAPI --> WireMock[WireMock downstream]
@@ -33,6 +37,8 @@ flowchart LR
   Collections --> ProductAPI
   OrderOAS --> Collections
 ```
+
+Native suites are code-based API integration tests: they call the running API, validate responses against OAS, and assert behavior in each language's test framework. Specmatic separates contract roles: provider tests hit the live Product API, and consumer tests hit the Smart Mock. Schemathesis generates Product fuzz cases and stateful Order flows. Playwright uses APIRequestContext, not browser UI automation.
 
 ### CI workflow
 

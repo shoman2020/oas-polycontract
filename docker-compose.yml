@@ -1,13 +1,14 @@
 services:
   wiremock:
     image: oas-polycontract-wiremock:latest
+    pull_policy: build
     build:
       context: ./demo/wiremock
       args:
         WIREMOCK_VERSION: ${WIREMOCK_VERSION:?Set WIREMOCK_VERSION in .github/versions.env}
     command: ["--global-response-templating"]
     ports:
-      - "8081:8080"
+      - "127.0.0.1:8081:8080"
     volumes:
       - ./demo/downstream/wiremock:/home/wiremock:ro
     healthcheck:
@@ -19,6 +20,7 @@ services:
 
   app:
     image: oas-polycontract-app:latest
+    pull_policy: build
     build:
       context: ./demo/app
       args:
@@ -30,7 +32,7 @@ services:
       wiremock:
         condition: service_healthy
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     healthcheck:
       test:
         - CMD
@@ -60,6 +62,7 @@ services:
 
   project-evals:
     image: oas-polycontract-app:latest
+    pull_policy: never
     command: ["node", "/repo/evals/run.mjs"]
     working_dir: /repo
     volumes:
@@ -103,7 +106,7 @@ services:
     volumes:
       - ./demo:/usr/src/app
     ports:
-      - "9000:9000"
+      - "127.0.0.1:9000:9000"
     profiles: [mock]
 
   specmatic-mock-integration-test:
@@ -175,7 +178,7 @@ services:
     environment:
       PORT: "8082"
     ports:
-      - "8083:8082"
+      - "127.0.0.1:8083:8082"
     healthcheck:
       test:
         - CMD
@@ -265,6 +268,7 @@ services:
 
   js-api-integration-test:
     image: oas-polycontract-js:local
+    pull_policy: build
     build:
       context: ./clients/js
       args:
@@ -286,6 +290,7 @@ services:
 
   js-consumer-contract-test:
     image: oas-polycontract-js:local
+    pull_policy: never
     command: ["npm", "run", "test:consumer"]
     environment:
       API_BASE_URL: http://specmatic-mock:9000
@@ -320,6 +325,7 @@ services:
 
   playwright-api-integration-test:
     image: oas-polycontract-playwright:local
+    pull_policy: build
     build:
       context: ./clients/playwright
       args:
@@ -337,6 +343,7 @@ services:
 
   playwright-consumer-contract-test:
     image: oas-polycontract-playwright:local
+    pull_policy: build
     build:
       context: ./clients/playwright
       args:
@@ -398,7 +405,7 @@ services:
     environment:
       SWAGGER_JSON: /spec/openapi.yaml
     ports:
-      - "8082:8080"
+      - "127.0.0.1:8082:8080"
     volumes:
       - ./openapi:/spec:ro
     profiles: [debug]
@@ -407,7 +414,7 @@ services:
     image: stoplight/prism:${PRISM_VERSION:?Set PRISM_VERSION in .github/versions.env}
     command: ["mock", "-h", "0.0.0.0", "/spec/openapi.yaml"]
     ports:
-      - "4010:4010"
+      - "127.0.0.1:4010:4010"
     volumes:
       - ./openapi:/spec:ro
     profiles: [debug]

@@ -288,6 +288,45 @@ function checkPipelineServices(services) {
   return services.length;
 }
 
+function checkComposePublicSafety() {
+  const composeLines = readRepositoryFile('docker-compose.yml').split(/\r?\n/);
+  const serviceBlocks = [];
+  for (let index = 0; index < composeLines.length; index += 1) {
+    const service = composeLines[index].match(/^  ([a-z0-9-]+):$/);
+    if (!service) continue;
+    let end = index + 1;
+    while (end < composeLines.length && !/^  [a-z0-9-]+:$/.test(composeLines[end])) end += 1;
+    serviceBlocks.push({ name: service[1], content: composeLines.slice(index + 1, end).join('\n') });
+    index = end - 1;
+  }
+
+  let checkedPorts = 0;
+  for (const { name, content } of serviceBlocks) {
+    const ports = content.match(/^    ports:\r?\n((?:      .*\r?\n?)*)/m)?.[1] ?? '';
+    for (const [, value] of ports.matchAll(/^\s+-\s+(.+?)\s*$/gm)) {
+      const mapping = value.trim().replace(/^['"]|['"]$/g, '');
+      if (!/^\d+:\d+$/.test(mapping) && !/^[^:]+:\d+:\d+$/.test(mapping)) {
+        failures.push(`compose-public-safety: ${name} has an unrecognized host port mapping: ${mapping}`);
+        continue;
+      }
+      checkedPorts += 1;
+      if (!/^127\.0\.0\.1:\d+:\d+$/.test(mapping)) {
+        failures.push(`compose-public-safety: ${name} publishes ${mapping} beyond loopback`);
+      }
+    }
+
+    if (!/image:\s+oas-polycontract-[^\s]+/.test(content)) continue;
+    const hasBuild = /^    build:$/m.test(content);
+    const expectedPolicy = hasBuild ? 'build' : 'never';
+    if (!new RegExp(`^    pull_policy: ${expectedPolicy}$`, 'm').test(content)) {
+      failures.push(`compose-public-safety: ${name} must use pull_policy: ${expectedPolicy} for its local image`);
+    }
+  }
+
+  if (checkedPorts === 0) failures.push('compose-public-safety: no host port bindings were checked');
+  return checkedPorts + serviceBlocks.length;
+}
+
 function checkDependencyLocks() {
   const cargoLock = readRepositoryFile('clients/rust/Cargo.lock');
   const goSum = readRepositoryFile('clients/go/go.sum');
@@ -472,6 +511,7 @@ const evaluators = {
   'mock-data-evaluations': (check) => checkMockDataEvaluations(check.file),
   'legacy-collections': () => checkLegacyCollections(),
   'pipeline-services': (check) => checkPipelineServices(check.services),
+  'compose-public-safety': () => checkComposePublicSafety(),
   'workflow-visuals': () => checkWorkflowVisuals(),
   'dependency-locks': () => checkDependencyLocks(),
   'roadmap-phases': (check) => checkRoadmapPhases(check.expectedPhases, check.verifiedRun),

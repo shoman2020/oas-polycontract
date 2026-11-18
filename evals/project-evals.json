@@ -79,6 +79,11 @@
       ]
     },
     {
+      "id": "compose-public-safety",
+      "description": "Demo ports bind to loopback and local images never pull from a registry",
+      "type": "compose-public-safety"
+    },
+    {
       "id": "performance-sampling",
       "description": "Manual workflow collects and summarizes five cold/warm pipeline samples",
       "type": "files-exist",
@@ -101,7 +106,7 @@
       "id": "roadmap-phases",
       "description": "Roadmap defines sequential phases and records the latest verified contract run",
       "type": "roadmap-phases",
-      "expectedPhases": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+      "expectedPhases": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
       "verifiedRun": "44256166253"
     }
   ]
