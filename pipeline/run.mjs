@@ -1,15 +1,19 @@
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readVersionPins } from './config.mjs';
 
 const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
-const versions = Object.fromEntries(
-  readFileSync(join(repositoryRoot, '.github/versions.env'), 'utf8')
-    .split(/\r?\n/)
-    .filter((line) => line && !line.startsWith('#'))
-    .map((line) => line.split(/=(.*)/s).slice(0, 2)),
-);
+const versions = readVersionPins(join(repositoryRoot, '.github/versions.env'), [
+  'NODE_VERSION',
+  'OASDIFF_VERSION',
+  'SCHEMATHESIS_VERSION',
+  'SPECMATIC_VERSION',
+  'SPECTRAL_VERSION',
+  'TESTCONTAINERS_RYUK_VERSION',
+  'WIREMOCK_VERSION',
+]);
 
 process.env.RYUK_CONTAINER_IMAGE = `testcontainers/ryuk:${versions.TESTCONTAINERS_RYUK_VERSION}`;
 const { GenericContainer, Network, PullPolicy, Wait } = await import('testcontainers');

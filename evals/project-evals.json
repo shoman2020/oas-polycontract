@@ -105,8 +105,8 @@
       "id": "roadmap-phases",
       "description": "Roadmap defines sequential phases and records the latest verified contract run",
       "type": "roadmap-phases",
-      "expectedPhases": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
-      "verifiedRun": "44260518222"
+      "expectedPhases": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+      "verifiedRun": "44271676192"
     }
   ]
 }
