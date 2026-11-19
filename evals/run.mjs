@@ -507,6 +507,7 @@ function checkApiBehavior() {
 
 function checkTestcontainersSafety() {
   const pipeline = readRepositoryFile('pipeline/run.mjs');
+  const clientSuite = readRepositoryFile('pipeline/client-suite.sh');
   const packageJson = JSON.parse(readRepositoryFile('pipeline/package.json'));
   const versionPins = readRepositoryFile('.github/versions.env');
   const javaProductTests = readRepositoryFile('clients/java/src/test/java/nl/shiftleft/ProductApiIntegrationTest.java');
