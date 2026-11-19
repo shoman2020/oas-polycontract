@@ -658,22 +658,32 @@ function checkWorkflowVisuals() {
         '  workflow_dispatch:',
         'group: contract-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event.pull_request.head.ref || github.ref_name }}',
         "cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}",
-        'actions/setup-node@',
-        'npm install --global npm@${NPM_VERSION}',
-        'NODE_TEST_IMAGE=$NODE_TEST_IMAGE',
-        'WIREMOCK_VERSION=$WIREMOCK_VERSION',
-        'WIREMOCK_RUNTIME_IMAGE=$WIREMOCK_RUNTIME_IMAGE',
-        'WIREMOCK_SHA256=$WIREMOCK_SHA256',
-        'bash -n run.sh pipeline/client-suite.sh',
-        'node --check pipeline/run.mjs',
-        'node --check evals/run.mjs',
+        'uses: ./.github/actions/prepare-contract-runner',
+        'POLYCONTRACT_PIPELINE_PROFILE: core',
+        'POLYCONTRACT_PIPELINE_PROFILE: native',
+        'needs: contract-examples',
+        'name: Native API suite (${{ matrix.client }})',
+        'client: [rust, go, python, js, ts, java, csharp, playwright]',
         'PIPELINE_TIMINGS_FILE:',
-        'pipeline-timings.csv',
-        'actions/upload-artifact@',
+        'pipeline-timings-core',
+        'pipeline-timings-${{ matrix.client }}',
         'bash ./run.sh',
         'image-ref: ${{ env.NODE_TEST_IMAGE }}:${{ env.NODE_VERSION }}-npm${{ env.NPM_VERSION }}',
         'image-ref: ${{ env.WIREMOCK_RUNTIME_IMAGE }}',
         'scan-ref: ${{ runner.temp }}/oas-polycontract/wiremock-standalone-${{ env.WIREMOCK_VERSION }}.jar',
+      ],
+    },
+    {
+      path: '.github/actions/prepare-contract-runner/action.yml',
+      markers: [
+        'source .github/versions.env',
+        'NODE_VERSION=$NODE_VERSION',
+        'NPM_VERSION=$NPM_VERSION',
+        'actions/setup-node@',
+        'npm install --global npm@${NPM_VERSION}',
+        'bash -n run.sh pipeline/client-suite.sh',
+        'node --check pipeline/run.mjs',
+        'node --check evals/run.mjs',
       ],
     },
     {
@@ -753,6 +763,22 @@ function checkWorkflowVisuals() {
   }
   if (!readme.includes('### CI workflow') || !readme.includes('```mermaid\nflowchart TB')) {
     failures.push('workflow-visuals: README CI workflow diagram is missing');
+  }
+  for (const flowElement of [
+    'CoreJob[Shared contract gate job]',
+    'CoreJob --> NativeMatrix[Per-stack native API suite matrix · waits for core]',
+    'NativeMatrix --> StackNetworks[One isolated Testcontainers network per stack]',
+    'StackSuites --> StackTimings[Per-stack timing artifacts]',
+  ]) {
+    if (!readme.includes(flowElement)) failures.push('workflow-visuals: README CI flow omits ' + flowElement);
+  }
+  for (const flowElement of [
+    'Core gates · <code>core</code> profile',
+    'Native API suite matrix',
+    'Each job starts Product, Order, and WireMock on its own Testcontainers network',
+    'Per-stack timing artifacts',
+  ]) {
+    if (!showcase.includes(flowElement)) failures.push('workflow-visuals: interactive CI flow omits ' + flowElement);
   }
   for (const link of [
     'https://github.com/shoman2020/oas-polycontract#flow-overview',

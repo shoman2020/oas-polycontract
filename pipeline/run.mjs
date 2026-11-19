@@ -22,7 +22,12 @@ const contractMounts = [
   readOnlyMount('gates/lint'),
 ];
 
-const nativeClientKeys = ['rust', 'go', 'python', 'js', 'ts', 'java', 'csharp'];
+const nativeClientKeys = ['rust', 'go', 'python', 'js', 'ts', 'java', 'csharp', 'playwright'];
+const pipelineProfile = (process.env.POLYCONTRACT_PIPELINE_PROFILE ?? 'full').trim().toLowerCase();
+const supportedPipelineProfiles = new Set(['full', 'core', 'native']);
+if (!supportedPipelineProfiles.has(pipelineProfile)) {
+  throw new Error(`Unsupported pipeline profile '${pipelineProfile}'; choose from ${[...supportedPipelineProfiles].join(', ')}`);
+}
 const selectedNativeClients = new Set(parseNativeClientSelection(process.env.POLYCONTRACT_NATIVE_CLIENTS, nativeClientKeys));
 
 const versions = readVersionPins(join(repositoryRoot, '.github/versions.env'), [
@@ -83,11 +88,14 @@ class ContractPipeline {
   }
 
   async run() {
-    const plan = [
+    const runtimeStages = [
       ['Testcontainers network', async () => {
         this.network = await new Network().start();
       }],
       ['Prepare pinned Node test runtime', () => this.prepareNodeTestImage()],
+    ];
+    const contractPlan = [
+      ...runtimeStages,
       ['Repository evaluations', () => this.runEvaluations()],
       ['API behavior unit tests', () => this.runServiceUnitTests()],
       ['Contract lint', () => this.runContractLint()],
@@ -100,12 +108,22 @@ class ContractPipeline {
       ['BDD acceptance features', () => this.runBddFeatures()],
       ['Consumer mock checks and evaluations', () => this.runConsumerTests()],
     ];
+    const nativePlan = [
+      ...runtimeStages,
+      ['Start API integration services', () => this.startApiIntegrationServices()],
+      ['Native API integration suites', () => this.runNativeSuites()],
+    ];
+    const plan = pipelineProfile === 'native'
+      ? nativePlan
+      : pipelineProfile === 'core'
+        ? contractPlan.filter(([name]) => name !== 'Native API integration suites')
+        : contractPlan;
     this.plannedStages = plan.map(([name]) => name);
 
     let failure;
     try {
       for (const [name, operation] of plan) await this.stage(name, operation);
-      console.log('==> Contract pipeline passed');
+      console.log(`==> Contract ${pipelineProfile} pipeline passed`);
     } catch (error) {
       failure = error;
       console.error(error);
@@ -502,6 +520,12 @@ class ContractPipeline {
     });
   }
 
+  async startApiIntegrationServices() {
+    await this.startWireMock();
+    await this.startProductApi();
+    await this.startStatefulApi();
+  }
+
   async runNativeSuites() {
     const commonEnvironment = {
       API_BASE_URL: 'http://app:8080',
@@ -522,7 +546,7 @@ class ContractPipeline {
     ];
 
     for (const [key, name] of suites) {
-      if (key !== 'playwright' && !selectedNativeClients.has(key)) continue;
+      if (!selectedNativeClients.has(key)) continue;
       const environment = {
         ...commonEnvironment,
         CLIENT_SUITE: key,

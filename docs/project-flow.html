@@ -139,27 +139,29 @@
         <section class="scene" id="pipeline" aria-labelledby="scene-title-3" hidden>
           <span class="eyebrow">03 · Pipeline</span>
           <h2 id="scene-title-3" tabindex="-1">One command runs the demonstration.</h2>
-          <p class="lead">Run <code>bash ./run.sh</code> locally or in Ubuntu CI. The Node.js Testcontainers runner checks repository wiring, runs contract gates, pulls pinned upstream runtimes, then starts services on a private network. OAS, fixtures, and client sources are read-only mounts; dependency and build output stays in temporary directories. Health checks gate API tests, and the runner removes containers and the network when the run ends.</p>
+          <p class="lead">Locally, <code>bash ./run.sh</code> runs the complete sequence. Contract CI runs shared <code>core</code> gates once, then starts a separate matrix job for each language stack and Playwright. Each matrix job uses the <code>native</code> profile and its own Testcontainers network for Product, Order, and WireMock. OAS, fixtures, and client sources are read-only mounts; the runner checks service health and cleans up containers and networks.</p>
           <div class="grid">
             <article class="card"><span class="tag">Contract gates</span><strong>Lint and compatibility</strong><p>Spectral checks OpenAPI and AsyncAPI; oasdiff checks the root contract against its baseline.</p></article>
-            <article class="card"><span class="tag">Container orchestration</span><strong>Testcontainers for Node.js</strong><p>A shared builder applies network, logging, mounts, and runtime options. Services use health checks; one-shot tasks use completion checks. The runner cleans up without publishing ports.</p></article>
+            <article class="card"><span class="tag">Container orchestration</span><strong>Testcontainers for Node.js</strong><p>A shared builder applies network, logging, mounts, and runtime options in each job. Services use health checks; one-shot tasks use completion checks. Every language job has its own network.</p></article>
             <article class="card"><span class="tag">API integration</span><strong>Native suites and Playwright</strong><p>Language suites call the Product API at <code>app:8080</code> and Order API at <code>stateful-app:8082</code>. See the framework box in the test-role map.</p></article>
           </div>
-          <div class="mini-flow"><span class="step"><b>Repository evaluations</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Service unit tests</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Contract and API gates</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>BDD acceptance features</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Trivy image scans</b></span></div>
-          <div class="note">For a focused local run, set <code>POLYCONTRACT_NATIVE_CLIENTS=rust,python</code>. CI leaves it unset and runs all seven native suites.</div>
+          <div class="mini-flow"><span class="step"><b>Shared core gates · once</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Per-stack CI matrix</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Independent Testcontainers networks and timing artifacts</b></span></div>
+          <div class="note">For a focused local run, set <code>POLYCONTRACT_NATIVE_CLIENTS=rust,python</code>. CI runs Rust, Go, Python, JavaScript, TypeScript, Java, C#, and Playwright as separate jobs after shared gates pass.</div>
         </section>
         <section class="scene" id="workflows" aria-labelledby="scene-title-4" hidden>
           <span class="eyebrow">04 · GitHub workflows</span>
           <h2 id="scene-title-4" tabindex="-1">Separate workflow triggers. Clear scan ownership.</h2>
-          <p class="lead">Contract, security, and showcase workflows run on their own triggers. Contract CI runs isolated service tests, feature-driven Cucumber acceptance tests, and native API suites. A manual performance workflow compares cold and warm pipeline runs on Ubuntu 24.04 and 26.04.</p>
+          <p class="lead">Contract CI runs shared specification and provider gates once, then starts an isolated native API job for each language stack and Playwright. Security and showcase checks keep separate triggers. A manual performance workflow compares cold and warm runs on Ubuntu 24.04 and 26.04.</p>
           <div class="workflow-map" role="group" aria-label="GitHub Actions workflow responsibilities">
             <section class="workflow-lane" aria-labelledby="workflow-contract">
               <h3 id="workflow-contract">contract.yml</h3>
               <p class="workflow-trigger">Push · pull request · manual run</p>
               <div class="workflow-chain">
-                <div class="workflow-step"><strong>run.sh · Testcontainers</strong><br>Node.js runner pulls pinned runtimes and creates an isolated network</div>
-                <div class="workflow-step"><strong>Evaluations and gates</strong><br>Repository checks, Spectral, oasdiff, contract tests, and fuzzing</div>
-                <div class="workflow-step"><strong>Trivy image scans</strong><br>App, WireMock, and Specmatic images</div>
+                <div class="workflow-step"><strong>Core gates · <code>core</code> profile</strong><br>Evaluations, service tests, Spectral, oasdiff, canaries, provider checks, fuzzing, Cucumber, and consumer mock checks run once</div>
+                <div class="workflow-step"><strong>Shared runtime scans</strong><br>Trivy scans the app, WireMock, and Specmatic images</div>
+                <div class="workflow-step"><strong>Native API suite matrix</strong><br>Seven language stacks and Playwright run in separate jobs after the core gates pass</div>
+                <div class="workflow-step"><strong>Isolated stack runs</strong><br>Each job starts Product, Order, and WireMock on its own Testcontainers network</div>
+                <div class="workflow-step"><strong>Per-stack timing artifacts</strong><br>Compare stage duration by language and test framework</div>
               </div>
             </section>
             <section class="workflow-lane" aria-labelledby="workflow-security">

@@ -7,7 +7,7 @@ One reviewed specification contract per API boundary. Clear ownership means less
 | Area | Delivered | Remaining |
 |---|---|---|
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | Runtime event tests need a provider or broker |
-| Tests | Specmatic provider verification, consumer development against a provider Smart Mock, WireMock, stateful and stateless fuzzing, negative canaries, seven-language error-path suites driven by shared Gherkin data, and isolated service unit tests; [Testcontainers contract run 44563995399 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44563995399) | Pilot against representative company APIs |
+| Tests | Specmatic provider verification, consumer development against a provider Smart Mock, WireMock, stateful and stateless fuzzing, negative canaries, seven-language error-path suites driven by shared Gherkin data, and isolated service unit tests; [contract run 44565579793 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44565579793) | Pilot against representative company APIs |
 | Legacy migration | Project-specific Postman and Bruno collections follow Product and Order OAS | Import team-owned history if teams provide their collections |
 | Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, and SecureAI-Scan; [adoption implementation run 44349546212 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546212) | GenAI positive controls are manual demos; no application AI runtime |
 | Dependencies | Cargo, Go, NuGet, npm, Python, Maven, and Testcontainers pins or locks; minimatch alert #3 fixed | Replace the Picomatch patch when upstream publishes a fix |
@@ -89,7 +89,7 @@ Two existing CI checklist actions remain: requiring contract and security checks
 - [x] Fix minimatch alert #3 through glob 14.0.6, resolving patched minimatch 11.0.9.
 
 ### Phase 10 — Merge policy
-- [ ] Require `contract-examples (ubuntu-26.04)`, all seven CodeQL checks, `Secret scan`, `Dependency and configuration scan`, `Dependency review`, and `OWASP GenAI scan`; verify failures block merges. This requires repository rules access.
+- [ ] Require `contract-examples (ubuntu-26.04)`, all eight `Native API suite` matrix checks (Rust, Go, Python, JavaScript, TypeScript, Java, C#, and Playwright), all seven CodeQL checks, `Secret scan`, `Dependency and configuration scan`, `Dependency review`, and `OWASP GenAI scan`; verify failures block merges. This requires repository rules access.
 
 ### Phase 11 — Showcase publishing
 - [x] Publish the interactive showcase with GitHub Actions.
@@ -126,12 +126,20 @@ Two existing CI checklist actions remain: requiring contract and security checks
 - [x] Scope Rust and C# validator adapters with conformance tests and document that language validators do not provide identical OAS coverage; C# rejects unsupported external schema references before resolution.
 - [x] Keep OAS inputs read-only and document immutable version pinning for separate provider and consumer repositories.
 - [x] Scope in-memory Order data to each app instance, use UUID identifiers, test concurrent creation and per-instance isolation, and document that replicas do not share state.
-- [x] Allow local runs to select native suites with `POLYCONTRACT_NATIVE_CLIENTS`; CI runs all seven by default.
+- [x] Allow local runs to select native suites with `POLYCONTRACT_NATIVE_CLIENTS`; CI runs seven language suites and Playwright as separate matrix jobs.
 - [x] Keep SecureAI and Semgrep positive-control fixtures manual while scanning repository source on regular security triggers.
 - [ ] Pilot with representative company APIs, auth flows, pagination, error cases, versioning, and real downstream dependencies.
 - [ ] Agree an OAS feature support matrix and the validator strategy for each supported language.
 - [ ] Add consumer-owned contracts and provider verification if pilot teams need consumer-specific expectations checked.
 - [ ] Validate the approved company runtime matrix and isolated test-environment requirements.
+
+### Phase 18 — Isolated stack CI
+- [x] Keep the full sequential pipeline as the local default; add `core` and `native` profiles for CI.
+- [x] Run shared contract, compatibility, provider, fuzz, BDD, and mock gates once before the native suite matrix.
+- [x] Run Rust, Go, Python, JavaScript, TypeScript, Java, C#, and Playwright in separate jobs, each with its own Testcontainers network.
+- [x] Publish a core timing artifact and one timing artifact per stack.
+- [x] Pair the `inventory-malformed` request example with its documented 502 response.
+- [ ] Verify the split workflow and confirm the unmatched Specmatic example warning is gone.
 
 ## Conditional work
 
@@ -151,7 +159,19 @@ These items need an external input or repository setting before implementation:
 
 This reference repo has no stable runtime API to package. A `create-polycontract` CLI may help if users request selective starters; npm would add a release lifecycle that a GitHub template does not need. See [GitHub template repositories](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository) and [npm publishing](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/).
 
+## Specification diagnostics
+
+Run [44565579793](https://github.com/shoman2020/oas-polycontract/actions/runs/44565579793) completed successfully before the CI split:
+
+- Spectral reported zero error-severity findings for OpenAPI and AsyncAPI.
+- oasdiff reported no breaking changes. Product and Order baselines differed structurally; Inventory had no difference.
+- Specmatic warned four times that the `inventory-malformed` request example lacked a matching response example. The Product OAS now pairs it with a 502 response; the next run must confirm the warning is cleared.
+- The [line 314 output](https://github.com/shoman2020/oas-polycontract/actions/runs/44565579793/job/135706271073#step:9:314) is a clean Spectral result, and [line 353](https://github.com/shoman2020/oas-polycontract/actions/runs/44565579793/job/135706271073#step:9:353) is an informational compatibility result, not a breaking change.
+- [Lines 403](https://github.com/shoman2020/oas-polycontract/actions/runs/44565579793/job/135706271073#step:9:403) and [511](https://github.com/shoman2020/oas-polycontract/actions/runs/44565579793/job/135706271073#step:9:511) show intentional negative canaries: the gates reject a Product response where `available` is a string instead of a number. These are expected failures inside passing canary checks, not defects in the live provider.
+
 ## Progress
+
+- 19 Nov: Split contract CI into one shared `core` job and isolated per-stack `native` matrix jobs. Updated README and interactive workflow diagrams, added per-stack timings, and matched the malformed-inventory request example with its 502 response. CI verification pending.
 
 - 19 Nov: Consolidated Testcontainers container configuration and service health checks to remove duplicated builder and readiness setup. Service health and one-shot completion strategies remain distinct. [Contract run 44563995399 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44563995399).
 - 19 Nov: Run 44557734234 exposed a missing comma in UUID Order ID generation; the object literal was fixed and the complete Testcontainers contract run 44563995399 passed. The README and interactive flow show two Gherkin paths: API-specific Cucumber steps run source features against live services, while the generator exports shared JSON consumed by the seven native suites. Tools and languages are examples with suggested migration options.

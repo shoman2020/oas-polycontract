@@ -27,25 +27,8 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Load pinned runtime and scanner versions
-        run: |
-          source .github/versions.env
-          echo "NODE_VERSION=$NODE_VERSION" >> "$GITHUB_ENV"
-          echo "NPM_VERSION=$NPM_VERSION" >> "$GITHUB_ENV"
-          echo "NODE_TEST_IMAGE=$NODE_TEST_IMAGE" >> "$GITHUB_ENV"
-          echo "WIREMOCK_VERSION=$WIREMOCK_VERSION" >> "$GITHUB_ENV"
-          echo "WIREMOCK_RUNTIME_IMAGE=$WIREMOCK_RUNTIME_IMAGE" >> "$GITHUB_ENV"
-          echo "WIREMOCK_SHA256=$WIREMOCK_SHA256" >> "$GITHUB_ENV"
-          echo "TRIVY_VERSION=$TRIVY_VERSION" >> "$GITHUB_ENV"
-          echo "SPECMATIC_VERSION=$SPECMATIC_VERSION" >> "$GITHUB_ENV"
-
-      - name: Set up Node.js
-        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-
-      - name: Install pinned npm
-        run: npm install --global npm@${NPM_VERSION}
+      - name: Prepare contract runner
+        uses: ./.github/actions/prepare-contract-runner
 
       - name: Download and verify WireMock runtime artifact
         id: wiremock_jar
@@ -56,28 +39,21 @@ jobs:
             "https://repo.maven.apache.org/maven2/org/wiremock/wiremock-standalone/${WIREMOCK_VERSION}/wiremock-standalone-${WIREMOCK_VERSION}.jar"
           printf '%s  %s\n' "$WIREMOCK_SHA256" "$artifact" | sha256sum --check
 
-      - name: Check shell syntax
-        run: bash -n run.sh pipeline/client-suite.sh
-
-      - name: Check pipeline JavaScript syntax
-        run: |
-          node --check pipeline/run.mjs
-          node --check evals/run.mjs
-
-      - name: Run the local contract pipeline
+      - name: Run shared contract gates
         env:
-          PIPELINE_TIMINGS_FILE: ${{ runner.temp }}/pipeline-timings.csv
+          POLYCONTRACT_PIPELINE_PROFILE: core
+          PIPELINE_TIMINGS_FILE: ${{ runner.temp }}/pipeline-timings-core.csv
         run: bash ./run.sh
 
-      - name: Upload pipeline timings
+      - name: Upload core pipeline timings
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: pipeline-timings
-          path: ${{ runner.temp }}/pipeline-timings.csv
+          name: pipeline-timings-core
+          path: ${{ runner.temp }}/pipeline-timings-core.csv
           if-no-files-found: warn
 
-      # Scan the pinned upstream runtimes used by the demo; security.yml scans repository dependencies and configuration.
+      # Scan pinned shared runtimes once; each language suite has its own isolated Testcontainers network.
       - name: Scan application container image
         if: always()
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
@@ -130,3 +106,35 @@ jobs:
           version: v${{ env.TRIVY_VERSION }}
           trivy-config: .github/trivy.yaml
 
+  native-api-suites:
+    name: Native API suite (${{ matrix.client }})
+    needs: contract-examples
+    strategy:
+      fail-fast: false
+      matrix:
+        client: [rust, go, python, js, ts, java, csharp, playwright]
+    runs-on: ubuntu-26.04
+    timeout-minutes: 60
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Prepare contract runner
+        uses: ./.github/actions/prepare-contract-runner
+
+      - name: Run native API suite
+        env:
+          POLYCONTRACT_PIPELINE_PROFILE: native
+          POLYCONTRACT_NATIVE_CLIENTS: ${{ matrix.client }}
+          PIPELINE_TIMINGS_FILE: ${{ runner.temp }}/pipeline-timings-${{ matrix.client }}.csv
+        run: bash ./run.sh
+
+      - name: Upload stack timings
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pipeline-timings-${{ matrix.client }}
+          path: ${{ runner.temp }}/pipeline-timings-${{ matrix.client }}.csv
+          if-no-files-found: warn

@@ -110,6 +110,9 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
               examples:
+                inventory-malformed:
+                  value:
+                    message: Inventory service unavailable
                 inventory-unavailable:
                   value:
                     message: Inventory service unavailable

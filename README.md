@@ -65,13 +65,18 @@ flowchart TB
   AnyPush[Push to any branch] --> Contract[contract.yml]
   PullRequest[Pull request] --> Contract
   Manual[Manual workflow dispatch] --> Contract
-  Contract --> Runner[Testcontainers runner in Node.js]
+  Contract --> CoreJob[Shared contract gate job]
+  CoreJob --> Runner[Testcontainers runner in Node.js]
   Runner --> Runtime[Docker-compatible container runtime]
-  Runtime --> Tasks[Pull pinned runtimes, start services, run test containers]
+  Runtime --> Tasks[Pull pinned runtimes and start services]
   Tasks --> ServiceTests[Node.js service unit tests]
   Tasks --> BDD[Feature-driven Cucumber acceptance tests]
   Tasks --> Cleanup[Stop containers and network]
-  Runner --> ImageScans[Trivy image scans]
+  CoreJob --> ImageScans[Trivy image scans]
+  CoreJob --> NativeMatrix[Per-stack native API suite matrix · waits for core]
+  NativeMatrix --> StackNetworks[One isolated Testcontainers network per stack]
+  StackNetworks --> StackSuites[Rust, Go, Python, JavaScript, TypeScript, Java, C#, and Playwright]
+  StackSuites --> StackTimings[Per-stack timing artifacts]
 
   MainPush[Push to main] --> Security[security.yml]
   PullRequest --> Security
@@ -102,9 +107,9 @@ Requires Node.js 26.13.1, npm 12.2.3, and a Docker-compatible container runtime.
 bash ./run.sh
 ```
 
-`run.sh` checks the exact pinned Node.js/npm versions, installs the locked pipeline dependency, and starts an isolated Testcontainers network. It prepares the Node test image with the pinned npm release, verifies a pinned WireMock standalone JAR by SHA-256, then runs contract gates, fuzzing, and API suites. Trivy scans the prepared Node image, the minimal Java runtime, the WireMock JAR, and Specmatic. Contract, fixture, and client source mounts are read-only; dependency downloads and build outputs stay in temporary container directories. Tests cannot rewrite the checked-in OAS. Update a contract through a reviewed source change, then update its compatibility baseline in the same change when the new version is intentional. Use Docker Desktop or Colima on macOS, or Docker Desktop with WSL/Git Bash on Windows. CI uses Ubuntu.
+`run.sh` checks the exact pinned Node.js/npm versions, installs the locked pipeline dependency, and starts an isolated Testcontainers network. It prepares the Node test image with the pinned npm release, verifies a pinned WireMock standalone JAR by SHA-256, then runs shared contract gates and API suites. In CI, Trivy scans the prepared Node image, WireMock image and standalone JAR, and Specmatic image. Contract, fixture, and client source mounts are read-only; dependency downloads and build outputs stay in temporary container directories. Tests cannot rewrite the checked-in OAS. Update a contract through a reviewed source change, then update its compatibility baseline in the same change when the new version is intentional. Use Docker Desktop or Colima on macOS, or Docker Desktop with WSL/Git Bash on Windows. CI uses Ubuntu.
 
-The pipeline stops when a stage fails so dependent checks do not create cascading errors. Its timing report lists later stages as `skipped`, alongside completed and failed stages.
+The pipeline stops when a stage fails so dependent checks do not create cascading errors. Its timing report lists later stages as `skipped`, alongside completed and failed stages. Contract CI runs shared gates once, then starts a separate Testcontainers job for each language stack and Playwright. Each job starts its own Product, Order, and WireMock services and publishes a stack-specific timing artifact. Local `bash ./run.sh` runs the full sequence by default; `POLYCONTRACT_PIPELINE_PROFILE=core` and `native` select the corresponding CI profiles. CI runs the shared contract gates once, then starts a separate Testcontainers job for each native language stack and Playwright. Each job starts its own Product, Order, and WireMock services and publishes a stack-specific timing artifact. Local `bash ./run.sh` keeps the full sequential run by default; `POLYCONTRACT_PIPELINE_PROFILE=core` and `native` select the corresponding CI profiles.
 
 The enterprise adoption implementation in [commit 2fe49dc](https://github.com/shoman2020/oas-polycontract/commit/2fe49dc8e897c1b53acb985c4758cd255f44d31e) passed [contract run 44349546211](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546211) and [security run 44349546212](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546212) on 18 Nov 2026. The contract workflow publishes stage timings as a CSV artifact.
 
@@ -157,7 +162,7 @@ The Catalog scaffold and Product API intentionally model different boundaries, n
 | Specifications | Define API boundaries, examples, and accepted compatibility snapshots | `openapi/`, `demo/`, `contracts/events/`, `contracts/baselines/` |
 | Demo services | Implement Product, Order, and WireMock-backed Inventory examples | `demo/` |
 | Native clients | Encapsulate HTTP calls; language validators check exercised responses and tests assert behavior | `clients/`, `clients/features/`, `clients/shared/` |
-| Orchestration | A shared Testcontainers builder applies network, logging, mounts, and runtime options; stage methods keep service and one-shot readiness separate | `pipeline/run.mjs`, `pipeline/client-suite.sh` |
+| Orchestration | Full local, shared core, and per-stack native profiles use one Testcontainers builder with explicit service and task readiness | `pipeline/run.mjs`, `pipeline/client-suite.sh`, `.github/workflows/contract.yml` |
 | Shared configuration | Parse and validate required runtime pins before container startup | `pipeline/config.mjs`, `.github/versions.env` |
 | Quality checks | Validate contracts, project wiring, security, and dependencies | `gates/`, `evals/`, `.github/workflows/` |
 

@@ -78,6 +78,9 @@
         "Schemathesis stateless Product fuzzing",
         "Schemathesis stateful Order flow",
         "BDD acceptance features",
+        "const nativePlan = [",
+        "this.startApiIntegrationServices()",
+        "if (!selectedNativeClients.has(key)) continue;",
         "JavaScript BDD acceptance features",
         "['rust', 'Rust']",
         "['go', 'Go']",
@@ -155,8 +158,8 @@
       "id": "roadmap-phases",
       "description": "Roadmap defines sequential phases and records the latest verified contract run",
       "type": "roadmap-phases",
-      "expectedPhases": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17],
-      "verifiedRun": "44349546211"
+      "expectedPhases": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+      "verifiedRun": "44565579793"
     }
   ]
 }

@@ -1,0 +1,41 @@
+name: Prepare contract runner
+description: Set up the pinned Node.js and npm toolchain and run source syntax checks.
+
+runs:
+  using: composite
+  steps:
+    - name: Load pinned runtime and scanner versions
+      id: pins
+      shell: bash
+      run: |
+        source .github/versions.env
+        {
+          echo "NODE_VERSION=$NODE_VERSION"
+          echo "NPM_VERSION=$NPM_VERSION"
+          echo "NODE_TEST_IMAGE=$NODE_TEST_IMAGE"
+          echo "WIREMOCK_VERSION=$WIREMOCK_VERSION"
+          echo "WIREMOCK_RUNTIME_IMAGE=$WIREMOCK_RUNTIME_IMAGE"
+          echo "WIREMOCK_SHA256=$WIREMOCK_SHA256"
+          echo "TRIVY_VERSION=$TRIVY_VERSION"
+          echo "SPECMATIC_VERSION=$SPECMATIC_VERSION"
+        } >> "$GITHUB_ENV"
+        echo "node-version=$NODE_VERSION" >> "$GITHUB_OUTPUT"
+
+    - name: Set up Node.js
+      uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: ${{ steps.pins.outputs.node-version }}
+
+    - name: Install pinned npm
+      shell: bash
+      run: npm install --global npm@${NPM_VERSION}
+
+    - name: Check shell syntax
+      shell: bash
+      run: bash -n run.sh pipeline/client-suite.sh
+
+    - name: Check pipeline JavaScript syntax
+      shell: bash
+      run: |
+        node --check pipeline/run.mjs
+        node --check evals/run.mjs
