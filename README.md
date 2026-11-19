@@ -101,21 +101,19 @@ flowchart TB
 
 ## Run
 
-Requires Node.js 26.13.1, npm 12.2.3, and a Docker-compatible container runtime. The repository includes `.nvmrc` for Node.js selection; with nvm, run `nvm use` and install the pinned npm with `npm install --global npm@12.2.3`. Testcontainers for Node.js manages the pipeline.
+Use the Node.js and npm versions in [`.github/versions.env`](.github/versions.env); `.nvmrc` pins Node.js. A Docker-compatible runtime is required.
 
 ```sh
 bash ./run.sh
 ```
 
-`run.sh` checks the exact pinned Node.js/npm versions, installs the locked pipeline dependency, and starts an isolated Testcontainers network. It prepares the Node test image with the pinned npm release, verifies a pinned WireMock standalone JAR by SHA-256, then runs shared contract gates and API suites. In CI, Trivy scans an exported Node test runtime archive, the WireMock image and verified standalone JAR, and the Specmatic image. Contract, fixture, and client source mounts are read-only; dependency downloads and build outputs stay in temporary container directories. Tests cannot rewrite the checked-in OAS. Update a contract through a reviewed source change, then update its compatibility baseline in the same change when the new version is intentional. Use Docker Desktop or Colima on macOS, or Docker Desktop with WSL/Git Bash on Windows. CI uses Ubuntu.
-
-The pipeline stops when a stage fails so dependent checks do not create cascading errors. Its timing report lists later stages as `skipped`, alongside completed and failed stages. Contract CI runs shared gates once, then starts a separate Testcontainers job for each language stack and Playwright. Each job starts its own Product, Order, and WireMock services and publishes a stack-specific timing artifact. Local `bash ./run.sh` runs the full sequence by default; `POLYCONTRACT_PIPELINE_PROFILE=core` and `native` select the corresponding CI profiles. CI runs the shared contract gates once, then starts a separate Testcontainers job for each native language stack and Playwright. Each job starts its own Product, Order, and WireMock services and publishes a stack-specific timing artifact. Local `bash ./run.sh` keeps the full sequential run by default; `POLYCONTRACT_PIPELINE_PROFILE=core` and `native` select the corresponding CI profiles.
-
-Full runs include seven language suites to demonstrate options. The seven language suites and the Specmatic and WireMock integrations are examples with suggested tools, not a required stack. Use this guide to migrate API tests to your team's native language and framework, keeping them in the same repository as the service or consumer. For a focused local run, select a comma-separated subset; JavaScript and Playwright also check consumer flows against the provider Smart Mock:
+The script checks runtime pins, runs pipeline unit checks, verifies generated feature data, then runs the full Testcontainers pipeline. To select native suites locally:
 
 ```sh
 POLYCONTRACT_NATIVE_CLIENTS=rust,python bash ./run.sh
 ```
+
+Set `POLYCONTRACT_PIPELINE_PROFILE` to `core` or `native` to run that CI section locally.
 
 ## Behavior scenarios and test-driven changes
 

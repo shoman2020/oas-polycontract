@@ -1,33 +1,26 @@
-# Legacy API collections
+# Postman and Bruno examples
 
-These collections are project-specific examples for manual API debugging and migration. They follow the Product and Order OAS files; no team-owned exports were present to convert.
+These project-specific collections support manual API debugging and migration. They follow the Product and Order OAS; no team-owned exports were provided. The request structure draws on [Newman's sample collection](https://github.com/postmanlabs/newman/blob/develop/examples/sample-collection.json) and [Bruno's JSON testing examples](https://github.com/bruno-collections/json-testing-examples).
 
-For shared terms and the distinction between manual debugging, contract tests, and API integration tests, see the [README testing model](../README.md#testing-model-and-terminology).
+## Start the demo APIs
 
-The Postman request and assertion structure is informed by [Newman's sample collection](https://github.com/postmanlabs/newman/blob/develop/examples/sample-collection.json). Bruno request and JSON assertion examples are informed by [bruno-collections/json-testing-examples](https://github.com/bruno-collections/json-testing-examples). The requests and payloads here are project-specific.
-
-To use the collections against local services, start the demo APIs from the repository root. These commands publish only loopback ports:
+Commands below use Bash, Node.js, and a Docker-compatible runtime. In one terminal, start WireMock from the pinned version and run the Product API:
 
 ```sh
-set -a
 source .github/versions.env
-set +a
-docker network create oas-polycontract-debug
-docker build --build-arg WIREMOCK_VERSION="$WIREMOCK_VERSION" -t oas-polycontract-wiremock:local demo/wiremock
-docker build --build-arg NODE_VERSION="$NODE_VERSION" -t oas-polycontract-app:local demo/app
-docker build --build-arg NODE_VERSION="$NODE_VERSION" -t oas-polycontract-stateful:local demo/stateful
-docker run -d --name oas-polycontract-wiremock --network oas-polycontract-debug -p 127.0.0.1:8081:8080 -v "$PWD/demo/downstream/wiremock:/home/wiremock:ro" oas-polycontract-wiremock:local --global-response-templating
-docker run -d --name oas-polycontract-app --network oas-polycontract-debug -p 127.0.0.1:8080:8080 -e PORT=8080 -e INVENTORY_URL=http://oas-polycontract-wiremock:8080 oas-polycontract-app:local
-docker run -d --name oas-polycontract-stateful --network oas-polycontract-debug -p 127.0.0.1:8083:8082 -e PORT=8082 oas-polycontract-stateful:local
+docker run --rm -d --name oas-polycontract-wiremock \
+  -p 127.0.0.1:8081:8080 \
+  -v "$PWD/demo/downstream/wiremock:/home/wiremock:ro" \
+  "wiremock/wiremock:$WIREMOCK_VERSION" --global-response-templating
+PORT=8080 INVENTORY_URL=http://127.0.0.1:8081 node demo/app/server.mjs
 ```
 
-Import `postman/oas-polycontract.postman_collection.json` and `postman/local.postman_environment.json` into Postman. Or open `bruno/` in Bruno; its collection variables contain the local URLs. Run the Order requests in sequence. Create saves an ID for read, confirm, and delete.
-
-Product API runs at `http://localhost:8080`; Order API runs at `http://localhost:8083`. Remove the containers and network when finished:
+In a second terminal, start the Order API:
 
 ```sh
-docker rm -f oas-polycontract-app oas-polycontract-stateful oas-polycontract-wiremock
-docker network rm oas-polycontract-debug
+PORT=8083 node demo/stateful/server.mjs
 ```
 
-The CI and demonstration pipeline uses Testcontainers and removes its isolated network automatically. These manual commands are only for local interactive debugging. Use the collections to inspect requests and responses or map existing workflows to OAS.
+Import `postman/oas-polycontract.postman_collection.json` and `postman/local.postman_environment.json` into Postman, or open `bruno/` in Bruno. Product runs at `localhost:8080`; Order runs at `localhost:8083`. Run Order requests in sequence: create, read, confirm, and delete. Stop both Node processes with Ctrl+C and remove WireMock with `docker rm -f oas-polycontract-wiremock`.
+
+The automated pipeline uses Testcontainers and cleans up its services. These commands keep services available for interactive collection use.

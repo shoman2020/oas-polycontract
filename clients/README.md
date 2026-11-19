@@ -1,8 +1,6 @@
 # Client test guide
 
-This guide lists the native runners, validators, and test entry points. The [testing model](../README.md#testing-model-and-terminology) distinguishes provider contract verification, consumer-side development against a provider Smart Mock, and live API integration tests.
-
-Run all suites with `bash ./run.sh`. The Node.js Testcontainers runner starts the Product API, Order API, WireMock, and Specmatic Smart Mock on a private network. A Docker-compatible runtime is required.
+This guide maps each native stack to its runner, validator, and test files. For run requirements and the testing model, see the [README](../README.md).
 
 ## Native stacks
 
@@ -27,13 +25,11 @@ Run all suites with `bash ./run.sh`. The Node.js Testcontainers runner starts th
 | Product API integration | [Rust](rust/tests/api_integration_test.rs), [Go](go/product_api_integration_test.go), [Python](python/test_product_api_integration.py), [JavaScript](js/product-api-integration.test.mjs), [TypeScript](ts/product-api-integration.test.ts), [Java](java/src/test/java/nl/shiftleft/ProductApiIntegrationTest.java), [C#](csharp/ProductApiIntegrationTests.cs), [Playwright](playwright/product-api-integration.spec.mjs) |
 | Stateful Order integration | [Rust](rust/tests/api_integration_test.rs), [Go](go/stateful_order_api_integration_test.go), [Python](python/test_stateful_order_api_integration.py), [JavaScript](js/stateful-order-api-integration.test.mjs), [TypeScript](ts/stateful-order-api-integration.test.ts), [Java](java/src/test/java/nl/shiftleft/StatefulOrderApiIntegrationTest.java), [C#](csharp/StatefulOrderApiIntegrationTests.cs) |
 
-The shared [Gherkin acceptance features](features/) define the scenarios and input data for Rust, Go, Python, JavaScript, TypeScript, Java, and C# suites. JavaScript Cucumber step files are split by API; every native suite reads data generated from the same feature files. The runner checks that generated data is current before container startup. Isolated Node.js service tests cover the same behavior. For changes, update the feature and add a failing service test before implementation. See [feature and TDD guidance](features/README.md).
+Shared [Gherkin features](features/) supply scenario data to all seven native suites. Product and Order have separate Cucumber steps, and isolated Node.js service tests cover the same behavior. Update the feature and add a failing service test before implementation; see [feature guidance](features/README.md).
 
-Product tests call `GET /products/demo-sku`. Native suites also run the linked Order lifecycle; each Order app instance starts with empty state. The downstream integration test verifies the WireMock request journal. Consumer development checks and mock-data evaluations use deterministic responses generated from the provider OAS.
+Product suites exercise `GET /products/demo-sku` and error paths. Order suites test the stateful lifecycle; downstream integration checks the WireMock request journal. Consumer mock checks use deterministic provider-OAS examples.
 
-All seven native suites validate exercised responses against OAS. Validator behavior differs by library: Rust and C# use project-scoped adapters with conformance tests for nullable values, `exclusiveMinimum`, and nested local references; the other suites use their language libraries. Spectral, Specmatic, and Schemathesis provide shared contract gates. Before applying the examples to a larger API, define and verify a validator coverage matrix for the OAS features that API uses.
-
-The runner mounts contract and client source read-only. It copies client projects into temporary container workspaces for dependency installation and build output, keeping tests from changing the source OAS or checked-in clients.
+All seven suites validate exercised responses against OAS. Rust and C# adapters have focused conformance tests; other languages use their native validator libraries. Define an OAS feature matrix before adopting the adapters for a larger API.
 
 ## Migrating request collections
 
@@ -41,6 +37,6 @@ The runner mounts contract and client source read-only. It copies client project
 2. Compare methods, paths, parameters, media types, and schemas with the matching OAS.
 3. Move reusable setup, authentication, and request chaining into a native API client.
 4. Keep response schema validation in the validator and business assertions in tests.
-5. Run `bash ./run.sh`.
+5. Run the relevant suite; see [run instructions](../README.md#run).
 
-Product and Order API clients encapsulate base URLs, routes, timeouts, and HTTP transport. Tests use those service objects and keep assertions in the native test framework. Languages expose API interfaces where they fit their conventions; Go abstracts transport behind `HTTPDoer`, and Rust uses composition. Each suite owns its client and state, while all seven consume the same generated feature data. This is the API equivalent of the Page Object Model: it keeps request details out of assertions without adding browser-page abstractions to HTTP tests. Postman and Bruno remain available for manual debugging; see [legacy collection setup](../legacy/README.md).
+Per-API clients keep routes and HTTP transport out of test assertions. The examples follow each language's conventions and avoid browser-page abstractions for HTTP tests. Postman and Bruno usage is in the [legacy guide](../legacy/README.md).
