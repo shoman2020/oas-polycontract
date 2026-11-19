@@ -7,7 +7,7 @@ One reviewed specification contract per API boundary. Clear ownership means less
 | Area | Delivered | Remaining |
 |---|---|---|
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | Runtime event tests need a provider or broker |
-| Tests | Specmatic provider verification, consumer development against a provider Smart Mock, WireMock, stateful and stateless fuzzing, negative canaries, seven-language error-path suites driven by shared Gherkin data, and isolated service unit tests; [contract run 44573964063 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44573964063) | Pilot against representative company APIs |
+| Tests | Specmatic provider verification, consumer development against a provider Smart Mock, WireMock, stateful and stateless fuzzing, negative canaries, seven-language error-path suites driven by shared Gherkin data, and isolated service unit tests; [contract run 44623074864 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44623074864) | Pilot against representative company APIs |
 | Legacy migration | Project-specific Postman and Bruno collections follow Product and Order OAS | Import team-owned history if teams provide their collections |
 | Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, and SecureAI-Scan; [adoption implementation run 44349546212 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546212) | GenAI positive controls are manual demos; no application AI runtime |
 | Dependencies | Cargo, Go, NuGet, npm, Python, Maven, and Testcontainers pins or locks; minimatch alert #3 fixed | Replace the Picomatch patch when upstream publishes a fix |
@@ -141,7 +141,7 @@ Open gates are the `main` merge policy (Phase 10), post-Testcontainers performan
 - [x] Export the generated Node test runtime to a tar archive before Testcontainers cleanup so Trivy can scan the exact runtime built by the pipeline.
 - [x] Pair the `inventory-malformed` request example with its documented 502 response.
 - [x] Run the shared core gates and confirm the Specmatic example warning is gone; see run 44570728787.
-- [x] Verify Trivy scans the exported image archive and all eight isolated native matrix jobs pass; [contract run 44573964063](https://github.com/shoman2020/oas-polycontract/actions/runs/44573964063).
+- [x] Verify Trivy scans the exported image archive and all eight isolated native matrix jobs pass; [contract run 44623074864](https://github.com/shoman2020/oas-polycontract/actions/runs/44623074864).
 
 ## Conditional work
 
@@ -174,7 +174,7 @@ Run [44565579793](https://github.com/shoman2020/oas-polycontract/actions/runs/44
 
 ## Progress
 
-- 19 Nov: Review follow-up is being implemented against green contract run [44573964063](https://github.com/shoman2020/oas-polycontract/actions/runs/44573964063): async process handling, focused Rust normalizer tests, and explicit Catalog-versus-demo schema boundary evaluations. Branch protection remains an owner Settings task; event runtime examples and consumer-owned contracts remain open because the repository has no event publisher or consumer-owned expectations.
+- 19 Nov: Review follow-up is implemented and verified by contract run [44623074864](https://github.com/shoman2020/oas-polycontract/actions/runs/44623074864): asynchronous subprocess handling, focused Rust normalizer tests, and Catalog-versus-demo boundary evaluations. Branch protection still needs the owner to activate the `main` ruleset and required checks. Event runtime coverage, consumer-owned contracts, and the post-Testcontainers performance matrix remain open.
 - 19 Nov: Run [44570193982](https://github.com/shoman2020/oas-polycontract/actions/runs/44570193982) exposed a missing Trivy label in the interactive map. Run [44570728787](https://github.com/shoman2020/oas-polycontract/actions/runs/44570728787) passed all 16 repository evaluations and shared gates, but Trivy could not find the generated Node image after cleanup. CI now exports that image before cleanup. [Run 44573964063](https://github.com/shoman2020/oas-polycontract/actions/runs/44573964063) passed Trivy scans and all eight isolated stack jobs.
 - 19 Nov: Split contract CI into one shared `core` job and isolated per-stack `native` matrix jobs. Updated README and interactive workflow diagrams, added per-stack timings, and paired the malformed-inventory request example with its 502 response. The core run emitted no unmatched Specmatic example warnings.
 
