@@ -24,3 +24,7 @@ export function acceptanceCase(caseId: string): AcceptanceCase {
   if (!scenario) throw new Error(`Acceptance feature case not found: ${caseId}`);
   return scenario;
 }
+
+export function acceptanceCases(api: string): AcceptanceCase[] {
+  return cases.filter(({ caseId }) => caseId.startsWith(`${api}.`));
+}
