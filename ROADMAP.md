@@ -171,6 +171,7 @@ Run [44565579793](https://github.com/shoman2020/oas-polycontract/actions/runs/44
 
 ## Progress
 
+- 19 Nov: The first split run, [44570193982](https://github.com/shoman2020/oas-polycontract/actions/runs/44570193982), reached repository evaluations; the interactive map omitted the required Trivy image-scan label. Added the label. Contract gates and matrix jobs still need a green run.
 - 19 Nov: Split contract CI into one shared `core` job and isolated per-stack `native` matrix jobs. Updated README and interactive workflow diagrams, added per-stack timings, and matched the malformed-inventory request example with its 502 response. CI verification pending.
 
 - 19 Nov: Consolidated Testcontainers container configuration and service health checks to remove duplicated builder and readiness setup. Service health and one-shot completion strategies remain distinct. [Contract run 44563995399 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44563995399).

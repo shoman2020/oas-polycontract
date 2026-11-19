@@ -158,7 +158,7 @@
               <p class="workflow-trigger">Push · pull request · manual run</p>
               <div class="workflow-chain">
                 <div class="workflow-step"><strong>Core gates · <code>core</code> profile</strong><br>Evaluations, service tests, Spectral, oasdiff, canaries, provider checks, fuzzing, Cucumber, and consumer mock checks run once</div>
-                <div class="workflow-step"><strong>Shared runtime scans</strong><br>Trivy scans the app, WireMock, and Specmatic images</div>
+                <div class="workflow-step"><strong>Trivy image scans · shared runtimes</strong><br>Trivy scans the app, WireMock, and Specmatic images</div>
                 <div class="workflow-step"><strong>Native API suite matrix</strong><br>Seven language stacks and Playwright run in separate jobs after the core gates pass</div>
                 <div class="workflow-step"><strong>Isolated stack runs</strong><br>Each job starts Product, Order, and WireMock on its own Testcontainers network</div>
                 <div class="workflow-step"><strong>Per-stack timing artifacts</strong><br>Compare stage duration by language and test framework</div>
