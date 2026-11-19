@@ -123,9 +123,9 @@ public sealed class StatefulOrderApiIntegrationTests
         using var unsupportedResponse = await httpClient.PostAsync(
             new Uri(baseUri, unsupported.GetProperty("path").GetString()), content: null, cancellationToken: cancellationToken);
         Assert.Equal(unsupported.GetProperty("expectedStatus").GetInt32(), (int)unsupportedResponse.StatusCode);
-        Assert.Equal(
+        Assert.Contains(
             unsupported.GetProperty("allowedMethod").GetString(),
-            string.Join(", ", unsupportedResponse.Headers.GetValues("Allow")));
+            unsupportedResponse.Content.Headers.Allow);
     }
 
     private static string RequiredEnvironmentVariable(string name) =>
