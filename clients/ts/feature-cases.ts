@@ -2,6 +2,9 @@ import { readFileSync } from "node:fs";
 
 export interface AcceptanceCase {
   caseId: string;
+  api: string;
+  feature: string;
+  scenario: string;
   sku?: string;
   quantity?: number;
   available?: number;
