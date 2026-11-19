@@ -152,6 +152,8 @@ This reference repo has no stable runtime API to package. A `create-polycontract
 
 ## Progress
 
+- 19 Nov: Run 44549893064 passed evaluations and all contract/provider/fuzz/stateful stages; the C# 405 assertion then read `Allow` from the wrong .NET header collection. It now reads `Content.Headers.Allow`. Also fixed xUnit's cancellation-token analyzer warning and added an evaluation guard for the header location. CI rerun pending.
+
 - 19 Nov: Contract run passed evaluations, contracts, provider checks, fuzzing, and stateful tests, then failed in C# because .NET 10 selected VSTest for an xUnit v3 Microsoft.Testing.Platform project. Added a C# `global.json` selecting MTP, runs the test commands from that configured workspace, and guards this setup in repository evaluations. Pipeline rerun pending.
 
 - 19 Nov: CodeQL run 44495112186 completed every language job after WireMock staging moved to a private temporary directory, exclusive 0600 file creation, a size cap, pinned SHA-256 verification, and cleanup. Contract run 44495112117 stopped at the generated acceptance-data freshness check; commit 82a43f5 regenerated the JSON from the feature files. Contract verification is pending.
