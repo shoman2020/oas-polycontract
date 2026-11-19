@@ -5,6 +5,7 @@ import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { parseNativeClientSelection, readVersionPins } from './config.mjs';
+import { completeStageReport } from './stage-report.mjs';
 
 const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 
@@ -67,29 +68,35 @@ class ContractPipeline {
     this.network = undefined;
     this.services = [];
     this.stages = [];
+    this.plannedStages = [];
     this.stageName = undefined;
     this.stageStart = 0;
     this.startedAt = Date.now();
   }
 
   async run() {
+    const plan = [
+      ['Testcontainers network', async () => {
+        this.network = await new Network().start();
+      }],
+      ['Prepare pinned Node test runtime', () => this.prepareNodeTestImage()],
+      ['Repository evaluations', () => this.runEvaluations()],
+      ['API behavior unit tests', () => this.runServiceUnitTests()],
+      ['Contract lint', () => this.runContractLint()],
+      ['Compatibility', () => this.runOasDiff()],
+      ['Negative contract canaries', () => this.runNegativeCanaries()],
+      ['Provider and downstream contract tests', () => this.runProviderTests()],
+      ['Stateless fuzzing', () => this.runStatelessFuzzing()],
+      ['Stateful API tests', () => this.runStatefulTests()],
+      ['Native API integration suites', () => this.runNativeSuites()],
+      ['BDD acceptance features', () => this.runBddFeatures()],
+      ['Consumer mock checks and evaluations', () => this.runConsumerTests()],
+    ];
+    this.plannedStages = plan.map(([name]) => name);
+
     let failure;
     try {
-      await this.stage('Testcontainers network', async () => {
-        this.network = await new Network().start();
-      });
-      await this.stage('Prepare pinned Node test runtime', () => this.prepareNodeTestImage());
-      await this.stage('Repository evaluations', () => this.runEvaluations());
-      await this.stage('API behavior unit tests', () => this.runServiceUnitTests());
-      await this.stage('Contract lint', () => this.runContractLint());
-      await this.stage('Compatibility', () => this.runOasDiff());
-      await this.stage('Negative contract canaries', () => this.runNegativeCanaries());
-      await this.stage('Provider and downstream contract tests', () => this.runProviderTests());
-      await this.stage('Stateless fuzzing', () => this.runStatelessFuzzing());
-      await this.stage('Stateful API tests', () => this.runStatefulTests());
-      await this.stage('Native API integration suites', () => this.runNativeSuites());
-      await this.stage('BDD acceptance features', () => this.runBddFeatures());
-      await this.stage('Consumer mock checks and evaluations', () => this.runConsumerTests());
+      for (const [name, operation] of plan) await this.stage(name, operation);
       console.log('==> Contract pipeline passed');
     } catch (error) {
       failure = error;
@@ -611,6 +618,7 @@ class ContractPipeline {
         CLIENT_SOURCE: '/repo/clients/js',
         API_BASE_URL: 'http://specmatic-mock:9000',
         OPENAPI_SPEC: '/repo/demo/openapi.yaml',
+        NPM_VERSION: versions.NPM_VERSION,
       },
       mounts: [readOnlyMount('clients/js'), readOnlyMount('pipeline/client-suite.sh'), readOnlyMount('demo')],
     });
@@ -623,6 +631,7 @@ class ContractPipeline {
         CLIENT_SOURCE: '/repo/clients/playwright',
         API_BASE_URL: 'http://specmatic-mock:9000',
         OPENAPI_SPEC: '/repo/demo/openapi.yaml',
+        NPM_VERSION: versions.NPM_VERSION,
       },
       mounts: [readOnlyMount('clients/playwright'), readOnlyMount('pipeline/client-suite.sh'), readOnlyMount('demo')],
     });
@@ -639,7 +648,7 @@ class ContractPipeline {
 
   writeTimingReport(status) {
     const totalSeconds = Math.round((Date.now() - this.startedAt) / 1000);
-    const stages = [...this.stages];
+    const stages = completeStageReport(this.plannedStages, this.stages);
 
     const csv = [
       'stage,seconds,result',

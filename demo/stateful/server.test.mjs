@@ -50,6 +50,27 @@ test("Create and confirm an order idempotently", async () => {
   });
 });
 
+test("Concurrent order creation returns unique identifiers", async () => {
+  await withServer(createStatefulApp(), async (baseUrl) => {
+    const responses = await Promise.all(Array.from({ length: 20 }, () => createOrder(baseUrl)));
+    assert.ok(responses.every((response) => response.status === 201));
+    const orders = await Promise.all(responses.map((response) => response.json()));
+    const identifiers = orders.map((order) => order.id);
+    assert.equal(new Set(identifiers).size, identifiers.length);
+  });
+});
+
+test("Order state is isolated between application instances", async () => {
+  await withServer(createStatefulApp(), async (firstBaseUrl) => {
+    const created = await createOrder(firstBaseUrl);
+    const order = await created.json();
+    await withServer(createStatefulApp(), async (secondBaseUrl) => {
+      const response = await fetch(`${secondBaseUrl}/orders/${encodeURIComponent(order.id)}`);
+      assert.equal(response.status, 404);
+    });
+  });
+});
+
 test("Reject an invalid order", async () => {
   await withServer(createStatefulApp(), async (baseUrl) => {
     const response = await createOrder(baseUrl, { sku: "", quantity: 0 });

@@ -1,4 +1,5 @@
 import http from "node:http";
+import { randomUUID } from "node:crypto";
 import { pathToFileURL } from "node:url";
 
 const DEFAULT_PORT = 8082;
@@ -6,11 +7,9 @@ const MAX_REQUEST_BYTES = 64 * 1024;
 
 class InMemoryOrderStore {
   #orders = new Map();
-  #nextOrderId = 1;
-
   create(input) {
     const order = {
-      id: `order-${this.#nextOrderId++}`,
+      id: `order-${randomUUID()}`
       sku: input.sku,
       quantity: input.quantity,
       status: "created",

@@ -2,7 +2,7 @@
 
 This guide lists the native runners, validators, and test entry points. The [testing model](../README.md#testing-model-and-terminology) distinguishes provider contract verification, consumer-side development against a provider Smart Mock, and live API integration tests.
 
-Run all suites with `bash ./run.sh`. The Node.js Testcontainers runner starts the Product API, Order API, WireMock, and Specmatic Smart Mock on a private network. A Docker-compatible runtime is required; Docker Compose is not.
+Run all suites with `bash ./run.sh`. The Node.js Testcontainers runner starts the Product API, Order API, WireMock, and Specmatic Smart Mock on a private network. A Docker-compatible runtime is required.
 
 ## Native stacks
 

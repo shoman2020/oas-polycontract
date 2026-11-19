@@ -2,7 +2,9 @@ openapi: 3.0.3
 info:
   title: Stateful Order Example API
   version: 1.0.0
-  description: Isolated in-memory API used to demonstrate linked stateful contract tests.
+  description: >
+    Isolated in-memory API used to demonstrate linked stateful contract tests.
+    State is local to one app instance, is lost on restart, and is not shared by replicas.
   contact:
     name: oas-polycontract maintainers
     url: https://shift-left.nl

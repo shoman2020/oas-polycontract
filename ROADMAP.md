@@ -13,7 +13,7 @@ One reviewed specification contract per API boundary. Clear ownership means less
 | Dependencies | Cargo, Go, NuGet, npm, Python, Maven, and Testcontainers pins or locks; minimatch alert #3 fixed | Replace the Picomatch patch when upstream publishes a fix |
 | Performance | Pre-Testcontainers [five-sample reference](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941): 304s cold, 201s warm median (200–205s range), build 91s cold and 2s warm | Dispatch the manual Ubuntu 24.04/26.04 matrix after Testcontainers migration |
 | Enterprise adoption | Scope limits and a selective local language-suite option are documented | Add consumer-owned contracts, validator coverage, approved runtime matrix, and production-like test environments based on a pilot |
-| Review response | Added provider-specific compatibility snapshots, expected-failure canaries, error-path tests, validator conformance cases, and read-only contract mounts; fixed WireMock readiness detection, canary malformed-path handling, and Go interface test compilation | Verify the contract workflow after regenerating canonical acceptance cases from the feature files |
+| Review response | Added provider-specific compatibility snapshots, expected-failure canaries, error-path tests, validator conformance cases, and read-only contract mounts; Order IDs use UUIDs with concurrency and instance-isolation tests; C# rejects external nested schema references; failed-run summaries list skipped stages | Verify the updated pipeline; broader validator coverage remains pilot work |
 | Showcase | Interactive contract, test-role, pipeline, workflow, and performance views; current source published by [run 44349546414](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546414) | — |
 
 The shared test vocabulary and examples are in the [README testing model](README.md#testing-model-and-terminology). Specifications are read-only inputs in CI and are changed only through reviewed source updates. For separate provider and consumer projects, publish an immutable specification artifact and pin its version in both repos.
@@ -122,9 +122,9 @@ Two existing CI checklist actions remain: requiring contract and security checks
 
 ### Phase 17 — Enterprise adoption
 - [x] Distinguish live provider verification, consumer development against a provider Smart Mock, and live API integration tests; document that no consumer-owned contract is published.
-- [x] Scope Rust and C# validator adapters with conformance tests and document that language validators do not provide identical OAS coverage.
+- [x] Scope Rust and C# validator adapters with conformance tests and document that language validators do not provide identical OAS coverage; C# rejects unsupported external schema references before resolution.
 - [x] Keep OAS inputs read-only and document immutable version pinning for separate provider and consumer repositories.
-- [x] Scope in-memory Order data to each app instance and document its non-production limits.
+- [x] Scope in-memory Order data to each app instance, use UUID identifiers, test concurrent creation and per-instance isolation, and document that replicas do not share state.
 - [x] Allow local runs to select native suites with `POLYCONTRACT_NATIVE_CLIENTS`; CI runs all seven by default.
 - [x] Keep SecureAI and Semgrep positive-control fixtures manual while scanning repository source on regular security triggers.
 - [ ] Pilot with representative company APIs, auth flows, pagination, error cases, versioning, and real downstream dependencies.
@@ -151,6 +151,9 @@ These items need an external input or repository setting before implementation:
 This reference repo has no stable runtime API to package. A `create-polycontract` CLI may help if users request selective starters; npm would add a release lifecycle that a GitHub template does not need. See [GitHub template repositories](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-template-repository) and [npm publishing](https://docs.npmjs.com/creating-and-publishing-scoped-public-packages/).
 
 ## Progress
+
+- 19 Nov: Run 44552231115 passed through provider verification, fuzzing, stateful tests, all native suites, and BDD. Consumer suites failed at startup because `NPM_VERSION` was missing from their container environments; both now receive the shared pin. CI verification is pending.
+- 19 Nov: Applied the review follow-up: UUID Order identifiers with concurrency/isolation tests, fail-closed nested external C# schema references, explicit Catalog-versus-Product boundary descriptions, `.nvmrc` setup guidance, and skipped-stage reporting after fail-fast errors. Local verification is in progress; consumer-owned contracts, event runtime tests, branch protection, and post-migration performance remain open.
 
 - 19 Nov: Run 44549893064 passed evaluations and all contract/provider/fuzz/stateful stages; the C# 405 assertion then read `Allow` from the wrong .NET header collection. It now reads `Content.Headers.Allow`. Also fixed xUnit's cancellation-token analyzer warning and added an evaluation guard for the header location. CI rerun pending.
 

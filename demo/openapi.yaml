@@ -128,6 +128,9 @@ components:
   schemas:
     Product:
       type: object
+      description: >
+        Availability projection returned by the Product API. This is a separate
+        API boundary from the full Product resource in the Catalog scaffold.
       required: [sku, available]
       properties:
         sku:

@@ -16,6 +16,7 @@ actual_node="$(node -p 'process.versions.node')"
 actual_npm="$(npm --version)"
 if [[ "$actual_node" != "$NODE_VERSION" || "$actual_npm" != "$NPM_VERSION" ]]; then
   echo "Expected Node.js ${NODE_VERSION} and npm ${NPM_VERSION}; found ${actual_node} and ${actual_npm}." >&2
+  echo "Use the repository .nvmrc, then install the pinned npm with: npm install --global npm@${NPM_VERSION}" >&2
   exit 1
 fi
 

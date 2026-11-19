@@ -76,6 +76,51 @@ public sealed class OpenApiResponseValidatorConformanceTests
         }
     }
 
+    [Fact]
+    public async Task AdapterRejectsExternalNestedSchemaReferencesBeforeResolution()
+    {
+        const string specification = """
+            openapi: 3.0.3
+            info:
+              title: External reference fixture
+              version: 1.0.0
+            paths:
+              /probe:
+                get:
+                  responses:
+                    "200":
+                      description: Response with unsupported external reference
+                      content:
+                        application/json:
+                          schema:
+                            $ref: "#/components/schemas/Envelope"
+            components:
+              schemas:
+                Envelope:
+                  type: object
+                  properties:
+                    child:
+                      $ref: "https://example.invalid/child.json"
+            """;
+        var specificationPath = Path.Combine(Path.GetTempPath(), $"oas-validator-{Guid.NewGuid():N}.yaml");
+        await File.WriteAllTextAsync(specificationPath, specification, TestContext.Current.CancellationToken);
+        try
+        {
+            var validator = OpenApiResponseValidator.Load(specificationPath);
+            using var response = JsonResponse();
+            var error = await Assert.ThrowsAsync<InvalidOperationException>(() => validator.ValidateAsync(
+                response,
+                "{\"child\":{}}",
+                "/probe",
+                "get"));
+            Assert.Contains("Only local OpenAPI component schema references", error.Message);
+        }
+        finally
+        {
+            File.Delete(specificationPath);
+        }
+    }
+
     private static HttpResponseMessage JsonResponse() => new(HttpStatusCode.OK)
     {
         Content = new StringContent("{}", Encoding.UTF8, "application/json"),

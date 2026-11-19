@@ -51,9 +51,14 @@ internal sealed class OpenApiResponseValidator
         {
             var referencePath = ((YamlScalarNode)reference).Value
                 ?? throw new InvalidOperationException("Schema reference cannot be empty");
-            if (!referencePath.StartsWith("#", StringComparison.Ordinal))
-                throw new InvalidOperationException("Only local OpenAPI schema references are supported by this demo");
-            schemaNode = NodeAt(_spec, referencePath[2..].Split('/').Select(UnescapePointerSegment).ToArray());
+            const string componentSchemaPrefix = "#/components/schemas/";
+            if (!referencePath.StartsWith(componentSchemaPrefix, StringComparison.Ordinal))
+                throw new InvalidOperationException("Only local OpenAPI component schema references are supported by this demo");
+            var schemaSegments = new[] { "components", "schemas" }
+                .Concat(referencePath[componentSchemaPrefix.Length..]
+                    .Split('/').Select(UnescapePointerSegment))
+                .ToArray();
+            schemaNode = NodeAt(_spec, schemaSegments);
         }
 
         var schemaJson = ToJsonNode(schemaNode) as JsonObject
@@ -61,6 +66,7 @@ internal sealed class OpenApiResponseValidator
         schemaJson["$defs"] = ToJsonNode(NodeAt(_spec, "components", "schemas"));
         schemaJson["$schema"] = "https://json-schema.org/draft/2020-12/schema";
         NormalizeSchema(schemaJson);
+        EnsureLocalSchemaReferences(schemaJson);
         var schema = await JsonSchema.FromJsonAsync(schemaJson.ToJsonString());
         var errors = schema.Validate(body);
         if (errors.Count != 0)
@@ -76,6 +82,29 @@ internal sealed class OpenApiResponseValidator
     }
 
     private static string UnescapePointerSegment(string segment) => segment.Replace("~1", "/").Replace("~0", "~");
+
+    private static void EnsureLocalSchemaReferences(JsonNode? node)
+    {
+        if (node is JsonArray array)
+        {
+            foreach (var item in array) EnsureLocalSchemaReferences(item);
+            return;
+        }
+
+        if (node is not JsonObject schema) return;
+        if (schema.TryGetPropertyValue("$ref", out var referenceNode))
+        {
+            const string definitionsPrefix = "#/$defs/";
+            if (referenceNode is not JsonValue referenceValue
+                || !referenceValue.TryGetValue<string>(out var reference)
+                || !reference.StartsWith(definitionsPrefix, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("Only local OpenAPI component schema references are supported by this demo");
+            }
+        }
+
+        foreach (var value in schema.ToArray()) EnsureLocalSchemaReferences(value.Value);
+    }
 
     private static void NormalizeSchema(JsonNode? node)
     {

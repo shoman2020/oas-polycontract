@@ -91,13 +91,15 @@ flowchart TB
 
 ## Run
 
-Requires Node.js 26.13.1, npm 12.2.2, and a Docker-compatible container runtime. Testcontainers for Node.js manages the pipeline; Docker Compose is not required.
+Requires Node.js 26.13.1, npm 12.2.3, and a Docker-compatible container runtime. The repository includes `.nvmrc` for Node.js selection; with nvm, run `nvm use` and install the pinned npm with `npm install --global npm@12.2.3`. Testcontainers for Node.js manages the pipeline.
 
 ```sh
 bash ./run.sh
 ```
 
 `run.sh` checks the exact pinned Node.js/npm versions, installs the locked pipeline dependency, and starts an isolated Testcontainers network. It prepares the Node test image with the pinned npm release, verifies a pinned WireMock standalone JAR by SHA-256, then runs contract gates, fuzzing, and API suites. Trivy scans the prepared Node image, the minimal Java runtime, the WireMock JAR, and Specmatic. Contract, fixture, and client source mounts are read-only; dependency downloads and build outputs stay in temporary container directories. Tests cannot rewrite the checked-in OAS. Update a contract through a reviewed source change, then update its compatibility baseline in the same change when the new version is intentional. Use Docker Desktop or Colima on macOS, or Docker Desktop with WSL/Git Bash on Windows. CI uses Ubuntu.
+
+The pipeline stops when a stage fails so dependent checks do not create cascading errors. Its timing report lists later stages as `skipped`, alongside completed and failed stages.
 
 The enterprise adoption implementation in [commit 2fe49dc](https://github.com/shoman2020/oas-polycontract/commit/2fe49dc8e897c1b53acb985c4758cd255f44d31e) passed [contract run 44349546211](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546211) and [security run 44349546212](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546212) on 18 Nov 2026. The contract workflow publishes stage timings as a CSV artifact.
 
@@ -119,13 +121,13 @@ Treat this repository as a pilot template. Before adopting it across teams, adap
 |---|---|---|
 | API coverage | One Product lookup and one in-memory Order lifecycle | Pilot with representative APIs, including authentication, errors, pagination, versioning, and downstream failure modes. |
 | Consumer ownership | Provider OAS generates the Smart Mock; this example has no consumer-owned contract | Add a versioned contract per consumer and provider verification when teams need to check their own expectations. |
-| Validators | Each language uses a different validator; the C# adapter covers this demo’s status, JSON media type, schema, and local references | Agree a supported OAS feature matrix and test each language against it. Use the shared Spectral, Specmatic, and Schemathesis gates for contract-wide checks. |
+| Validators | Language validators differ. The Rust and C# adapters translate nullable values, `exclusiveMinimum`, and nested local component-schema references covered by conformance tests; neither claims full OAS 3.0 coverage. C# rejects external and unsupported references before schema resolution. | Agree a supported OAS feature matrix and test each language against it. Add coverage for constructs such as `allOf`, `anyOf`, and discriminators before relying on them. Use the shared Spectral, Specmatic, and Schemathesis gates for contract-wide checks. |
 | Runtime state | Order data is in memory, scoped to one app instance, and lost on restart | Use isolated test data and a service-backed store for tests that need persistence, parallel environments, or multi-instance behavior. |
 | Runtime versions | CI tests one centrally pinned toolchain | Align pins with approved company versions and add compatibility jobs for the runtimes teams support. |
 | CI cost | The full run pulls pinned runtime images and runs all client suites; client dependencies install into temporary containers | Measure the full workflow in the target CI environment before making it a required check; use the CSV stage timings to tune caching, parallelism, and coverage. |
 | Merge governance | Workflows report checks; `main` does not currently require them | Require the contract and security checks in repository rules before using the template as a merge gate. |
 
-The Order service remains a stateful test fixture, not a production implementation. Its in-memory store isolates each server instance but does not provide persistence or coordination between replicas. The pinned toolchain is a tested reference set, not a promise of compatibility with every company runtime.
+The Order service remains a stateful test fixture, not a production implementation. It uses random UUIDs to avoid collisions between concurrent app instances, and tests confirm that each app instance has isolated data. Its in-memory store does not provide persistence or coordination between replicas, so a request routed to another replica may return 404. The pinned toolchain is a tested reference set, not a promise of compatibility with every company runtime.
 
 For a multi-team rollout, assign an accountable owner to each API boundary instead of routing all contract changes through a central test team. Providers version and verify their specifications; consumers maintain separate expectations when their integrations need them verified. Share approved templates and CI policies while letting each service choose its test environment and supported runtime matrix.
 
@@ -135,13 +137,13 @@ Specifications are reviewed source files and read-only pipeline inputs. Tests, g
 
 | Boundary | Contract | Implementation and checks |
 |---|---|---|
-| Product Catalog | [Root OAS](openapi/openapi.yaml) | Design scaffold; Spectral, Swagger UI, Prism |
-| Product API | [Demo OAS](demo/openapi.yaml) | Node.js; Specmatic, Schemathesis, seven languages, Playwright |
+| Product Catalog | [Root OAS](openapi/openapi.yaml) | Separate design scaffold; its full Product schema includes a name; Spectral, Swagger UI, Prism |
+| Product API | [Demo OAS](demo/openapi.yaml) | Separate runnable boundary; returns an availability projection (`sku`, `available`); Node.js, Specmatic, Schemathesis, seven languages, Playwright |
 | Order API | [Stateful OAS](demo/stateful/openapi.yaml) | In-memory Node.js; stateful Schemathesis and seven native suites |
 | Inventory dependency | [Downstream OAS](demo/downstream/openapi.yaml) | WireMock mappings, Specmatic, downstream integration |
 | Product events | [AsyncAPI examples](contracts/events/) | WebSocket and Kafka message contracts; lint only |
 
-OpenAPI describes HTTP operations and payloads such as JSON and XML. AsyncAPI describes event messages over WebSocket and Kafka. JSON, YAML, and XML describe document or payload formats; the contract separately defines the interface and transport. Event examples are linted; no event provider or broker is included.
+The Catalog scaffold and Product API intentionally model different boundaries, not competing schemas for one provider. The demo response is an inventory-backed availability projection, while the Catalog schema describes the fuller resource. OpenAPI describes HTTP operations and payloads such as JSON and XML. AsyncAPI describes event messages over WebSocket and Kafka. JSON, YAML, and XML describe document or payload formats; the contract separately defines the interface and transport. Event examples are linted; no event provider or broker is included, so the repository has no event runtime test coverage.
 
 ## Architecture
 

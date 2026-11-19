@@ -379,7 +379,7 @@ function checkAcceptanceFeatures() {
   if (!clientRunner.includes('js-bdd) npm run test:bdd') || !clientRunner.includes('CLIENT_FEATURES_SOURCE')) {
     failures.push('acceptance-features: client runner does not execute the Cucumber suite');
   }
-  if (!pipeline.includes("await this.stage('BDD acceptance features'")
+  if (!pipeline.includes("['BDD acceptance features'")
     || !pipeline.includes("await this.runTask('JavaScript BDD acceptance features'")
     || !pipeline.includes("readOnlyMount('clients/shared')")
     || !pipeline.includes("FEATURE_CASES_PATH: '/repo/clients/shared/acceptance-cases.json'")) {
@@ -431,8 +431,11 @@ function checkApiBehavior() {
   const order = readOpenApiDocument('demo/stateful/openapi.yaml');
   const product = readOpenApiDocument('demo/openapi.yaml');
   const statefulSource = readRepositoryFile('demo/stateful/server.mjs');
+  const statefulTests = readRepositoryFile('demo/stateful/server.test.mjs');
   const productSource = readRepositoryFile('demo/app/server.mjs');
   const pipeline = readRepositoryFile('pipeline/run.mjs');
+  const csharpValidator = readRepositoryFile('clients/csharp/OpenApiResponseValidator.cs');
+  const csharpConformance = readRepositoryFile('clients/csharp/OpenApiResponseValidatorConformanceTests.cs');
   const orderMethods = [
     ['/healthz', 'get'],
     ['/orders', 'post'],
@@ -455,7 +458,7 @@ function checkApiBehavior() {
     failures.push('api-behavior: Product OAS must declare the malformed/unavailable dependency response');
   }
   if (!pipeline.includes('async runExpectedFailure(')
-    || !pipeline.includes("await this.stage('Negative contract canaries'")) {
+    || !pipeline.includes("['Negative contract canaries'")) {
     failures.push('api-behavior: expected-failure canaries must run as a pipeline stage');
   }
   const canaryPipeline = pipeline.slice(
@@ -472,6 +475,15 @@ function checkApiBehavior() {
   }
   if (!statefulSource.includes('input.status !== order.status') || !statefulSource.includes('Cannot change order')) {
     failures.push('api-behavior: Order service must preserve idempotent repeats and reject illegal transitions');
+  }
+  if (!statefulSource.includes('randomUUID()') || statefulSource.includes('#nextOrderId')
+    || !statefulTests.includes('Concurrent order creation returns unique identifiers')
+    || !statefulTests.includes('Order state is isolated between application instances')) {
+    failures.push('api-behavior: Order IDs must avoid per-instance counter collisions and tests must cover concurrent creation and instance isolation');
+  }
+  if (!csharpValidator.includes('EnsureLocalSchemaReferences(schemaJson)')
+    || !csharpConformance.includes('AdapterRejectsExternalNestedSchemaReferencesBeforeResolution')) {
+    failures.push('api-behavior: C# response validation must reject unsupported nested external references before resolving schemas');
   }
   const nativeSuites = [
     ['Rust', 'clients/rust/tests/api_integration_test.rs'],
@@ -502,11 +514,12 @@ function checkApiBehavior() {
       failures.push(`api-behavior: ${language} suite does not consume all Order feature cases`);
     }
   }
-  return orderMethods.length + 8 + nativeSuites.length * (productCases.length + orderCases.length);
+  return orderMethods.length + 10 + nativeSuites.length * (productCases.length + orderCases.length);
 }
 
 function checkTestcontainersSafety() {
   const pipeline = readRepositoryFile('pipeline/run.mjs');
+  const consumerPipeline = pipeline.slice(pipeline.indexOf('async runConsumerTests()'), pipeline.indexOf('async cleanup()'));
   const clientSuite = readRepositoryFile('pipeline/client-suite.sh');
   const csharpTestRunner = JSON.parse(readRepositoryFile('clients/csharp/global.json')).test?.runner;
   const packageJson = JSON.parse(readRepositoryFile('pipeline/package.json'));
@@ -534,6 +547,11 @@ function checkTestcontainersSafety() {
     [projectDockerfiles.every((path) => !existsSync(resolve(repositoryRoot, path))), 'project-specific Dockerfiles should be replaced with pinned Testcontainers runtimes'],
     [pipeline.includes('const readOnlyMount') && pipeline.includes("mode: 'ro'") && !pipeline.includes("source: repositoryRoot") && !pipeline.includes("target: '/repo'"), 'only selected source paths may be mounted read-only'],
     [pipeline.includes("readOnlyMount('demo')") && pipeline.includes("readOnlyMount('openapi')"), 'contract and fixture mounts must be explicit'],
+    [(consumerPipeline.match(/NPM_VERSION: versions\.NPM_VERSION/g) ?? []).length === 2, 'JavaScript and Playwright consumer suites must receive the pinned npm version'],
+    [pipeline.includes('completeStageReport(this.plannedStages, this.stages')
+      && pipeline.includes("['Testcontainers network'")
+      && readRepositoryFile('pipeline/stage-report.test.mjs').includes("result: 'skipped'")
+      && packageJson.scripts?.test?.includes('stage-report.test.mjs'), 'failed runs must list later planned stages as skipped and unit-test the report'],
     [mountModes.length > 0 && mountModes.every((mode) => mode === 'ro') && !pipeline.includes("mode: 'rw'"), 'all repository bind mounts must be read-only'],
     [pipeline.includes('readOnlyMount(`clients/${key}`)') && readRepositoryFile('pipeline/client-suite.sh').includes('workspace="/tmp/oas-${suite}"'), 'client dependencies and build outputs must stay in temporary workspaces'],
     [pipeline.includes('runtimeImages') && pipeline.includes('node:${versions.NODE_VERSION}-alpine') && pipeline.includes('mcr.microsoft.com/dotnet/sdk:${versions.DOTNET_VERSION}'), 'runtime images must be built from shared version pins'],
@@ -564,6 +582,7 @@ function checkDependencyLocks() {
   const csharpProject = readRepositoryFile('clients/csharp/ContractTests.csproj');
   const clientRunner = readRepositoryFile('pipeline/client-suite.sh');
   const versions = readRepositoryFile('.github/versions.env');
+  const nvmrc = readRepositoryFile('.nvmrc').trim();
   const tsPackage = JSON.parse(readRepositoryFile('clients/ts/package.json'));
   const tsLock = JSON.parse(readRepositoryFile('clients/ts/package-lock.json'));
   const tsTests = tsPackage.scripts?.test ?? '';
@@ -589,7 +608,8 @@ function checkDependencyLocks() {
     [tsTests.includes('node --test security/picomatch-redos.check.mjs') && !tsTests.includes('picomatch-redos.test.mjs'), 'The Node-only Picomatch check must stay outside Vitest discovery'],
     [pipelinePackage.devDependencies?.testcontainers === pipelineLock.packages?.['node_modules/testcontainers']?.version, 'Testcontainers version must be exact and locked'],
     [pipelinePackage.devDependencies?.yaml === pipelineLock.packages?.['node_modules/yaml']?.version, 'YAML parser must be declared directly and locked for structural OAS evaluation'],
-    [pipelinePackage.scripts?.test?.includes('config.test.mjs') && pipelinePackage.scripts?.test?.includes('feature-cases.test.mjs') && pipeline.includes("readVersionPins(") && readRepositoryFile('run.sh').includes('npm --prefix pipeline test'), 'The local runner must test strict pin parsing and feature-data generation before starting containers'],
+    [pipelinePackage.scripts?.test?.includes('config.test.mjs') && pipelinePackage.scripts?.test?.includes('stage-report.test.mjs') && pipelinePackage.scripts?.test?.includes('feature-cases.test.mjs') && pipeline.includes("readVersionPins(") && readRepositoryFile('run.sh').includes('npm --prefix pipeline test'), 'The local runner must test strict pin parsing, stage reporting, and feature-data generation before starting containers'],
+    [nvmrc === versions.match(/^NODE_VERSION=(\S+)$/m)?.[1], '.nvmrc must match the centrally pinned Node.js version'],
     [/^TESTCONTAINERS_RYUK_VERSION=\S+$/m.test(versions) && pipeline.includes('versions.TESTCONTAINERS_RYUK_VERSION'), 'Ryuk version must come from the shared versions file'],
     [['RUST_VERSION', 'GO_VERSION', 'PYTHON_VERSION', 'NODE_VERSION', 'NPM_VERSION', 'MAVEN_VERSION', 'JAVA_VERSION', 'DOTNET_VERSION'].every((version) => new RegExp(`^${version}=\\S+$`, 'm').test(versions)) && ['versions.RUST_VERSION', 'versions.GO_VERSION', 'versions.PYTHON_VERSION', 'versions.NODE_VERSION', 'versions.MAVEN_VERSION', 'versions.JAVA_VERSION', 'versions.DOTNET_VERSION'].every((version) => pipeline.includes(version)), 'Native runtime container tags must use shared version pins'],
     [nativeClientKeysEverywhere(pipeline, clientRunner), 'All documented native clients must have a Testcontainers setup'],
