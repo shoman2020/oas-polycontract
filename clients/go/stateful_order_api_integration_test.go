@@ -139,14 +139,14 @@ func TestOrderAcceptanceErrorScenariosMatchOpenAPIContract(t *testing.T) {
 	}
 
 	invalid := acceptanceCase(t, "order.invalid")
-	response, err := client.CreateOrder(ctx, invalid["sku"].(string), int(invalid["quantity"].(float64)))
+	response, err := api.CreateOrder(ctx, invalid["sku"].(string), int(invalid["quantity"].(float64)))
 	if err != nil {
 		t.Fatal(err)
 	}
 	validate(response, int(invalid["expectedStatus"].(float64)))
 
 	scenario := acceptanceCase(t, "order.illegal-transition")
-	response, err = client.CreateOrder(ctx, scenario["sku"].(string), int(scenario["quantity"].(float64)))
+	response, err = api.CreateOrder(ctx, scenario["sku"].(string), int(scenario["quantity"].(float64)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +156,7 @@ func TestOrderAcceptanceErrorScenariosMatchOpenAPIContract(t *testing.T) {
 		t.Fatal(err)
 	}
 	for range int(scenario["repeatCount"].(float64)) {
-		response, err = client.UpdateOrder(ctx, created.ID, scenario["initialStatus"].(string))
+		response, err = api.UpdateOrder(ctx, created.ID, scenario["initialStatus"].(string))
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -166,12 +166,12 @@ func TestOrderAcceptanceErrorScenariosMatchOpenAPIContract(t *testing.T) {
 			t.Fatalf("repeated status update was not idempotent: %s", body)
 		}
 	}
-	response, err = client.UpdateOrder(ctx, created.ID, scenario["requestedStatus"].(string))
+	response, err = api.UpdateOrder(ctx, created.ID, scenario["requestedStatus"].(string))
 	if err != nil {
 		t.Fatal(err)
 	}
 	conflictBody := validate(response, int(scenario["expectedStatus"].(float64)))
-	response, err = client.GetOrder(ctx, created.ID)
+	response, err = api.GetOrder(ctx, created.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -180,7 +180,7 @@ func TestOrderAcceptanceErrorScenariosMatchOpenAPIContract(t *testing.T) {
 	if err := json.Unmarshal(unchangedBody, &unchanged); err != nil || unchanged["status"] != scenario["persistedStatus"] {
 		t.Fatalf("conflict changed persisted order state: %s (conflict %s)", unchangedBody, conflictBody)
 	}
-	response, err = client.DeleteOrder(ctx, created.ID)
+	response, err = api.DeleteOrder(ctx, created.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
