@@ -508,6 +508,7 @@ function checkApiBehavior() {
 function checkTestcontainersSafety() {
   const pipeline = readRepositoryFile('pipeline/run.mjs');
   const clientSuite = readRepositoryFile('pipeline/client-suite.sh');
+  const csharpTestRunner = JSON.parse(readRepositoryFile('clients/csharp/global.json')).test?.runner;
   const packageJson = JSON.parse(readRepositoryFile('pipeline/package.json'));
   const versionPins = readRepositoryFile('.github/versions.env');
   const javaProductTests = readRepositoryFile('clients/java/src/test/java/nl/shiftleft/ProductApiIntegrationTest.java');
@@ -546,6 +547,7 @@ function checkTestcontainersSafety() {
     [pipeline.includes("spawnSync('curl'") && pipeline.includes('readSync(descriptor') && pipeline.includes('WIREMOCK_SHA256') && !pipeline.includes('fetch(artifactUrl'), 'WireMock download must be verified without writing response data through the JavaScript filesystem API'],
     [!pipeline.includes('npm cache clean --force') && !pipeline.includes('--force >/dev/null'), 'Node runtime setup must not disable npm protections'],
     [clientSuite.includes('mkdir -p "$workspace/target/classes"') && javaProductTests.includes('getProductPathUnvalidated') && javaOrderTests.includes('createOrderUnvalidated') && javaOrderTests.includes('expectedMessage'), 'Java tests isolate malformed inputs from request validation and check responses against feature data'],
+    [csharpTestRunner === 'Microsoft.Testing.Platform' && clientSuite.includes('cd "$workspace"') && clientSuite.includes('dotnet test ContractTests.csproj --no-restore'), '.NET 10 C# tests must select MTP from their workspace global.json'],
   ];
   for (const [passed, message] of required) if (!passed) failures.push(`testcontainers-safety: ${message}`);
   return required.length;
