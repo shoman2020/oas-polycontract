@@ -138,8 +138,10 @@ Two existing CI checklist actions remain: requiring contract and security checks
 - [x] Run shared contract, compatibility, provider, fuzz, BDD, and mock gates once before the native suite matrix.
 - [x] Run Rust, Go, Python, JavaScript, TypeScript, Java, C#, and Playwright in separate jobs, each with its own Testcontainers network.
 - [x] Publish a core timing artifact and one timing artifact per stack.
+- [x] Export the generated Node test runtime to a tar archive before Testcontainers cleanup so Trivy can scan the exact runtime built by the pipeline.
 - [x] Pair the `inventory-malformed` request example with its documented 502 response.
-- [ ] Verify the split workflow and confirm the unmatched Specmatic example warning is gone.
+- [x] Run the shared core gates and confirm the Specmatic example warning is gone; see run 44570728787.
+- [ ] Verify Trivy scans the exported image archive and all isolated native matrix jobs pass.
 
 ## Conditional work
 
@@ -165,13 +167,13 @@ Run [44565579793](https://github.com/shoman2020/oas-polycontract/actions/runs/44
 
 - Spectral reported zero error-severity findings for OpenAPI and AsyncAPI.
 - oasdiff reported no breaking changes. Product and Order baselines differed structurally; Inventory had no difference.
-- Specmatic warned four times that the `inventory-malformed` request example lacked a matching response example. The Product OAS now pairs it with a 502 response; the next run must confirm the warning is cleared.
+- Specmatic warned four times that the `inventory-malformed` request example lacked a matching response example. The Product OAS now pairs it with a 502 response; core run [44570728787](https://github.com/shoman2020/oas-polycontract/actions/runs/44570728787) emitted no such warning.
 - The [line 314 output](https://github.com/shoman2020/oas-polycontract/actions/runs/44565579793/job/135706271073#step:9:314) is a clean Spectral result, and [line 353](https://github.com/shoman2020/oas-polycontract/actions/runs/44565579793/job/135706271073#step:9:353) is an informational compatibility result, not a breaking change.
 - [Lines 403](https://github.com/shoman2020/oas-polycontract/actions/runs/44565579793/job/135706271073#step:9:403) and [511](https://github.com/shoman2020/oas-polycontract/actions/runs/44565579793/job/135706271073#step:9:511) show intentional negative canaries: the gates reject a Product response where `available` is a string instead of a number. These are expected failures inside passing canary checks, not defects in the live provider.
 
 ## Progress
 
-- 19 Nov: The first split run, [44570193982](https://github.com/shoman2020/oas-polycontract/actions/runs/44570193982), reached repository evaluations; the interactive map omitted the required Trivy image-scan label. Added the label. Contract gates and matrix jobs still need a green run.
+- 19 Nov: Split run [44570193982](https://github.com/shoman2020/oas-polycontract/actions/runs/44570193982) exposed a missing Trivy label in the interactive map. Run [44570728787](https://github.com/shoman2020/oas-polycontract/actions/runs/44570728787) then passed all 16 repository evaluations and shared contract gates; Specmatic's unmatched-example warning is gone. The Trivy step could not find the Testcontainers-created image after pipeline cleanup, so CI now exports an image archive before cleanup for scanning. Stack matrix verification is pending.
 - 19 Nov: Split contract CI into one shared `core` job and isolated per-stack `native` matrix jobs. Updated README and interactive workflow diagrams, added per-stack timings, and matched the malformed-inventory request example with its 502 response. CI verification pending.
 
 - 19 Nov: Consolidated Testcontainers container configuration and service health checks to remove duplicated builder and readiness setup. Service health and one-shot completion strategies remain distinct. [Contract run 44563995399 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44563995399).

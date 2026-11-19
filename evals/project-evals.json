@@ -79,6 +79,7 @@
         "Schemathesis stateful Order flow",
         "BDD acceptance features",
         "const nativePlan = [",
+        "docker image save",
         "this.startApiIntegrationServices()",
         "if (!selectedNativeClients.has(key)) continue;",
         "JavaScript BDD acceptance features",

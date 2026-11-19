@@ -41,6 +41,7 @@ jobs:
 
       - name: Run shared contract gates
         env:
+          NODE_TEST_IMAGE_ARCHIVE: ${{ runner.temp }}/oas-polycontract/node-test.tar
           POLYCONTRACT_PIPELINE_PROFILE: core
           PIPELINE_TIMINGS_FILE: ${{ runner.temp }}/pipeline-timings-core.csv
         run: bash ./run.sh
@@ -54,11 +55,11 @@ jobs:
           if-no-files-found: warn
 
       # Scan pinned shared runtimes once; each language suite has its own isolated Testcontainers network.
-      - name: Scan application container image
+      - name: Scan prepared Node test runtime archive
         if: always()
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: ${{ env.NODE_TEST_IMAGE }}:${{ env.NODE_VERSION }}-npm${{ env.NPM_VERSION }}
+          input: ${{ runner.temp }}/oas-polycontract/node-test.tar
           format: table
           vuln-type: os,library
           severity: HIGH,CRITICAL

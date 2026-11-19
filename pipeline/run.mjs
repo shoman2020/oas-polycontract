@@ -231,6 +231,20 @@ class ContractPipeline {
         tag: `${versions.NODE_VERSION}-npm${versions.NPM_VERSION}`,
         comment: `Node ${versions.NODE_VERSION} with npm ${versions.NPM_VERSION}`,
       });
+      if (process.env.NODE_TEST_IMAGE_ARCHIVE) {
+        const archivePath = resolve(process.env.NODE_TEST_IMAGE_ARCHIVE);
+        mkdirSync(dirname(archivePath), { recursive: true });
+        const exportedImage = spawnSync('docker', [
+          'image', 'save', '--output', archivePath, nodeTestImage,
+        ], { stdio: 'inherit' });
+        if (exportedImage.error) {
+          throw new Error(`Could not export prepared Node image: ${exportedImage.error.message}`, { cause: exportedImage.error });
+        }
+        if (exportedImage.status !== 0) {
+          throw new Error(`Could not export prepared Node image (docker image save exited ${exportedImage.status})`);
+        }
+        console.log(`  <- Exported ${nodeTestImage} to ${archivePath}`);
+      }
       console.log(`  <- Prepared ${nodeTestImage}`);
     } finally {
       await started.stop().catch((error) => console.warn(`Node test image cleanup: ${error.message}`));
