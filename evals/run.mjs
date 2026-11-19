@@ -823,7 +823,11 @@ function checkWorkflowVisuals() {
   if (!readme.includes('```mermaid\nflowchart LR')) failures.push('workflow-visuals: README contract and test diagram is missing');
   if (sceneCount !== 8) failures.push(`workflow-visuals: expected 8 showcase slides, found ${sceneCount}`);
   if (laneCount !== 4) failures.push(`workflow-visuals: expected 4 workflow lanes, found ${laneCount}`);
-  if (testFlowLaneCount !== 7) failures.push(`workflow-visuals: expected 7 interactive test-flow lanes, found ${testFlowLaneCount}`);
+  if (testFlowLaneCount !== 8) failures.push(`workflow-visuals: expected 8 interactive test-flow lanes, found ${testFlowLaneCount}`);
+  if (!showcase.includes('clients/shared/acceptance-cases.json')
+    || !showcase.includes('clients/features/')) {
+    failures.push('workflow-visuals: feature-driven tests must map shared generated cases from the Product and Order feature directory');
+  }
   if (workflowMapReferences < 6) failures.push(`workflow-visuals: expected 6 README links to interactive maps, found ${workflowMapReferences}`);
   if (!showcase.includes('aria-valuemax="8"')) failures.push('workflow-visuals: showcase progress range is not updated for 8 slides');
   return workflowFiles.length + sourcePolicies.length + concepts.length + readmeTriggers.length + showcaseTriggers.length + sceneCount + laneCount;

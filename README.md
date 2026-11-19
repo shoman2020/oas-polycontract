@@ -25,9 +25,13 @@ flowchart LR
   ProductOAS --> SmartMock[Specmatic Smart Mock]
   SmartMock --> ConsumerTests[Consumer development with a provider Smart Mock]
   ProductFeatures[Product and Order Gherkin features] --> BDD[Cucumber acceptance tests]
+  ProductFeatures --> SharedCases[Generated shared feature cases]
+  SharedCases --> BDD
+  SharedCases --> NativeSuites
   BDD --> ProductAPI
   BDD --> OrderAPI
   ProductOAS --> NativeSuites
+  OrderOAS --> NativeSuites
   subgraph NativeSuites["Native API integration suites"]
     direction TB
     RustSuite["Rust<br/>cargo test · reqwest · jsonschema"]
@@ -103,7 +107,7 @@ The pipeline stops when a stage fails so dependent checks do not create cascadin
 
 The enterprise adoption implementation in [commit 2fe49dc](https://github.com/shoman2020/oas-polycontract/commit/2fe49dc8e897c1b53acb985c4758cd255f44d31e) passed [contract run 44349546211](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546211) and [security run 44349546212](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546212) on 18 Nov 2026. The contract workflow publishes stage timings as a CSV artifact.
 
-The default runs all seven native language suites. For a focused local run, select a comma-separated subset; JavaScript and Playwright also check consumer flows against the provider Smart Mock:
+Full runs include seven language suites to demonstrate options. Enterprise teams can use only their existing language and test framework; Specmatic and WireMock are example integrations, not required tools. Keep contract and integration tests alongside service or consumer code in the same repository. For a focused local run, select a comma-separated subset; JavaScript and Playwright also check consumer flows against the provider Smart Mock:
 
 ```sh
 POLYCONTRACT_NATIVE_CLIENTS=rust,python bash ./run.sh

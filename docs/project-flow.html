@@ -130,7 +130,7 @@
           <div class="grid">
             <article class="card"><span class="tag">Product Catalog</span><strong>Root OAS scaffold</strong><p><code>openapi/</code> holds a design example without a provider implementation. <code>contracts/baselines/</code> keeps separate accepted snapshots for runnable providers.</p></article>
             <article class="card"><span class="tag">Runnable APIs</span><strong>Product and Order examples</strong><p><code>demo/</code> contains one Product lookup, an in-memory Order lifecycle scoped to each app instance, and a WireMock-backed Inventory dependency.</p></article>
-            <article class="card"><span class="tag">Behavior tests</span><strong>Gherkin acceptance and service unit tests</strong><p><code>clients/js/features/</code> supplies Product and Order scenarios to Cucumber. Node.js service tests check those behaviors in isolation before pipeline gates run.</p></article>
+            <article class="card"><span class="tag">Behavior tests</span><strong>Gherkin acceptance and service unit tests</strong><p><code>clients/features/</code> supplies Product and Order scenarios. A generator writes shared case data for Cucumber and all seven native API suites; Node.js service tests check the behaviors in isolation.</p></article>
             <article class="card"><span class="tag">Events and evaluations</span><strong>Separate contract types and checks</strong><p><code>contracts/events/</code> holds linted AsyncAPI examples. <code>evals/</code> checks docs, test entry points, collection paths, pipeline wiring, mock cases, and roadmap progress.</p></article>
             <article class="card"><span class="tag">Phase 5 · examples delivered</span><strong>Manual collection migration</strong><p><code>legacy/</code> holds OAS-aligned Postman and Bruno examples for Product lookup and the stateful Order flow. Their paths are checked against the contracts.</p><p><a href="https://github.com/shoman2020/oas-polycontract/tree/main/legacy">Open the collections and setup guide</a></p></article>
           </div>
@@ -199,7 +199,7 @@
         <section class="scene" id="test-roles" aria-labelledby="scene-title-5" hidden>
           <span class="eyebrow">05 · Contract roles</span>
           <h2 id="scene-title-5" tabindex="-1">Contract tests and API integration tests have distinct targets.</h2>
-              <p class="lead">Specmatic provider and consumer checks use the Product OAS with different targets. Native language suites exercise the live APIs and validate responses against OAS.</p>
+              <p class="lead">Specmatic provider and mock checks use the Product OAS with different targets. Feature files provide shared acceptance cases for Cucumber and each native language suite. Native suites exercise live APIs and validate responses against OAS.</p>
           <div class="test-flow-map" role="group" aria-label="Contract and API test flow diagram">
             <section class="test-flow-lane">
               <h3>Provider contract verification</h3>
@@ -241,6 +241,15 @@
               </div>
             </section>
             <section class="test-flow-lane">
+              <h3>Shared API acceptance cases</h3>
+              <div class="test-flow-chain">
+                <div class="test-flow-step"><strong>Product and Order Gherkin</strong><br><code>clients/features/</code></div>
+                <div class="test-flow-step">Generator writes <code>clients/shared/acceptance-cases.json</code></div>
+                <div class="test-flow-step">Cucumber uses API-specific steps against live services</div>
+                <div class="test-flow-step">Rust · Go · Python · JavaScript · TypeScript · Java · C# consume the same cases</div>
+              </div>
+            </section>
+            <section class="test-flow-lane">
               <h3>Stateful Order tests</h3>
               <div class="test-flow-chain">
                 <div class="test-flow-step"><strong>Order OAS</strong></div>
@@ -266,7 +275,7 @@
               </div>
             </section>
           </div>
-          <div class="note">The Smart Mock comes from the provider OAS. This example does not publish consumer-owned contracts or check consumer-specific expectations. Gherkin files supply acceptance-test inputs; Cucumber checks live Product and Order behavior against OAS. Isolated service tests provide TDD feedback before pipeline gates. Manual collections support exploration and migration. See the <a href="https://github.com/shoman2020/oas-polycontract/tree/main/clients/js/features">feature scenarios</a>, <a href="https://github.com/shoman2020/oas-polycontract#contract-and-test-flow">README test flow</a>, and <a href="https://github.com/shoman2020/oas-polycontract#enterprise-adoption">adoption limits</a>.</div>
+          <div class="note">The Smart Mock comes from the provider OAS. This example does not publish consumer-owned contracts or check consumer-specific expectations. Feature files generate shared acceptance data for Cucumber and all seven native suites; service unit tests provide TDD feedback before API gates. Manual collections support exploration and migration. See the <a href="https://github.com/shoman2020/oas-polycontract/tree/main/clients/features">Product and Order features</a>, <a href="https://github.com/shoman2020/oas-polycontract/tree/main/clients/shared">generated case data</a>, <a href="https://github.com/shoman2020/oas-polycontract#contract-and-test-flow">README test flow</a>, and <a href="https://github.com/shoman2020/oas-polycontract#enterprise-adoption">adoption notes</a>.</div>
         </section>
         <section class="scene" id="test-behavior" aria-labelledby="scene-title-6" hidden>
           <span class="eyebrow">06 · Test behavior</span>

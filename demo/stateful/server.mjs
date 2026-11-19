@@ -9,7 +9,7 @@ class InMemoryOrderStore {
   #orders = new Map();
   create(input) {
     const order = {
-      id: `order-${randomUUID()}`
+      id: `order-${randomUUID()}`,
       sku: input.sku,
       quantity: input.quantity,
       status: "created",

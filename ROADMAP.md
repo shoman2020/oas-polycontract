@@ -152,6 +152,7 @@ This reference repo has no stable runtime API to package. A `create-polycontract
 
 ## Progress
 
+- 19 Nov: Run 44557734234 verified evaluations and the pinned npm setup but failed in Order unit tests because UUID ID generation lacked a comma. Corrected the object literal; rerun pending. Updated README and interactive flow to show generated feature cases feeding Cucumber and all seven native suites, and clarified that language/tool examples are optional adoption choices.
 - 19 Nov: Run 44552231115 passed through provider verification, fuzzing, stateful tests, all native suites, and BDD. Consumer suites failed at startup because `NPM_VERSION` was missing from their container environments; both now receive the shared pin. CI verification is pending.
 - 19 Nov: Applied the review follow-up: UUID Order identifiers with concurrency/isolation tests, fail-closed nested external C# schema references, explicit Catalog-versus-Product boundary descriptions, `.nvmrc` setup guidance, and skipped-stage reporting after fail-fast errors. Local verification is in progress; consumer-owned contracts, event runtime tests, branch protection, and post-migration performance remain open.
 
