@@ -15,10 +15,10 @@
     "sku": "",
     "quantity": 0,
     "expectedStatus": 400,
+    "expectedMessage": "sku and quantity are invalid",
     "api": "order",
     "feature": "Stateful Order lifecycle",
-    "scenario": "Reject an invalid order",
-    "expectedMessage": "sku and quantity are invalid"
+    "scenario": "Reject an invalid order"
   },
   {
     "caseId": "order.illegal-transition",
