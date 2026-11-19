@@ -113,7 +113,7 @@ The script checks runtime pins, runs pipeline unit checks, verifies generated fe
 POLYCONTRACT_NATIVE_CLIENTS=rust,python bash ./run.sh
 ```
 
-Set `POLYCONTRACT_PIPELINE_PROFILE` to `core` or `native` to run that CI section locally.
+Set `POLYCONTRACT_PIPELINE_PROFILE` to `core` or `native` to run that CI section locally. The languages and tools are examples, not requirements; use the [client guide](clients/README.md) to adapt tests to your team's native stack and repository.
 
 ## Behavior scenarios and test-driven changes
 
