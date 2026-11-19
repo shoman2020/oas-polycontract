@@ -97,7 +97,7 @@ Requires Node.js 26.13.1, npm 12.2.2, and a Docker-compatible container runtime.
 bash ./run.sh
 ```
 
-`run.sh` checks the pinned Node.js/npm versions, installs the locked pipeline dependency, and starts an isolated Testcontainers network. It runs repository evaluations and contract gates, pulls versioned upstream runtime images, starts the APIs, and executes Specmatic/WireMock examples, fuzzing, and API suites. Contract, fixture, and client source mounts are read-only; dependency downloads and build outputs stay in temporary container directories. Tests cannot rewrite the checked-in OAS. Update a contract through a reviewed source change, then update its compatibility baseline in the same change when the new version is intentional. Use Docker Desktop or Colima on macOS, or Docker Desktop with WSL/Git Bash on Windows. CI uses Ubuntu.
+`run.sh` checks the exact pinned Node.js/npm versions, installs the locked pipeline dependency, and starts an isolated Testcontainers network. It prepares the Node test image with the pinned npm release, verifies a pinned WireMock standalone JAR by SHA-256, then runs contract gates, fuzzing, and API suites. Trivy scans the prepared Node image, the minimal Java runtime, the WireMock JAR, and Specmatic. Contract, fixture, and client source mounts are read-only; dependency downloads and build outputs stay in temporary container directories. Tests cannot rewrite the checked-in OAS. Update a contract through a reviewed source change, then update its compatibility baseline in the same change when the new version is intentional. Use Docker Desktop or Colima on macOS, or Docker Desktop with WSL/Git Bash on Windows. CI uses Ubuntu.
 
 The enterprise adoption implementation in [commit 2fe49dc](https://github.com/shoman2020/oas-polycontract/commit/2fe49dc8e897c1b53acb985c4758cd255f44d31e) passed [contract run 44349546211](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546211) and [security run 44349546212](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546212) on 18 Nov 2026. The contract workflow publishes stage timings as a CSV artifact.
 
@@ -109,7 +109,7 @@ POLYCONTRACT_NATIVE_CLIENTS=rust,python bash ./run.sh
 
 ## Behavior scenarios and test-driven changes
 
-The [Product and Order Gherkin features](clients/js/features/README.md) drive Cucumber acceptance tests; scenario inputs and expected outcomes come from the `.feature` files. Node.js service tests cover the same behavior at unit level and run before the API gates. For a behavior change, add or update a scenario, write a failing unit test, implement the smallest change, then run the focused tests and full pipeline. Live API suites validate HTTP responses against OAS.
+The [Product and Order Gherkin features](clients/features/README.md) define acceptance behavior and scenario data. API-specific Cucumber steps check the live services, and all seven native language suites read generated case data from those features. Node.js service tests cover the same behavior in isolation and run before API gates. For a behavior change, update a scenario, write a failing unit test, implement the smallest change, then run the focused tests and full pipeline.
 
 ## Enterprise adoption
 
@@ -149,7 +149,7 @@ OpenAPI describes HTTP operations and payloads such as JSON and XML. AsyncAPI de
 |---|---|---|
 | Specifications | Define API boundaries, examples, and accepted compatibility snapshots | `openapi/`, `demo/`, `contracts/events/`, `contracts/baselines/` |
 | Demo services | Implement Product, Order, and WireMock-backed Inventory examples | `demo/` |
-| Native clients | Encapsulate HTTP calls; language validators check exercised responses and tests assert behavior | `clients/`, `clients/js/features/` |
+| Native clients | Encapsulate HTTP calls; language validators check exercised responses and tests assert behavior | `clients/`, `clients/features/`, `clients/shared/` |
 | Orchestration | Compose pipeline stages, containers, network, cleanup, and native suite execution | `pipeline/run.mjs`, `pipeline/client-suite.sh` |
 | Shared configuration | Parse and validate required runtime pins before container startup | `pipeline/config.mjs`, `.github/versions.env` |
 | Quality checks | Validate contracts, project wiring, security, and dependencies | `gates/`, `evals/`, `.github/workflows/` |
@@ -174,10 +174,10 @@ Use these terms consistently across the contracts, tests, and pipeline:
 | Stateless fuzzing | Schemathesis generates independent Product requests from the OAS. |
 | Stateful testing | Linked operations share returned data; Order tests follow create, read, confirm, delete, then 404. |
 | Quality gate | A CI check that reports whether a change meets a stated requirement; merge enforcement is configured separately. |
-| BDD acceptance test | Cucumber runs the behavior scenarios in `clients/js/features/` against live Product and Order APIs; declared operations are checked against OAS. |
+| BDD acceptance test | Cucumber uses API-specific steps for the shared Product and Order features in `clients/features/`; declared operations are checked against OAS. |
 | TDD unit test | Node.js service tests check API behavior in isolation; add the failing test before changing implementation. |
 
-Provider verification and consumer development against a Smart Mock share the Product OAS but target different systems. The mock offers consumers an early integration target based on the provider’s declared interface. Consumer-owned expectations are not represented here. API integration suites exercise live services. Cucumber runs Product and Order acceptance scenarios from Gherkin against the live APIs; Node.js unit tests check service behavior in isolation.
+Provider verification and consumer development against a Smart Mock share the Product OAS but target different systems. The mock offers consumers an early integration target based on the provider’s declared interface. Consumer-owned expectations are not represented here. API integration suites exercise live services. Cucumber runs Product and Order acceptance scenarios against the live APIs; Rust, Go, Python, JavaScript, TypeScript, Java, and C# suites use the same scenario data. Node.js unit tests check service behavior in isolation.
 
 ### Contract-based testing
 
@@ -214,7 +214,7 @@ Specmatic mock data uses OAS examples, fixtures in `demo/openapi_examples`, and 
 | API behavior | Specmatic provider verification, failing canaries, 404/400/409/502 assertions, WireMock, Schemathesis, and native integration suites | `contract.yml` |
 | Project consistency | Repository evaluations check links, structure, test roles, workflows, and roadmap | `contract.yml` |
 | Source and dependencies | CodeQL, Gitleaks, Trivy filesystem scan, Dependency Review, and Dependabot | `security.yml` |
-| Container images | Trivy scans for the app, WireMock, and Specmatic | `contract.yml` |
+| Container and runtime artifacts | Trivy scans the prepared Node image, Java runtime, WireMock JAR, and Specmatic | `contract.yml` |
 | GenAI code | SecureAI-Scan scans repository source; manual positive controls demonstrate SecureAI-Scan and Semgrep rules | `security.yml` |
 
 Dependabot checks package manifests weekly. Contract CI runs on pushes, pull requests, and manual dispatch. Security CI runs on pushes to `main`, pull requests, a weekly schedule, and manual dispatch. See the [interactive workflow map](https://shoman2020.github.io/oas-polycontract/#workflows).
@@ -281,7 +281,9 @@ Each contract run reports stage timings and uploads a CSV artifact. The last fiv
 | clients/rust/Cargo.lock; clients/go/go.sum; clients/csharp/packages.lock.json | Rust, Go, and .NET dependency locks |
 | gates/ | Contract lint, compatibility checks, and security examples |
 | evals/ | Documentation, roles, and pipeline checks |
-| clients/js/features/ | Gherkin acceptance scenarios and Cucumber step definitions |
+| clients/features/ | Product and Order Gherkin acceptance scenarios with shared JSON data |
+| clients/shared/ | Generated acceptance case data and its feature-data exporter |
+| clients/js/bdd/ | Shared Cucumber support and API-specific step definitions |
 | docs/project-flow.html | Interactive showcase source, published on GitHub Pages |
 | .github/workflows/ | Contract, security, performance, and showcase automation |
 | .github/versions.env | Central tool and runtime version pins |

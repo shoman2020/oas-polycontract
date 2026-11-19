@@ -3,6 +3,7 @@ set -eu
 
 client_source=${CLIENT_SOURCE:?CLIENT_SOURCE is required}
 suite=${CLIENT_SUITE:?CLIENT_SUITE is required}
+client_features_source=${CLIENT_FEATURES_SOURCE:-}
 export HOME=/tmp/oas-home
 mkdir -p "$HOME"
 
@@ -31,6 +32,10 @@ case "$suite" in
     workspace="/tmp/oas-${suite}"
     mkdir -p "$workspace"
     cp -R "$client_source"/. "$workspace"/
+    if [ "$suite" = js-bdd ]; then
+      [ -n "$client_features_source" ] || { echo "CLIENT_FEATURES_SOURCE is required for the BDD suite" >&2; exit 2; }
+      cp -R "$client_features_source" "$workspace/features"
+    fi
     mkdir -p /tmp/oas-npm
     npm install --prefix /tmp/oas-npm "npm@${NPM_VERSION:?NPM_VERSION is required}" --no-audit --no-fund
     export PATH="/tmp/oas-npm/node_modules/.bin:$PATH"

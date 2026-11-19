@@ -5,7 +5,7 @@
   "scripts": {
     "test": "node --test product-api-integration.test.mjs stateful-order-api-integration.test.mjs",
     "test:consumer": "node --test consumer-contract.test.mjs",
-    "test:bdd": "cucumber-js --import features/steps/api.steps.mjs features"
+    "test:bdd": "cucumber-js --import bdd/support.mjs --import bdd/product-api.steps.mjs --import bdd/order-api.steps.mjs features"
   },
   "dependencies": {
     "@oaverify/core": "7.3.1",

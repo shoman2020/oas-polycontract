@@ -2,24 +2,23 @@ package nl.shiftleft;
 
 import com.atlassian.oai.validator.restassured.OpenApiValidationFilter;
 import io.restassured.response.Response;
-import java.util.Objects;
 
-final class ProductApiClient {
-    private final String baseUri;
-    private final OpenApiValidationFilter contractFilter;
-
+final class ProductApiClient extends HttpApiClient implements ProductApi {
     ProductApiClient(String baseUri, OpenApiValidationFilter contractFilter) {
-        this.baseUri = Objects.requireNonNull(baseUri, "baseUri");
-        this.contractFilter = Objects.requireNonNull(contractFilter, "contractFilter");
+        super(baseUri, contractFilter);
     }
 
-    Response getProduct(String sku) {
-        return io.restassured.RestAssured.given()
-            .baseUri(baseUri)
-            .filter(contractFilter)
+    public Response getProduct(String sku) {
+        return request()
             .pathParam("sku", sku)
         .when()
             .get("/products/{sku}");
+    }
+
+    public Response getProductPath(String path) {
+        return request()
+        .when()
+            .get(path);
     }
 }
 

@@ -1,22 +1,18 @@
-export interface ProductApiResponse {
-  request: Request;
-  response: Response;
-}
+import { HttpApiClient, type ApiResponse, type ProductApi } from "./http-api-client.js";
 
-export class ProductApiClient {
-  constructor(
-    private readonly baseUrl: string,
-    private readonly fetchImpl: typeof fetch = globalThis.fetch,
-    private readonly timeoutMs = 10_000,
-  ) {
-    if (!baseUrl) throw new Error("API_BASE_URL is required");
+export type ProductApiResponse = ApiResponse;
+
+export class ProductApiClient extends HttpApiClient implements ProductApi {
+  constructor(baseUrl: string, fetchImpl: typeof fetch = globalThis.fetch, timeoutMs = 10_000) {
+    super(baseUrl, fetchImpl, timeoutMs);
   }
 
-  async getProduct(sku: string): Promise<ProductApiResponse> {
-    const url = new URL(`/products/${encodeURIComponent(sku)}`, this.baseUrl);
-    const request = new Request(url, { signal: AbortSignal.timeout(this.timeoutMs) });
-    const response = await this.fetchImpl(request);
-    return { request, response };
+  getProduct(sku: string): Promise<ProductApiResponse> {
+    return this.send(`/products/${encodeURIComponent(sku)}`);
+  }
+
+  getProductPath(path: string): Promise<ProductApiResponse> {
+    return this.send(path);
   }
 }
 

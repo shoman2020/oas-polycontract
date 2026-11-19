@@ -36,7 +36,7 @@ function assertRepositoryPath(path, checkId) {
 
 function checkReadmeLinks() {
   let linkCount = 0;
-  for (const documentPath of ['README.md', 'clients/README.md', 'clients/js/features/README.md']) {
+  for (const documentPath of ['README.md', 'clients/README.md', 'clients/features/README.md']) {
     const document = readRepositoryFile(documentPath);
     const links = [...document.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)]
       .map((match) => match[1].trim().split(/[?#]/, 1)[0])
@@ -267,10 +267,12 @@ function checkTestRoleMap() {
   ];
   const documentedSections = ['### Contract-based testing', '### API integration testing'];
   const clientTestSources = [
-    'js/features/product-api.feature',
-    'js/features/order-api.feature',
-    'js/features/steps/api.steps.mjs',
-    'js/features/README.md',
+    'features/product-api.feature',
+    'features/order-api.feature',
+    'js/bdd/product-api.steps.mjs',
+    'js/bdd/order-api.steps.mjs',
+    'features/README.md',
+    'shared/acceptance-cases.json',
     'js/consumer-contract.test.mjs',
     'playwright/consumer-contract.spec.mjs',
     'rust/tests/api_integration_test.rs',
@@ -334,17 +336,21 @@ function checkPipelineTasks(tasks) {
 
 function checkAcceptanceFeatures() {
   const featureFiles = [
-    'clients/js/features/product-api.feature',
-    'clients/js/features/order-api.feature',
+    'clients/features/product-api.feature',
+    'clients/features/order-api.feature',
   ];
   const serviceTests = [
     readRepositoryFile('demo/app/tests/server.test.mjs'),
     readRepositoryFile('demo/stateful/server.test.mjs'),
   ].join('\n');
-  const steps = readRepositoryFile('clients/js/features/steps/api.steps.mjs');
+  const supportSteps = readRepositoryFile('clients/js/bdd/support.mjs');
+  const productSteps = readRepositoryFile('clients/js/bdd/product-api.steps.mjs');
+  const orderSteps = readRepositoryFile('clients/js/bdd/order-api.steps.mjs');
   const packageJson = JSON.parse(readRepositoryFile('clients/js/package.json'));
   const clientRunner = readRepositoryFile('pipeline/client-suite.sh');
   const pipeline = readRepositoryFile('pipeline/run.mjs');
+  const sharedCases = JSON.parse(readRepositoryFile('clients/shared/acceptance-cases.json'));
+  const casesGenerator = readRepositoryFile('clients/shared/generate-acceptance-cases.mjs');
   let scenarioCount = 0;
 
   for (const path of featureFiles) {
@@ -353,6 +359,9 @@ function checkAcceptanceFeatures() {
     if (names.length === 0) failures.push(`acceptance-features: ${path} contains no scenarios`);
     for (const name of names) {
       scenarioCount += 1;
+      if (!feature.includes('"""json') || !feature.includes('"caseId"')) {
+        failures.push(`acceptance-features: ${path} scenario lacks structured case data`);
+      }
       if (!serviceTests.includes(`test("${name}"`)) {
         failures.push(`acceptance-features: TDD service tests do not cover scenario: ${name}`);
       }
@@ -362,18 +371,41 @@ function checkAcceptanceFeatures() {
   if (!packageJson.scripts?.['test:bdd']?.includes('cucumber-js')) {
     failures.push('acceptance-features: JavaScript package has no Cucumber test command');
   }
-  if (!steps.includes('validateFetchResponse') || !steps.includes('Given(') || !steps.includes('When(') || !steps.includes('Then(')) {
-    failures.push('acceptance-features: Cucumber steps must exercise requests and validate responses against OAS');
+  if (!supportSteps.includes('validateFetchResponse') || !supportSteps.includes('Given(')
+    || !productSteps.includes('When(') || !productSteps.includes('Then(')
+    || !orderSteps.includes('When(') || !orderSteps.includes('Then(')) {
+    failures.push('acceptance-features: API-specific Cucumber step files must execute requests and validate responses against OAS');
   }
-  if (!clientRunner.includes('js-bdd) npm run test:bdd')) {
+  if (!clientRunner.includes('js-bdd) npm run test:bdd') || !clientRunner.includes('CLIENT_FEATURES_SOURCE')) {
     failures.push('acceptance-features: client runner does not execute the Cucumber suite');
   }
   if (!pipeline.includes("await this.stage('BDD acceptance features'")
-    || !pipeline.includes("await this.runTask('JavaScript BDD acceptance features'")) {
+    || !pipeline.includes("await this.runTask('JavaScript BDD acceptance features'")
+    || !pipeline.includes("readOnlyMount('clients/shared')")
+    || !pipeline.includes("FEATURE_CASES_PATH: '/repo/clients/shared/acceptance-cases.json'")) {
     failures.push('acceptance-features: Testcontainers pipeline does not run feature acceptance tests');
   }
 
-  return scenarioCount + featureFiles.length;
+  const nativeFeatureReaders = [
+    ['clients/rust/tests/api_integration_test.rs', 'feature_cases::acceptance_case'],
+    ['clients/go/product_api_integration_test.go', 'acceptanceCase(t,'],
+    ['clients/python/conftest.py', 'FEATURE_CASES_PATH'],
+    ['clients/js/product-api-integration.test.mjs', 'acceptanceCase('],
+    ['clients/ts/product-api-integration.test.ts', 'acceptanceCase('],
+    ['clients/java/src/test/java/nl/shiftleft/FeatureCases.java', 'FEATURE_CASES_PATH'],
+    ['clients/csharp/FeatureCases.cs', 'FEATURE_CASES_PATH'],
+  ];
+  for (const [path, marker] of nativeFeatureReaders) {
+    if (!readRepositoryFile(path).includes(marker)) failures.push(`acceptance-features: ${path} does not read feature case data`);
+  }
+  if (sharedCases.length !== scenarioCount || !casesGenerator.includes('--check')) {
+    failures.push('acceptance-features: generated case data must cover every Gherkin scenario');
+  }
+  if (!readRepositoryFile('run.sh').includes('generate-acceptance-cases.mjs --check')) {
+    failures.push('acceptance-features: runner must reject stale generated feature data');
+  }
+
+  return scenarioCount + featureFiles.length + nativeFeatureReaders.length + 4;
 }
 
 function checkCompatibilityBaselines(services) {
@@ -401,10 +433,6 @@ function checkApiBehavior() {
   const statefulSource = readRepositoryFile('demo/stateful/server.mjs');
   const productSource = readRepositoryFile('demo/app/server.mjs');
   const pipeline = readRepositoryFile('pipeline/run.mjs');
-  const jsProductTests = readRepositoryFile('clients/js/product-api-integration.test.mjs');
-  const pythonProductTests = readRepositoryFile('clients/python/test_product_api_integration.py');
-  const jsOrderTests = readRepositoryFile('clients/js/stateful-order-api-integration.test.mjs');
-  const pythonOrderTests = readRepositoryFile('clients/python/test_stateful_order_api_integration.py');
   const orderMethods = [
     ['/healthz', 'get'],
     ['/orders', 'post'],
@@ -430,20 +458,47 @@ function checkApiBehavior() {
     || !pipeline.includes("await this.stage('Negative contract canaries'")) {
     failures.push('api-behavior: expected-failure canaries must run as a pipeline stage');
   }
+  const canaryPipeline = pipeline.slice(
+    pipeline.indexOf('async runNegativeCanaries()'),
+    pipeline.indexOf('async runProviderTests()'),
+  );
+  if (!canaryPipeline.includes("FEATURE_CASES_PATH: '/repo/clients/shared/acceptance-cases.json'")
+    || !canaryPipeline.includes("readOnlyMount('clients/shared')")) {
+    failures.push('api-behavior: JavaScript failure canary must receive the shared feature cases used by its suite');
+  }
   if (!statefulSource.includes('input.status !== order.status') || !statefulSource.includes('Cannot change order')) {
     failures.push('api-behavior: Order service must preserve idempotent repeats and reject illegal transitions');
   }
-  for (const [source, name] of [[jsProductTests, 'JavaScript Product'], [pythonProductTests, 'Python Product']]) {
-    if (!source.includes('404') || !source.includes('502')) {
-      failures.push(`api-behavior: ${name} suite must assert Product not-found and malformed-upstream responses`);
+  const nativeSuites = [
+    ['Rust', 'clients/rust/tests/api_integration_test.rs'],
+    ['Go', 'clients/go/product_api_integration_test.go', 'clients/go/stateful_order_api_integration_test.go'],
+    ['Python', 'clients/python/test_product_api_integration.py', 'clients/python/test_stateful_order_api_integration.py'],
+    ['JavaScript', 'clients/js/product-api-integration.test.mjs', 'clients/js/stateful-order-api-integration.test.mjs'],
+    ['TypeScript', 'clients/ts/product-api-integration.test.ts', 'clients/ts/stateful-order-api-integration.test.ts'],
+    ['Java', 'clients/java/src/test/java/nl/shiftleft/ProductApiIntegrationTest.java', 'clients/java/src/test/java/nl/shiftleft/StatefulOrderApiIntegrationTest.java'],
+    ['C#', 'clients/csharp/ProductApiIntegrationTests.cs', 'clients/csharp/StatefulOrderApiIntegrationTests.cs'],
+  ];
+  const productCases = ['product.available', 'product.not-found', 'product.malformed-path', 'product.bad-upstream'];
+  const orderCases = ['order.confirm', 'order.invalid', 'order.illegal-transition', 'order.unsupported-method'];
+  for (const [language, ...paths] of nativeSuites) {
+    const productSources = paths.filter((path) => path.toLowerCase().includes('product') || path.endsWith('api_integration_test.rs'));
+    const orderSources = paths.filter((path) => path.toLowerCase().includes('stateful') || path.endsWith('api_integration_test.rs'));
+    const productText = productSources.map(readRepositoryFile).join('\n');
+    const orderText = orderSources.map(readRepositoryFile).join('\n');
+    const productCoverage = language === 'TypeScript'
+      ? productText.includes('acceptanceCases("product")') && productText.includes('product.available')
+      : productCases.every((caseId) => productText.includes(caseId));
+    const orderCoverage = language === 'TypeScript'
+      ? orderText.includes('acceptanceCases("order")') && orderText.includes('order.confirm')
+      : orderCases.every((caseId) => orderText.includes(caseId));
+    if (!productCoverage) {
+      failures.push(`api-behavior: ${language} suite does not consume all Product feature cases`);
+    }
+    if (!orderCoverage) {
+      failures.push(`api-behavior: ${language} suite does not consume all Order feature cases`);
     }
   }
-  for (const [source, name] of [[jsOrderTests, 'JavaScript Order'], [pythonOrderTests, 'Python Order']]) {
-    if (!source.includes('400') || !source.includes('409') || !source.includes('404')) {
-      failures.push(`api-behavior: ${name} suite must assert Order validation, conflict, and not-found responses`);
-    }
-  }
-  return orderMethods.length + 8;
+  return orderMethods.length + 8 + nativeSuites.length * (productCases.length + orderCases.length);
 }
 
 function checkTestcontainersSafety() {
@@ -516,7 +571,7 @@ function checkDependencyLocks() {
     [tsTests.includes('node --test security/picomatch-redos.check.mjs') && !tsTests.includes('picomatch-redos.test.mjs'), 'The Node-only Picomatch check must stay outside Vitest discovery'],
     [pipelinePackage.devDependencies?.testcontainers === pipelineLock.packages?.['node_modules/testcontainers']?.version, 'Testcontainers version must be exact and locked'],
     [pipelinePackage.devDependencies?.yaml === pipelineLock.packages?.['node_modules/yaml']?.version, 'YAML parser must be declared directly and locked for structural OAS evaluation'],
-    [pipelinePackage.scripts?.test === 'node --test config.test.mjs' && pipeline.includes("readVersionPins(") && readRepositoryFile('run.sh').includes('npm --prefix pipeline test'), 'The local runner must test strict, required version-pin parsing before starting containers'],
+    [pipelinePackage.scripts?.test?.includes('config.test.mjs') && pipelinePackage.scripts?.test?.includes('feature-cases.test.mjs') && pipeline.includes("readVersionPins(") && readRepositoryFile('run.sh').includes('npm --prefix pipeline test'), 'The local runner must test strict pin parsing and feature-data generation before starting containers'],
     [/^TESTCONTAINERS_RYUK_VERSION=\S+$/m.test(versions) && pipeline.includes('versions.TESTCONTAINERS_RYUK_VERSION'), 'Ryuk version must come from the shared versions file'],
     [['RUST_VERSION', 'GO_VERSION', 'PYTHON_VERSION', 'NODE_VERSION', 'NPM_VERSION', 'MAVEN_VERSION', 'JAVA_VERSION', 'DOTNET_VERSION'].every((version) => new RegExp(`^${version}=\\S+$`, 'm').test(versions)) && ['versions.RUST_VERSION', 'versions.GO_VERSION', 'versions.PYTHON_VERSION', 'versions.NODE_VERSION', 'versions.MAVEN_VERSION', 'versions.JAVA_VERSION', 'versions.DOTNET_VERSION'].every((version) => pipeline.includes(version)), 'Native runtime container tags must use shared version pins'],
     [nativeClientKeysEverywhere(pipeline, clientRunner), 'All documented native clients must have a Testcontainers setup'],
@@ -567,7 +622,10 @@ function checkWorkflowVisuals() {
         "cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}",
         'actions/setup-node@',
         'npm install --global npm@${NPM_VERSION}',
+        'NODE_TEST_IMAGE=$NODE_TEST_IMAGE',
         'WIREMOCK_VERSION=$WIREMOCK_VERSION',
+        'WIREMOCK_RUNTIME_IMAGE=$WIREMOCK_RUNTIME_IMAGE',
+        'WIREMOCK_SHA256=$WIREMOCK_SHA256',
         'bash -n run.sh pipeline/client-suite.sh',
         'node --check pipeline/run.mjs',
         'node --check evals/run.mjs',
@@ -575,8 +633,9 @@ function checkWorkflowVisuals() {
         'pipeline-timings.csv',
         'actions/upload-artifact@',
         'bash ./run.sh',
-        'image-ref: node:${{ env.NODE_VERSION }}-alpine',
-        'image-ref: wiremock/wiremock:${{ env.WIREMOCK_VERSION }}',
+        'image-ref: ${{ env.NODE_TEST_IMAGE }}:${{ env.NODE_VERSION }}-npm${{ env.NPM_VERSION }}',
+        'image-ref: ${{ env.WIREMOCK_RUNTIME_IMAGE }}',
+        'scan-ref: ${{ runner.temp }}/oas-polycontract/wiremock-standalone-${{ env.WIREMOCK_VERSION }}.jar',
       ],
     },
     {

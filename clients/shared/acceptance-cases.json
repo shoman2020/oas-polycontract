@@ -1,0 +1,81 @@
+[
+  {
+    "caseId": "order.confirm",
+    "sku": "demo-sku",
+    "quantity": 2,
+    "status": "confirmed",
+    "repeatCount": 2,
+    "expectedStatus": 200,
+    "api": "order",
+    "feature": "Stateful Order lifecycle",
+    "scenario": "Create and confirm an order idempotently"
+  },
+  {
+    "caseId": "order.invalid",
+    "sku": "",
+    "quantity": 0,
+    "expectedStatus": 400,
+    "api": "order",
+    "feature": "Stateful Order lifecycle",
+    "scenario": "Reject an invalid order"
+  },
+  {
+    "caseId": "order.illegal-transition",
+    "sku": "demo-sku",
+    "quantity": 1,
+    "initialStatus": "cancelled",
+    "repeatCount": 2,
+    "requestedStatus": "confirmed",
+    "expectedStatus": 409,
+    "persistedStatus": "cancelled",
+    "api": "order",
+    "feature": "Stateful Order lifecycle",
+    "scenario": "Reject an illegal state transition"
+  },
+  {
+    "caseId": "order.unsupported-method",
+    "method": "POST",
+    "path": "/healthz",
+    "expectedStatus": 405,
+    "allowedMethod": "GET",
+    "api": "order",
+    "feature": "Stateful Order lifecycle",
+    "scenario": "Reject an unsupported method"
+  },
+  {
+    "caseId": "product.available",
+    "sku": "demo-sku",
+    "available": 7,
+    "expectedStatus": 200,
+    "api": "product",
+    "feature": "Product availability",
+    "scenario": "Return availability for a known SKU"
+  },
+  {
+    "caseId": "product.not-found",
+    "sku": "not-found-sku",
+    "expectedStatus": 404,
+    "expectedMessage": "No inventory record for not-found-sku",
+    "api": "product",
+    "feature": "Product availability",
+    "scenario": "Report an unknown SKU"
+  },
+  {
+    "caseId": "product.malformed-path",
+    "path": "/products/%E0%A4%41",
+    "expectedStatus": 400,
+    "expectedMessage": "Invalid SKU encoding",
+    "api": "product",
+    "feature": "Product availability",
+    "scenario": "Reject a SKU path with invalid UTF-8 percent encoding"
+  },
+  {
+    "caseId": "product.bad-upstream",
+    "sku": "malformed-sku",
+    "expectedStatus": 502,
+    "expectedMessage": "Inventory service unavailable",
+    "api": "product",
+    "feature": "Product availability",
+    "scenario": "Reject invalid data from Inventory"
+  }
+]

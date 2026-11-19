@@ -50,7 +50,7 @@ test("Report an unknown SKU", async () => {
   });
 });
 
-test("Reject a malformed SKU path", async () => {
+test("Reject a SKU path with invalid UTF-8 percent encoding", async () => {
   const app = createApp({
     fetchImpl: async () => {
       throw new Error("Inventory should not be called for malformed encoding");
@@ -58,7 +58,7 @@ test("Reject a malformed SKU path", async () => {
   });
 
   await withServer(app, async (baseUrl) => {
-    const response = await fetch(`${baseUrl}/products/%E0%A4%A`);
+    const response = await fetch(`${baseUrl}/products/%E0%A4%41`);
     assert.equal(response.status, 400);
     assert.deepEqual(await response.json(), { message: "Invalid SKU encoding" });
   });

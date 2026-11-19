@@ -32,7 +32,10 @@ jobs:
           source .github/versions.env
           echo "NODE_VERSION=$NODE_VERSION" >> "$GITHUB_ENV"
           echo "NPM_VERSION=$NPM_VERSION" >> "$GITHUB_ENV"
+          echo "NODE_TEST_IMAGE=$NODE_TEST_IMAGE" >> "$GITHUB_ENV"
           echo "WIREMOCK_VERSION=$WIREMOCK_VERSION" >> "$GITHUB_ENV"
+          echo "WIREMOCK_RUNTIME_IMAGE=$WIREMOCK_RUNTIME_IMAGE" >> "$GITHUB_ENV"
+          echo "WIREMOCK_SHA256=$WIREMOCK_SHA256" >> "$GITHUB_ENV"
           echo "TRIVY_VERSION=$TRIVY_VERSION" >> "$GITHUB_ENV"
           echo "SPECMATIC_VERSION=$SPECMATIC_VERSION" >> "$GITHUB_ENV"
 
@@ -43,6 +46,15 @@ jobs:
 
       - name: Install pinned npm
         run: npm install --global npm@${NPM_VERSION}
+
+      - name: Download and verify WireMock runtime artifact
+        id: wiremock_jar
+        run: |
+          artifact="$RUNNER_TEMP/oas-polycontract/wiremock-standalone-${WIREMOCK_VERSION}.jar"
+          mkdir -p "$(dirname "$artifact")"
+          curl --fail --location --retry 3 --output "$artifact" \
+            "https://repo.maven.apache.org/maven2/org/wiremock/wiremock-standalone/${WIREMOCK_VERSION}/wiremock-standalone-${WIREMOCK_VERSION}.jar"
+          printf '%s  %s\n' "$WIREMOCK_SHA256" "$artifact" | sha256sum --check
 
       - name: Check shell syntax
         run: bash -n run.sh pipeline/client-suite.sh
@@ -70,7 +82,7 @@ jobs:
         if: always()
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: node:${{ env.NODE_VERSION }}-alpine
+          image-ref: ${{ env.NODE_TEST_IMAGE }}:${{ env.NODE_VERSION }}-npm${{ env.NPM_VERSION }}
           format: table
           vuln-type: os,library
           severity: HIGH,CRITICAL
@@ -82,9 +94,23 @@ jobs:
         if: always()
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: wiremock/wiremock:${{ env.WIREMOCK_VERSION }}
+          image-ref: ${{ env.WIREMOCK_RUNTIME_IMAGE }}
           format: table
           vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          version: v${{ env.TRIVY_VERSION }}
+          trivy-config: .github/trivy.yaml
+
+      - name: Scan WireMock standalone artifact
+        if: always() && steps.wiremock_jar.outcome == 'success'
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: ${{ runner.temp }}/oas-polycontract/wiremock-standalone-${{ env.WIREMOCK_VERSION }}.jar
+          format: table
+          vuln-type: library
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: "1"

@@ -3,10 +3,11 @@ import test from "node:test";
 import { createValidator } from "@oaverify/core";
 import { loadSpecSync } from "@oaverify/syntax";
 import { StatefulOrderApiClient } from "./order-api-client.mjs";
+import { acceptanceCase } from "./feature-cases.mjs";
 
 const { document } = loadSpecSync({ entry: process.env.STATEFUL_OPENAPI_SPEC });
 const validator = createValidator(document);
-const api = new StatefulOrderApiClient({ baseUrl: process.env.STATEFUL_API_BASE_URL });
+const createOrderApi = () => new StatefulOrderApiClient({ baseUrl: process.env.STATEFUL_API_BASE_URL });
 const statefulApiBaseUrl = process.env.STATEFUL_API_BASE_URL;
 
 async function validate(operation) {
@@ -17,7 +18,9 @@ async function validate(operation) {
 }
 
 test("stateful order lifecycle matches the OpenAPI contract", async () => {
-  const created = await validate(api.createOrder("demo-sku", 2));
+  const api = createOrderApi();
+  const scenario = acceptanceCase("order.confirm");
+  const created = await validate(api.createOrder(scenario.sku, scenario.quantity));
   assert.equal(created.status, 201);
   assert.equal(created.result.body.status, "created");
   const orderId = created.result.body.id;
@@ -26,9 +29,11 @@ test("stateful order lifecycle matches the OpenAPI contract", async () => {
   assert.equal(fetched.status, 200);
   assert.equal(fetched.result.body.id, orderId);
 
-  const updated = await validate(api.updateOrder(orderId, "confirmed"));
-  assert.equal(updated.status, 200);
-  assert.equal(updated.result.body.status, "confirmed");
+  for (let attempt = 0; attempt < scenario.repeatCount; attempt += 1) {
+    const updated = await validate(api.updateOrder(orderId, scenario.status));
+    assert.equal(updated.status, scenario.expectedStatus);
+    assert.equal(updated.result.body.status, scenario.status);
+  }
 
   const deleted = await validate(api.deleteOrder(orderId));
   assert.equal(deleted.status, 204);
@@ -40,23 +45,26 @@ test("stateful order lifecycle matches the OpenAPI contract", async () => {
 });
 
 test("stateful order validation and conflict responses match the OpenAPI contract", async () => {
-  const invalid = await validate(api.createOrder("", 0));
-  assert.equal(invalid.status, 400);
+  const api = createOrderApi();
+  const invalidCase = acceptanceCase("order.invalid");
+  const invalid = await validate(api.createOrder(invalidCase.sku, invalidCase.quantity));
+  assert.equal(invalid.status, invalidCase.expectedStatus);
 
-  const created = await validate(api.createOrder("demo-sku", 1));
+  const scenario = acceptanceCase("order.illegal-transition");
+  const created = await validate(api.createOrder(scenario.sku, scenario.quantity));
   assert.equal(created.status, 201);
   const orderId = created.result.body.id;
 
-  const cancelled = await validate(api.updateOrder(orderId, "cancelled"));
+  const cancelled = await validate(api.updateOrder(orderId, scenario.initialStatus));
   assert.equal(cancelled.status, 200);
-  assert.equal(cancelled.result.body.status, "cancelled");
+  assert.equal(cancelled.result.body.status, scenario.persistedStatus);
 
-  const repeated = await validate(api.updateOrder(orderId, "cancelled"));
+  const repeated = await validate(api.updateOrder(orderId, scenario.initialStatus));
   assert.equal(repeated.status, 200);
-  assert.equal(repeated.result.body.status, "cancelled");
+  assert.equal(repeated.result.body.status, scenario.persistedStatus);
 
-  const conflict = await validate(api.updateOrder(orderId, "confirmed"));
-  assert.equal(conflict.status, 409);
+  const conflict = await validate(api.updateOrder(orderId, scenario.requestedStatus));
+  assert.equal(conflict.status, scenario.expectedStatus);
   assert.match(conflict.result.body.message, /Cannot change order/);
 
   const deleted = await validate(api.deleteOrder(orderId));
@@ -64,10 +72,11 @@ test("stateful order validation and conflict responses match the OpenAPI contrac
 });
 
 test("Reject an unsupported method on the health endpoint", async () => {
-  const request = new Request(new URL("/healthz", statefulApiBaseUrl), { method: "POST" });
+  const scenario = acceptanceCase("order.unsupported-method");
+  const request = new Request(new URL(scenario.path, statefulApiBaseUrl), { method: scenario.method });
   const response = await fetch(request);
 
-  assert.equal(response.status, 405);
-  assert.equal(response.headers.get("allow"), "GET");
+  assert.equal(response.status, scenario.expectedStatus);
+  assert.equal(response.headers.get("allow"), scenario.allowedMethod);
   assert.equal(typeof (await response.json()).message, "string");
 });

@@ -3,42 +3,47 @@ import test from "node:test";
 import { createValidator } from "@oaverify/core";
 import { loadSpecSync } from "@oaverify/syntax";
 import { ProductApiClient } from "./api-client.mjs";
+import { acceptanceCase, acceptanceCases } from "./feature-cases.mjs";
 
 const { document } = loadSpecSync({ entry: process.env.OPENAPI_SPEC });
 const validator = createValidator(document);
-const api = new ProductApiClient({ baseUrl: process.env.API_BASE_URL });
+const createProductApi = () => new ProductApiClient({ baseUrl: process.env.API_BASE_URL });
 
 test("product response matches the OpenAPI contract", async () => {
-  const { request, response } = await api.getProduct("demo-sku");
+  const api = createProductApi();
+  const scenario = acceptanceCase("product.available");
+  const { request, response } = await api.getProduct(scenario.sku);
   const result = await validator.validateFetchResponse(request, response);
 
   assert.equal(result.ok, true, JSON.stringify(result));
-  assert.equal(result.body.sku, "demo-sku");
-  assert.equal(result.body.available, 7);
-  console.log(`OAS validation passed: GET /products/demo-sku -> ${response.status}`);
+  assert.equal(response.status, scenario.expectedStatus);
+  assert.equal(result.body.sku, scenario.sku);
+  assert.equal(result.body.available, scenario.available);
+  console.log(`OAS validation passed: GET /products/${scenario.sku} -> ${response.status}`);
 });
 
-for (const [sku, expectedStatus, expectedMessage] of [
-  ["not-found-sku", 404, "No inventory record for not-found-sku"],
-  ["malformed-sku", 502, "Inventory service unavailable"],
-]) {
-  test(`product error response for ${sku} matches the OpenAPI contract`, async () => {
-    const { request, response } = await api.getProduct(sku);
+for (const scenario of acceptanceCases("product").filter(({ caseId }) => ["product.not-found", "product.bad-upstream"].includes(caseId))) {
+  test(`${scenario.scenario} matches the OpenAPI contract`, async () => {
+    const api = createProductApi();
+    const { request, response } = await api.getProduct(scenario.sku);
     const result = await validator.validateFetchResponse(request, response);
 
     assert.equal(result.ok, true, JSON.stringify(result));
-    assert.equal(response.status, expectedStatus);
-    assert.equal(result.body.message, expectedMessage);
+    assert.equal(response.status, scenario.expectedStatus);
+    assert.equal(result.body.message, scenario.expectedMessage);
   });
 }
 
-test("Reject a malformed SKU path", async () => {
-  const request = new Request(new URL("/products/%E0%A4%A", process.env.API_BASE_URL));
+const malformedPathScenario = acceptanceCase("product.malformed-path");
+
+test(malformedPathScenario.scenario, async () => {
+  const scenario = malformedPathScenario;
+  const request = new Request(new URL(scenario.path, process.env.API_BASE_URL));
   const response = await fetch(request);
   const result = await validator.validateFetchResponse(request, response);
 
   assert.equal(result.ok, true, JSON.stringify(result));
-  assert.equal(response.status, 400);
-  assert.equal(result.body.message, "Invalid SKU encoding");
+  assert.equal(response.status, scenario.expectedStatus);
+  assert.equal(result.body.message, scenario.expectedMessage);
 });
 

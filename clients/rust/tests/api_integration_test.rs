@@ -3,6 +3,8 @@ use oas_polycontract_rust_client::{ProductApiClient, StatefulOrderApiClient};
 use serde_json::Value;
 use std::{env, error::Error, fs, io};
 
+mod feature_cases;
+
 struct OpenApiResponseValidator {
     document: Value,
 }
@@ -199,31 +201,66 @@ async fn validate_response(
 
 #[tokio::test]
 async fn product_response_matches_openapi_contract() -> Result<(), Box<dyn Error>> {
+    let scenario = feature_cases::acceptance_case("product.available")?;
+    let sku = scenario["sku"].as_str().ok_or("feature data has no product SKU")?;
     let client = ProductApiClient::new(env::var("API_BASE_URL")?)?;
     let contract = OpenApiResponseValidator::from_file(&env::var("OPENAPI_SPEC")?)?;
 
     let (status, body) = validate_response(
-        client.get_product("demo-sku").await?,
+        client.get_product(sku).await?,
         &contract,
         "/products/{sku}",
         "get",
     )
     .await?;
 
-    assert_eq!(status, 200);
-    assert_eq!(body["sku"], "demo-sku");
-    assert_eq!(body["available"], 7);
-    println!("OAS validation passed: GET /products/demo-sku -> {status}");
+    assert_eq!(status, scenario["expectedStatus"].as_u64().ok_or("feature data has no status")? as u16);
+    assert_eq!(body["sku"], sku);
+    assert_eq!(body["available"], scenario["available"]);
+    println!("OAS validation passed: GET /products/{sku} -> {status}");
+    Ok(())
+}
+
+#[tokio::test]
+async fn product_error_scenarios_match_openapi_contract() -> Result<(), Box<dyn Error>> {
+    let contract = OpenApiResponseValidator::from_file(&env::var("OPENAPI_SPEC")?)?;
+    let api = ProductApiClient::new(env::var("API_BASE_URL")?)?;
+
+    for case_id in ["product.not-found", "product.bad-upstream"] {
+        let scenario = feature_cases::acceptance_case(case_id)?;
+        let sku = scenario["sku"].as_str().ok_or("feature data has no product SKU")?;
+        let (status, body) = validate_response(
+            api.get_product(sku).await?,
+            &contract,
+            "/products/{sku}",
+            "get",
+        )
+        .await?;
+        assert_eq!(status, scenario["expectedStatus"].as_u64().ok_or("feature data has no status")? as u16);
+        assert_eq!(body["message"], scenario["expectedMessage"]);
+    }
+
+    let scenario = feature_cases::acceptance_case("product.malformed-path")?;
+    let url = format!("{}{}", env::var("API_BASE_URL")?.trim_end_matches('/'), scenario["path"].as_str().ok_or("feature data has no path")?);
+    let response = reqwest::Client::new().get(url).send().await?;
+    let (status, body) = validate_response(response, &contract, "/products/{sku}", "get").await?;
+    assert_eq!(status, scenario["expectedStatus"].as_u64().ok_or("feature data has no status")? as u16);
+    assert_eq!(body["message"], scenario["expectedMessage"]);
     Ok(())
 }
 
 #[tokio::test]
 async fn stateful_order_lifecycle_matches_openapi_contract() -> Result<(), Box<dyn Error>> {
+    let scenario = feature_cases::acceptance_case("order.confirm")?;
+    let sku = scenario["sku"].as_str().ok_or("feature data has no order SKU")?;
+    let quantity = scenario["quantity"].as_u64().ok_or("feature data has no quantity")? as u32;
+    let target_status = scenario["status"].as_str().ok_or("feature data has no target status")?;
+    let repeat_count = scenario["repeatCount"].as_u64().ok_or("feature data has no repeat count")?;
     let client = StatefulOrderApiClient::new(env::var("STATEFUL_API_BASE_URL")?)?;
     let contract = OpenApiResponseValidator::from_file(&env::var("STATEFUL_OPENAPI_SPEC")?)?;
 
     let (status, created) = validate_response(
-        client.create_order("demo-sku", 2).await?,
+        client.create_order(sku, quantity).await?,
         &contract,
         "/orders",
         "post",
@@ -243,15 +280,17 @@ async fn stateful_order_lifecycle_matches_openapi_contract() -> Result<(), Box<d
     assert_eq!(status, 200);
     assert_eq!(fetched["id"], order_id);
 
-    let (status, updated) = validate_response(
-        client.update_order(order_id, "confirmed").await?,
-        &contract,
-        "/orders/{orderId}",
-        "patch",
-    )
-    .await?;
-    assert_eq!(status, 200);
-    assert_eq!(updated["status"], "confirmed");
+    for _ in 0..repeat_count {
+        let (response_status, updated) = validate_response(
+            client.update_order(order_id, target_status).await?,
+            &contract,
+            "/orders/{orderId}",
+            "patch",
+        )
+        .await?;
+        assert_eq!(response_status, scenario["expectedStatus"].as_u64().ok_or("feature data has no status")? as u16);
+        assert_eq!(updated["status"], target_status);
+    }
 
     let (status, _) = validate_response(
         client.delete_order(order_id).await?,
@@ -272,5 +311,60 @@ async fn stateful_order_lifecycle_matches_openapi_contract() -> Result<(), Box<d
     assert_eq!(status, 404);
     assert_eq!(missing["message"], "Order not found");
     println!("Stateful OAS validation passed: create -> read -> confirm -> delete -> 404");
+    Ok(())
+}
+
+#[tokio::test]
+async fn order_error_scenarios_match_openapi_contract() -> Result<(), Box<dyn Error>> {
+    let scenario = feature_cases::acceptance_case("order.invalid")?;
+    let client = StatefulOrderApiClient::new(env::var("STATEFUL_API_BASE_URL")?)?;
+    let contract = OpenApiResponseValidator::from_file(&env::var("STATEFUL_OPENAPI_SPEC")?)?;
+
+    let (status, _) = validate_response(
+        client.create_order(
+            scenario["sku"].as_str().ok_or("feature data has no SKU")?,
+            scenario["quantity"].as_u64().ok_or("feature data has no quantity")? as u32,
+        ).await?,
+        &contract,
+        "/orders",
+        "post",
+    ).await?;
+    assert_eq!(status, scenario["expectedStatus"].as_u64().ok_or("feature data has no status")? as u16);
+
+    let scenario = feature_cases::acceptance_case("order.illegal-transition")?;
+    let repeat_count = scenario["repeatCount"].as_u64().ok_or("feature data has no repeat count")?;
+    let (_, created) = validate_response(
+        client.create_order(
+            scenario["sku"].as_str().ok_or("feature data has no SKU")?,
+            scenario["quantity"].as_u64().ok_or("feature data has no quantity")? as u32,
+        ).await?, &contract, "/orders", "post",
+    ).await?;
+    let order_id = created["id"].as_str().ok_or("created order has no id")?;
+    for _ in 0..repeat_count {
+        let (status, body) = validate_response(
+            client.update_order(order_id, scenario["initialStatus"].as_str().ok_or("feature data has no initial status")?).await?,
+            &contract, "/orders/{orderId}", "patch",
+        ).await?;
+        assert_eq!(status, 200);
+        assert_eq!(body["status"], scenario["persistedStatus"]);
+    }
+    let (status, conflict) = validate_response(
+        client.update_order(order_id, scenario["requestedStatus"].as_str().ok_or("feature data has no requested status")?).await?,
+        &contract, "/orders/{orderId}", "patch",
+    ).await?;
+    assert_eq!(status, scenario["expectedStatus"].as_u64().ok_or("feature data has no status")? as u16);
+    assert!(conflict["message"].as_str().is_some());
+
+    let (status, unchanged) = validate_response(client.get_order(order_id).await?, &contract, "/orders/{orderId}", "get").await?;
+    assert_eq!(status, 200);
+    assert_eq!(unchanged["status"], scenario["persistedStatus"]);
+    let (status, _) = validate_response(client.delete_order(order_id).await?, &contract, "/orders/{orderId}", "delete").await?;
+    assert_eq!(status, 204);
+
+    let scenario = feature_cases::acceptance_case("order.unsupported-method")?;
+    let url = format!("{}{}", env::var("STATEFUL_API_BASE_URL")?.trim_end_matches('/'), scenario["path"].as_str().ok_or("feature data has no path")?);
+    let response = reqwest::Client::new().post(url).send().await?;
+    assert_eq!(response.status().as_u16(), scenario["expectedStatus"].as_u64().ok_or("feature data has no status")? as u16);
+    assert_eq!(response.headers().get("allow").and_then(|value| value.to_str().ok()), scenario["allowedMethod"].as_str());
     Ok(())
 }

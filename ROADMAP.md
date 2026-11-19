@@ -7,7 +7,7 @@ One reviewed specification contract per API boundary. Clear ownership means less
 | Area | Delivered | Remaining |
 |---|---|---|
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | Runtime event tests need a provider or broker |
-| Tests | Specmatic provider verification, consumer development against a provider Smart Mock, WireMock, stateful and stateless fuzzing, negative canaries, native error-path tests, Gherkin acceptance scenarios, and isolated service unit tests | Run updated pipeline; pilot against representative company APIs |
+| Tests | Specmatic provider verification, consumer development against a provider Smart Mock, WireMock, stateful and stateless fuzzing, negative canaries, seven-language error-path suites driven by shared Gherkin data, and isolated service unit tests | Run updated pipeline; pilot against representative company APIs |
 | Legacy migration | Project-specific Postman and Bruno collections follow Product and Order OAS | Import team-owned history if teams provide their collections |
 | Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, and SecureAI-Scan; [adoption implementation run 44349546212 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546212) | GenAI positive controls are manual demos; no application AI runtime |
 | Dependencies | Cargo, Go, NuGet, npm, Python, Maven, and Testcontainers pins or locks; minimatch alert #3 fixed | Replace the Picomatch patch when upstream publishes a fix |
@@ -40,10 +40,13 @@ Two existing CI checklist actions remain: requiring contract and security checks
 ### Phase 3 — Native clients
 - [x] Add Rust, Go, Python, JavaScript, TypeScript, Java, and C# API suites.
 - [x] Cover Product and stateful Order flows in the seven native languages.
-- [x] Assert Product 404 and malformed-upstream 502 paths in JavaScript and Python; assert Order 400, 404, and 409 behavior in native suites.
+- [x] Run Product 404, invalid UTF-8 path, and malformed-upstream 502 cases in all seven native suites.
+- [x] Run Order 400, idempotent updates, 409 conflict/state preservation, post-delete 404, and unsupported-method 405 cases in all seven native suites.
 - [x] Add Rust and C# conformance tests for nullable values, `exclusiveMinimum`, and nested local references.
 - [x] Separate provider verification, consumer Smart Mock checks, and live API tests; add Playwright API examples.
-- [x] Add Product and Order Gherkin acceptance features; Cucumber reads scenario data and validates live responses against OAS.
+- [x] Add separate Product and Order Cucumber step files; Cucumber reads each API's scenario data and validates live responses against OAS.
+- [x] Generate shared scenario data from Gherkin and consume it in all seven native language suites.
+- [x] Encapsulate HTTP details in per-API clients and add language-appropriate interfaces or composition.
 - [x] Add matching service unit tests and run them before pipeline contract gates; repository evaluations check scenario-to-unit-test mapping.
 
 ### Phase 4 — Debug views
@@ -149,7 +152,7 @@ This reference repo has no stable runtime API to package. A `create-polycontract
 
 ## Progress
 
-- 19 Nov: Added Cucumber acceptance scenarios for Product and Order. Scenario values come from Gherkin, response validation uses the relevant OAS, and isolated Node.js service tests cover the same named behaviors. Repository evaluations verify feature, test, and pipeline wiring. Cucumber dry-run and local service tests passed; full Testcontainers pipeline verification remains pending.
+- 19 Nov: Expanded Product and Order Gherkin scenarios across all seven native suites, including error paths and repeated state transitions. Split JavaScript Cucumber steps by API, kept generated scenario data in sync with feature files, and refactored API clients around encapsulated transport and language-appropriate interfaces. Pipeline configuration and repository evaluations pass locally; the full Testcontainers pipeline remains unverified.
 - 18 Nov: Applied the review findings: clarified that provider-spec Smart Mock checks do not capture consumer-owned expectations, documented enterprise adoption requirements and validator limits, isolated Order state per app instance, added selective local language suites, moved positive controls to manual runs, and corrected stale Compose references. Local evaluation passed 13/13, pipeline configuration tests passed 6/6, and the [contract](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546211), [security](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546212), and [showcase](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546414) workflows passed.
 - 18 Nov: Branch protection remains disabled; the post-migration benchmark still needs a manual dispatch.
 - 18 Nov: Added a SecureAI-Scan positive control. Version 0.13.0 detected `HIGH AI001` in the temporary example; CI verified the SARIF, recorded the finding, uploaded the artifact, and passed the clean project scan.

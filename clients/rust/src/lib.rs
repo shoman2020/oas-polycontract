@@ -1,10 +1,10 @@
-pub struct ProductApiClient {
+struct HttpApiClient {
     base_url: String,
     http: reqwest::Client,
 }
 
-impl ProductApiClient {
-    pub fn new(base_url: impl Into<String>) -> Result<Self, reqwest::Error> {
+impl HttpApiClient {
+    fn new(base_url: impl Into<String>) -> Result<Self, reqwest::Error> {
         let http = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(10))
             .build()?;
@@ -14,31 +14,35 @@ impl ProductApiClient {
         })
     }
 
-    pub async fn get_product(
-        &self,
-        sku: &str,
-    ) -> Result<reqwest::Response, reqwest::Error> {
+    fn request(&self, method: reqwest::Method, path: &str) -> reqwest::RequestBuilder {
+        self.http.request(method, format!("{}{path}", self.base_url))
+    }
+}
+
+pub struct ProductApiClient {
+    http: HttpApiClient,
+}
+
+impl ProductApiClient {
+    pub fn new(base_url: impl Into<String>) -> Result<Self, reqwest::Error> {
+        Ok(Self { http: HttpApiClient::new(base_url)? })
+    }
+
+    pub async fn get_product(&self, sku: &str) -> Result<reqwest::Response, reqwest::Error> {
         self.http
-            .get(format!("{}/products/{sku}", self.base_url))
+            .request(reqwest::Method::GET, &format!("/products/{sku}"))
             .send()
             .await
     }
 }
 
 pub struct StatefulOrderApiClient {
-    base_url: String,
-    http: reqwest::Client,
+    http: HttpApiClient,
 }
 
 impl StatefulOrderApiClient {
     pub fn new(base_url: impl Into<String>) -> Result<Self, reqwest::Error> {
-        let http = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(10))
-            .build()?;
-        Ok(Self {
-            base_url: base_url.into().trim_end_matches('/').to_owned(),
-            http,
-        })
+        Ok(Self { http: HttpApiClient::new(base_url)? })
     }
 
     pub async fn create_order(
@@ -47,7 +51,7 @@ impl StatefulOrderApiClient {
         quantity: u32,
     ) -> Result<reqwest::Response, reqwest::Error> {
         self.http
-            .post(format!("{}/orders", self.base_url))
+            .request(reqwest::Method::POST, "/orders")
             .json(&serde_json::json!({ "sku": sku, "quantity": quantity }))
             .send()
             .await
@@ -55,7 +59,7 @@ impl StatefulOrderApiClient {
 
     pub async fn get_order(&self, order_id: &str) -> Result<reqwest::Response, reqwest::Error> {
         self.http
-            .get(format!("{}/orders/{order_id}", self.base_url))
+            .request(reqwest::Method::GET, &format!("/orders/{order_id}"))
             .send()
             .await
     }
@@ -66,7 +70,7 @@ impl StatefulOrderApiClient {
         status: &str,
     ) -> Result<reqwest::Response, reqwest::Error> {
         self.http
-            .patch(format!("{}/orders/{order_id}", self.base_url))
+            .request(reqwest::Method::PATCH, &format!("/orders/{order_id}"))
             .json(&serde_json::json!({ "status": status }))
             .send()
             .await
@@ -74,7 +78,7 @@ impl StatefulOrderApiClient {
 
     pub async fn delete_order(&self, order_id: &str) -> Result<reqwest::Response, reqwest::Error> {
         self.http
-            .delete(format!("{}/orders/{order_id}", self.base_url))
+            .request(reqwest::Method::DELETE, &format!("/orders/{order_id}"))
             .send()
             .await
     }

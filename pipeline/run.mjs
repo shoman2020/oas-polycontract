@@ -1,6 +1,8 @@
 import { spawnSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
+import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { parseNativeClientSelection, readVersionPins } from './config.mjs';
 
@@ -28,7 +30,10 @@ const versions = readVersionPins(join(repositoryRoot, '.github/versions.env'), [
   'SPECMATIC_VERSION',
   'SPECTRAL_VERSION',
   'TESTCONTAINERS_RYUK_VERSION',
+  'NODE_TEST_IMAGE',
   'WIREMOCK_VERSION',
+  'WIREMOCK_RUNTIME_IMAGE',
+  'WIREMOCK_SHA256',
   'RUST_VERSION',
   'GO_VERSION',
   'PYTHON_VERSION',
@@ -42,15 +47,16 @@ const versions = readVersionPins(join(repositoryRoot, '.github/versions.env'), [
 process.env.RYUK_CONTAINER_IMAGE = `testcontainers/ryuk:${versions.TESTCONTAINERS_RYUK_VERSION}`;
 const { GenericContainer, Network, Wait } = await import('testcontainers');
 const nodeAlpine = `node:${versions.NODE_VERSION}-alpine`;
+const nodeTestImage = `${versions.NODE_TEST_IMAGE}:${versions.NODE_VERSION}-npm${versions.NPM_VERSION}`;
 const runtimeImages = {
-  app: nodeAlpine,
-  stateful: nodeAlpine,
-  wiremock: `wiremock/wiremock:${versions.WIREMOCK_VERSION}`,
+  app: nodeTestImage,
+  stateful: nodeTestImage,
+  wiremock: versions.WIREMOCK_RUNTIME_IMAGE,
   rust: `rust:${versions.RUST_VERSION}-bookworm`,
   go: `golang:${versions.GO_VERSION}-alpine`,
   python: `python:${versions.PYTHON_VERSION}-slim`,
-  js: nodeAlpine,
-  ts: nodeAlpine,
+  js: nodeTestImage,
+  ts: nodeTestImage,
   playwright: `node:${versions.NODE_VERSION}-bookworm-slim`,
   java: `maven:${versions.MAVEN_VERSION}-eclipse-temurin-${versions.JAVA_VERSION}`,
   csharp: `mcr.microsoft.com/dotnet/sdk:${versions.DOTNET_VERSION}`,
@@ -72,6 +78,7 @@ class ContractPipeline {
       await this.stage('Testcontainers network', async () => {
         this.network = await new Network().start();
       });
+      await this.stage('Prepare pinned Node test runtime', () => this.prepareNodeTestImage());
       await this.stage('Repository evaluations', () => this.runEvaluations());
       await this.stage('API behavior unit tests', () => this.runServiceUnitTests());
       await this.stage('Contract lint', () => this.runContractLint());
@@ -150,6 +157,36 @@ class ContractPipeline {
     await completed.stop().catch((error) => console.warn(`Container cleanup for ${name}: ${error.message}`));
   }
 
+  async prepareNodeTestImage() {
+    const marker = '__POLYCONTRACT_NODE_RUNTIME_READY__';
+    const preparation = new GenericContainer(nodeAlpine)
+      .withNetwork(this.network)
+      .withEntrypoint(['/bin/sh', '-c'])
+      .withCommand([
+        `npm install --global npm@${versions.NPM_VERSION} --no-audit --no-fund && `
+          + `test "$(npm --version)" = "${versions.NPM_VERSION}" && `
+          + `npm cache clean --force >/dev/null && echo ${marker} && sleep infinity`,
+      ])
+      .withWaitStrategy(Wait.forLogMessage(new RegExp(marker), 1))
+      .withStartupTimeout(300_000)
+      .withLogConsumer((stream) => {
+        stream.on('data', (line) => process.stdout.write(line));
+        stream.on('err', (line) => process.stderr.write(line));
+      });
+
+    const started = await preparation.start();
+    try {
+      await started.commit({
+        repo: versions.NODE_TEST_IMAGE,
+        tag: `${versions.NODE_VERSION}-npm${versions.NPM_VERSION}`,
+        comment: `Node ${versions.NODE_VERSION} with npm ${versions.NPM_VERSION}`,
+      });
+      console.log(`  <- Prepared ${nodeTestImage}`);
+    } finally {
+      await started.stop().catch((error) => console.warn(`Node test image cleanup: ${error.message}`));
+    }
+  }
+
   async runExpectedFailure(name, image, options, { command, outputPattern }) {
     const script = [
       'set +e',
@@ -178,7 +215,9 @@ class ContractPipeline {
         stream.on('err', (line) => process.stderr.write(line));
       });
 
-    if (options.healthCheck) {
+    if (options.waitStrategy) {
+      container = container.withWaitStrategy(options.waitStrategy);
+    } else if (options.healthCheck) {
       container = container
         .withHealthCheck(options.healthCheck)
         .withWaitStrategy(Wait.forHealthCheck());
@@ -192,27 +231,47 @@ class ContractPipeline {
     if (options.entrypoint) container = container.withEntrypoint(options.entrypoint);
     if (options.user) container = container.withUser(options.user);
     if (options.mounts) container = container.withBindMounts(options.mounts);
+    if (options.copyFiles) container = container.withCopyFilesToContainer(options.copyFiles);
 
     const started = await container.start();
     this.services.push(started);
     return started;
   }
 
+  async wireMockArtifactPath() {
+    const artifactName = `wiremock-standalone-${versions.WIREMOCK_VERSION}.jar`;
+    const cacheDirectory = join(process.env.RUNNER_TEMP ?? tmpdir(), 'oas-polycontract');
+    const artifactPath = join(cacheDirectory, artifactName);
+    const digest = (content) => createHash('sha256').update(content).digest('hex');
+
+    if (existsSync(artifactPath) && digest(readFileSync(artifactPath)) === versions.WIREMOCK_SHA256) {
+      return artifactPath;
+    }
+
+    const artifactUrl = `https://repo.maven.apache.org/maven2/org/wiremock/wiremock-standalone/${versions.WIREMOCK_VERSION}/${artifactName}`;
+    const response = await fetch(artifactUrl, { signal: AbortSignal.timeout(60_000) });
+    if (!response.ok) throw new Error(`WireMock download failed: HTTP ${response.status}`);
+    const content = Buffer.from(await response.arrayBuffer());
+    if (digest(content) !== versions.WIREMOCK_SHA256) {
+      throw new Error(`WireMock ${versions.WIREMOCK_VERSION} SHA-256 did not match the pinned value`);
+    }
+
+    mkdirSync(cacheDirectory, { recursive: true });
+    writeFileSync(artifactPath, content, { mode: 0o444 });
+    return artifactPath;
+  }
+
   async startWireMock() {
+    const artifactPath = await this.wireMockArtifactPath();
     return this.startService(runtimeImages.wiremock, 'wiremock', {
-      command: ['--global-response-templating'],
+      command: ['/tmp/wiremock-standalone.jar', '--root-dir', '/home/wiremock', '--global-response-templating'],
       mounts: [{
         source: join(repositoryRoot, 'demo/downstream/wiremock'),
         target: '/home/wiremock',
         mode: 'ro',
       }],
-      healthCheck: {
-        test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:8080/__admin/mappings >/dev/null'],
-        interval: 5000,
-        timeout: 3000,
-        retries: 10,
-        startPeriod: 2000,
-      },
+      copyFiles: [{ source: artifactPath, target: '/tmp/wiremock-standalone.jar', mode: 0o444 }],
+      waitStrategy: Wait.forLogMessage(/Started NetworkTrafficServerConnector/, 1),
     });
   }
 
@@ -340,11 +399,17 @@ class ContractPipeline {
         environment: {
           API_BASE_URL: 'http://broken-provider:8080',
           OPENAPI_SPEC: '/repo/demo/openapi.yaml',
+          FEATURE_CASES_PATH: '/repo/clients/shared/acceptance-cases.json',
           CLIENT_SOURCE: '/repo/clients/js',
           CLIENT_SUITE: 'js-canary',
           NPM_VERSION: versions.NPM_VERSION,
         },
-        mounts: [readOnlyMount('demo'), readOnlyMount('clients/js'), readOnlyMount('pipeline/client-suite.sh')],
+        mounts: [
+          readOnlyMount('demo'),
+          readOnlyMount('clients/js'),
+          readOnlyMount('clients/shared'),
+          readOnlyMount('pipeline/client-suite.sh'),
+        ],
       },
       {
         command: 'sh /repo/pipeline/client-suite.sh',
@@ -411,6 +476,7 @@ class ContractPipeline {
       OPENAPI_SPEC: '/repo/demo/openapi.yaml',
       STATEFUL_API_BASE_URL: 'http://stateful-app:8082',
       STATEFUL_OPENAPI_SPEC: '/repo/demo/stateful/openapi.yaml',
+      FEATURE_CASES_PATH: '/repo/clients/shared/acceptance-cases.json',
     };
     const suites = [
       ['rust', 'Rust'],
@@ -438,6 +504,7 @@ class ContractPipeline {
         environment,
         mounts: [
           readOnlyMount(`clients/${key}`),
+          readOnlyMount('clients/shared'),
           readOnlyMount('pipeline/client-suite.sh'),
           readOnlyMount('demo'),
         ],
@@ -453,6 +520,7 @@ class ContractPipeline {
       environment: {
         CLIENT_SUITE: 'js-bdd',
         CLIENT_SOURCE: '/repo/clients/js',
+        CLIENT_FEATURES_SOURCE: '/repo/clients/features',
         API_BASE_URL: 'http://app:8080',
         OPENAPI_SPEC: '/repo/demo/openapi.yaml',
         STATEFUL_API_BASE_URL: 'http://stateful-app:8082',
@@ -461,6 +529,7 @@ class ContractPipeline {
       },
       mounts: [
         readOnlyMount('clients/js'),
+        readOnlyMount('clients/features'),
         readOnlyMount('pipeline/client-suite.sh'),
         readOnlyMount('demo'),
       ],

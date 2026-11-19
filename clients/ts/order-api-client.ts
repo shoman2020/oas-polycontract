@@ -1,15 +1,10 @@
-export interface StatefulApiResponse {
-  request: Request;
-  response: Response;
-}
+import { HttpApiClient, type ApiResponse, type StatefulOrderApi } from "./http-api-client.js";
 
-export class StatefulOrderApiClient {
-  constructor(
-    private readonly baseUrl: string,
-    private readonly fetchImpl: typeof fetch = globalThis.fetch,
-    private readonly timeoutMs = 10_000,
-  ) {
-    if (!baseUrl) throw new Error("STATEFUL_API_BASE_URL is required");
+export type StatefulApiResponse = ApiResponse;
+
+export class StatefulOrderApiClient extends HttpApiClient implements StatefulOrderApi {
+  constructor(baseUrl: string, fetchImpl: typeof fetch = globalThis.fetch, timeoutMs = 10_000) {
+    super(baseUrl, fetchImpl, timeoutMs);
   }
 
   createOrder(sku: string, quantity: number): Promise<StatefulApiResponse> {
@@ -26,17 +21,5 @@ export class StatefulOrderApiClient {
 
   deleteOrder(orderId: string): Promise<StatefulApiResponse> {
     return this.send(`/orders/${encodeURIComponent(orderId)}`, "DELETE");
-  }
-
-  private async send(path: string, method: string, payload?: object): Promise<StatefulApiResponse> {
-    const url = new URL(path, this.baseUrl);
-    const request = new Request(url, {
-      method,
-      headers: payload ? { "content-type": "application/json" } : undefined,
-      body: payload ? JSON.stringify(payload) : undefined,
-      signal: AbortSignal.timeout(this.timeoutMs),
-    });
-    const response = await this.fetchImpl(request);
-    return { request, response };
   }
 }
