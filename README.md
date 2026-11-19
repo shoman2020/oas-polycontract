@@ -133,7 +133,7 @@ Treat this repository as a pilot template. Before adopting it across teams, adap
 | Runtime state | Order data is in memory, scoped to one app instance, and lost on restart | Use isolated test data and a service-backed store for tests that need persistence, parallel environments, or multi-instance behavior. |
 | Runtime versions | CI tests one centrally pinned toolchain | Align pins with approved company versions and add compatibility jobs for the runtimes teams support. |
 | CI cost | The full run pulls pinned runtime images and runs all client suites; client dependencies install into temporary containers | Measure the full workflow in the target CI environment before making it a required check; use the CSV stage timings to tune caching, parallelism, and coverage. |
-| Merge governance | Workflows report checks; `main` does not currently require them | Require the contract and security checks in repository rules before using the template as a merge gate. |
+| Merge governance | The active [`main` ruleset](https://github.com/shoman2020/oas-polycontract/settings/rules/27679805) requires 20 contract, native-suite, and security checks | Adapt status contexts and PR/review requirements to the adopting repository's workflow and policy. |
 
 The Order service remains a stateful test fixture, not a production implementation. It uses random UUIDs to avoid collisions between concurrent app instances, and tests confirm that each app instance has isolated data. Its in-memory store does not provide persistence or coordination between replicas, so a request routed to another replica may return 404. The pinned toolchain is a tested reference set, not a promise of compatibility with every company runtime.
 
@@ -183,7 +183,7 @@ Use these terms consistently across the contracts, tests, and pipeline:
 | Schema validation | Checks response shape and declared media type; it does not replace behavior assertions. |
 | Stateless fuzzing | Schemathesis generates independent Product requests from the OAS. |
 | Stateful testing | Linked operations share returned data; Order tests follow create, read, confirm, delete, then 404. |
-| Quality gate | A CI check that reports whether a change meets a stated requirement; merge enforcement is configured separately. |
+| Quality gate | A CI check that reports whether a change meets a stated requirement; repository rulesets decide whether it blocks branch updates. |
 | BDD acceptance test | Cucumber uses API-specific steps for the shared Product and Order features in `clients/features/`; declared operations are checked against OAS. |
 | TDD unit test | Node.js service tests check API behavior in isolation; add the failing test before changing implementation. |
 
