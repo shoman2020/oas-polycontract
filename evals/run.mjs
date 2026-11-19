@@ -513,6 +513,7 @@ function checkTestcontainersSafety() {
   const versionPins = readRepositoryFile('.github/versions.env');
   const javaProductTests = readRepositoryFile('clients/java/src/test/java/nl/shiftleft/ProductApiIntegrationTest.java');
   const javaOrderTests = readRepositoryFile('clients/java/src/test/java/nl/shiftleft/StatefulOrderApiIntegrationTest.java');
+  const csharpOrderTests = readRepositoryFile('clients/csharp/StatefulOrderApiIntegrationTests.cs');
   const composeExists = existsSync(resolve(repositoryRoot, 'docker-compose.yml'));
   const projectDockerfiles = [
     'demo/app/Dockerfile',
@@ -548,6 +549,7 @@ function checkTestcontainersSafety() {
     [!pipeline.includes('npm cache clean --force') && !pipeline.includes('--force >/dev/null'), 'Node runtime setup must not disable npm protections'],
     [clientSuite.includes('mkdir -p "$workspace/target/classes"') && javaProductTests.includes('getProductPathUnvalidated') && javaOrderTests.includes('createOrderUnvalidated') && javaOrderTests.includes('expectedMessage'), 'Java tests isolate malformed inputs from request validation and check responses against feature data'],
     [csharpTestRunner === 'Microsoft.Testing.Platform' && clientSuite.includes('cd "$workspace"') && clientSuite.includes('dotnet test ContractTests.csproj --no-restore'), '.NET 10 C# tests must select MTP from their workspace global.json'],
+    [csharpOrderTests.includes('unsupportedResponse.Content.Headers.Allow') && !csharpOrderTests.includes('Headers.GetValues("Allow")'), 'C# tests must read Allow from its response content header collection'],
   ];
   for (const [passed, message] of required) if (!passed) failures.push(`testcontainers-safety: ${message}`);
   return required.length;
