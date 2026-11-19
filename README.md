@@ -91,7 +91,7 @@ flowchart TB
 
 ## Run
 
-Requires Node.js 26, npm 12.2.2, and a Docker-compatible container runtime. Testcontainers for Node.js manages the pipeline; Docker Compose is not required.
+Requires Node.js 26.13.1, npm 12.2.2, and a Docker-compatible container runtime. Testcontainers for Node.js manages the pipeline; Docker Compose is not required.
 
 ```sh
 bash ./run.sh

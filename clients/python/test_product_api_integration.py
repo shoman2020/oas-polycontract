@@ -43,20 +43,24 @@ def test_product_error_responses_match_openapi_contract(
 
 
 def test_malformed_sku_path_returns_contract_compliant_400(openapi_contract):
-    session = requests.Session()
-    request = requests.Request(
-        "GET",
-        f"{os.environ['API_BASE_URL'].rstrip('/')}/products/%E0%A4%A",
-    )
-    prepared_request = session.prepare_request(request)
-    response = session.send(prepared_request, timeout=10)
+    base_url = os.environ["API_BASE_URL"].rstrip("/")
+    malformed_url = f"{base_url}/products/%E0%A4%A"
 
-    openapi_contract.validate_response(
-        RequestsOpenAPIRequest(prepared_request),
-        RequestsOpenAPIResponse(response),
-    )
-    assert response.status_code == 400
-    assert response.json() == {"message": "Invalid SKU encoding"}
-    response.close()
-    session.close()
+    with requests.Session() as session:
+        prepared_request = session.prepare_request(
+            requests.Request("GET", f"{base_url}/products/valid-sku")
+        )
+        # Requests quotes malformed percent escapes during preparation. Restore
+        # the raw path so the server receives the invalid encoding under test.
+        prepared_request.url = malformed_url
+        response = session.send(prepared_request, timeout=10)
+        try:
+            openapi_contract.validate_response(
+                RequestsOpenAPIRequest(prepared_request),
+                RequestsOpenAPIResponse(response),
+            )
+            assert response.status_code == 400
+            assert response.json() == {"message": "Invalid SKU encoding"}
+        finally:
+            response.close()
 
