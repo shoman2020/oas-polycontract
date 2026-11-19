@@ -1,0 +1,11 @@
+openapi: 3.0.3
+info:
+  title: Spectral negative fixture
+  version: 1.0.0
+  description: Proves the operationId house rule rejects incomplete operations.
+paths:
+  /healthz:
+    get:
+      responses:
+        "200":
+          description: Service is healthy

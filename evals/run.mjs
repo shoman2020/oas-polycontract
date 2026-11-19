@@ -454,6 +454,11 @@ function checkApiBehavior() {
   const pipeline = readRepositoryFile('pipeline/run.mjs');
   const csharpValidator = readRepositoryFile('clients/csharp/OpenApiResponseValidator.cs');
   const csharpConformance = readRepositoryFile('clients/csharp/OpenApiResponseValidatorConformanceTests.cs');
+  const wiremockIntegration = readRepositoryFile('demo/app/tests/wiremock.integration.mjs');
+  const timeoutMapping = JSON.parse(readRepositoryFile('demo/downstream/wiremock/mappings/inventory-timeout.json'));
+  const spectralFixture = readOpenApiDocument('gates/lint/fixtures/missing-operation-id.openapi.yaml');
+  const breakingBaseline = readOpenApiDocument('gates/breaking-change/fixtures/baseline.yaml');
+  const breakingCandidate = readOpenApiDocument('gates/breaking-change/fixtures/candidate.yaml');
   const orderMethods = [
     ['/healthz', 'get'],
     ['/orders', 'post'],
@@ -475,6 +480,11 @@ function checkApiBehavior() {
   if (!product.paths['/products/{sku}']?.get?.responses?.['502']) {
     failures.push('api-behavior: Product OAS must declare the malformed/unavailable dependency response');
   }
+  if (!(timeoutMapping.response?.fixedDelayMilliseconds > 5000)
+    || !wiremockIntegration.includes('timeout-sku')
+    || !wiremockIntegration.includes('timed out inventory dependency must map to 502')) {
+    failures.push('api-behavior: delayed WireMock response must exercise the Product API timeout and map it to 502');
+  }
   if (!pipeline.includes('async runExpectedFailure(')
     || !pipeline.includes("['Negative contract canaries'")) {
     failures.push('api-behavior: expected-failure canaries must run as a pipeline stage');
@@ -483,6 +493,18 @@ function checkApiBehavior() {
     pipeline.indexOf('async runNegativeCanaries()'),
     pipeline.indexOf('async runProviderTests()'),
   );
+  const removedOperation = Object.entries(breakingBaseline.paths)
+    .some(([path, operations]) => operations.get && !breakingCandidate.paths[path]?.get);
+  if (!canaryPipeline.includes('Spectral rejects missing operationId fixture')
+    || !canaryPipeline.includes('/repo/gates/lint/fixtures/missing-operation-id.openapi.yaml')
+    || spectralFixture.paths['/healthz']?.get?.operationId) {
+    failures.push('api-behavior: Spectral canary must prove the operationId rule rejects its invalid fixture');
+  }
+  if (!canaryPipeline.includes('oasdiff rejects removed operation fixture')
+    || !canaryPipeline.includes('/repo/gates/breaking-change/fixtures/baseline.yaml')
+    || !removedOperation) {
+    failures.push('api-behavior: oasdiff canary must prove a deliberate operation removal is breaking');
+  }
   if (!canaryPipeline.includes("FEATURE_CASES_PATH: '/repo/clients/shared/acceptance-cases.json'")
     || !canaryPipeline.includes("readOnlyMount('clients/shared')")) {
     failures.push('api-behavior: JavaScript failure canary must receive the shared feature cases used by its suite');
@@ -532,7 +554,7 @@ function checkApiBehavior() {
       failures.push(`api-behavior: ${language} suite does not consume all Order feature cases`);
     }
   }
-  return orderMethods.length + 10 + nativeSuites.length * (productCases.length + orderCases.length);
+  return orderMethods.length + 13 + nativeSuites.length * (productCases.length + orderCases.length);
 }
 
 function checkTestcontainersSafety() {
@@ -545,6 +567,12 @@ function checkTestcontainersSafety() {
   const javaProductTests = readRepositoryFile('clients/java/src/test/java/nl/shiftleft/ProductApiIntegrationTest.java');
   const javaOrderTests = readRepositoryFile('clients/java/src/test/java/nl/shiftleft/StatefulOrderApiIntegrationTest.java');
   const csharpOrderTests = readRepositoryFile('clients/csharp/StatefulOrderApiIntegrationTests.cs');
+  const dependabot = parseDocument(readRepositoryFile('.github/dependabot.yml'), { uniqueKeys: true }).toJS();
+  const dockerUpdates = (dependabot.updates ?? []).filter((update) => update['package-ecosystem'] === 'docker');
+  const invalidDockerUpdates = dockerUpdates.filter(({ directory }) => {
+    if (typeof directory !== 'string' || !directory.startsWith('/')) return true;
+    return !existsSync(resolve(repositoryRoot, directory.slice(1), 'Dockerfile'));
+  });
   const composeExists = existsSync(resolve(repositoryRoot, 'docker-compose.yml'));
   const projectDockerfiles = [
     'demo/app/Dockerfile',
@@ -563,6 +591,7 @@ function checkTestcontainersSafety() {
   const required = [
     [!composeExists, 'Docker Compose orchestration should be removed'],
     [projectDockerfiles.every((path) => !existsSync(resolve(repositoryRoot, path))), 'project-specific Dockerfiles should be replaced with pinned Testcontainers runtimes'],
+    [invalidDockerUpdates.length === 0, 'Dependabot Docker updates must target directories that contain a Dockerfile'],
     [pipeline.includes('const readOnlyMount') && pipeline.includes("mode: 'ro'") && !pipeline.includes("source: repositoryRoot") && !pipeline.includes("target: '/repo'"), 'only selected source paths may be mounted read-only'],
     [pipeline.includes("readOnlyMount('demo')") && pipeline.includes("readOnlyMount('openapi')"), 'contract and fixture mounts must be explicit'],
     [(consumerPipeline.match(/NPM_VERSION: versions\.NPM_VERSION/g) ?? []).length === 2, 'JavaScript and Playwright consumer suites must receive the pinned npm version'],

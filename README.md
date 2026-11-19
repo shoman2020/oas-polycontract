@@ -125,13 +125,13 @@ Treat this repository as a pilot template. Before adopting it across teams, adap
 
 | Area | Current example | Adoption step |
 |---|---|---|
-| API coverage | One Product lookup and one in-memory Order lifecycle | Pilot with representative APIs, including authentication, errors, pagination, versioning, and downstream failure modes. |
+| API coverage | One Product lookup and one Order lifecycle; no authentication scheme or collection endpoint | Pilot with representative APIs, including authentication, collection operations, pagination, versioning, and downstream failure modes. |
 | Consumer ownership | Provider OAS generates the Smart Mock; this example has no consumer-owned contract | Add a versioned contract per consumer and provider verification when teams need to check their own expectations. |
 | Validators | Language validators differ. The Rust and C# adapters translate nullable values, `exclusiveMinimum`, and nested local component-schema references covered by conformance tests; neither claims full OAS 3.0 coverage. C# rejects external and unsupported references before schema resolution. | Agree a supported OAS feature matrix and test each language against it. Add coverage for constructs such as `allOf`, `anyOf`, and discriminators before relying on them. Use the shared Spectral, Specmatic, and Schemathesis gates for contract-wide checks. |
 | Runtime state | Order data is in memory, scoped to one app instance, and lost on restart | Use isolated test data and a service-backed store for tests that need persistence, parallel environments, or multi-instance behavior. |
 | Runtime versions | CI tests one centrally pinned toolchain | Align pins with approved company versions and add compatibility jobs for the runtimes teams support. |
 | CI cost | The full run pulls pinned runtime images and runs all client suites; client dependencies install into temporary containers | Measure target CI before setting timeouts, cost budgets, or performance thresholds. The active ruleset gates correctness and security, not runtime duration. |
-| Merge governance | The active [`main` ruleset](https://github.com/shoman2020/oas-polycontract/settings/rules/27679805) requires 20 contract, native-suite, and security checks | Adapt status contexts and PR/review requirements to the adopting repository's workflow and policy. |
+| Merge governance | The active [`main` ruleset](https://github.com/shoman2020/oas-polycontract/settings/rules/27679805) requires 20 status checks. PR-only merging and required code-owner review are not enabled; CODEOWNERS assigns the same owner set across all paths. | Set PR, review, and path ownership rules to match the adopting repository's policy. |
 
 The Order service remains a stateful test fixture, not a production implementation. It uses random UUIDs to avoid collisions between concurrent app instances, and tests confirm that each app instance has isolated data. Its in-memory store does not provide persistence or coordination between replicas, so a request routed to another replica may return 404. The pinned toolchain is a tested reference set, not a promise of compatibility with every company runtime.
 
@@ -219,7 +219,7 @@ Specmatic mock data uses OAS examples, fixtures in `demo/openapi_examples`, and 
 | Gate | Check | Workflow |
 |---|---|---|
 | Contract quality | Spectral lint and OAS compatibility | `contract.yml` |
-| API behavior | Specmatic provider verification, failing canaries, 404/400/409/502 assertions, WireMock, Schemathesis, and native integration suites | `contract.yml` |
+| API behavior | Specmatic provider verification, Spectral and oasdiff failure canaries, downstream timeout handling, error-path assertions, WireMock, Schemathesis, and native suites | `contract.yml` |
 | Project consistency | Repository evaluations check links, shell paths, contracts, structure, test roles, workflows, and roadmap | `contract.yml` |
 | Source and dependencies | CodeQL, Gitleaks, Trivy filesystem scan, Dependency Review, and Dependabot | `security.yml` |
 | Container and runtime artifacts | Trivy scans the exported Node test runtime, WireMock and Specmatic images, and verified WireMock JAR | `contract.yml` |

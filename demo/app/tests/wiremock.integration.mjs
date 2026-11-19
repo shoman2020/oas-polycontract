@@ -57,6 +57,10 @@ async function main() {
   assert.equal(malformedRes.status, 502, "invalid inventory data must map to 502");
   assert.deepEqual(await malformedRes.json(), { message: "Inventory service unavailable" });
 
+  const timeoutRes = await fetch(`${APP_URL}/products/timeout-sku`);
+  assert.equal(timeoutRes.status, 502, "a timed out inventory dependency must map to 502");
+  assert.deepEqual(await timeoutRes.json(), { message: "Inventory service unavailable" });
+
   const journalRes = await fetch(`${WIREMOCK_URL}/__admin/requests`);
   assert.equal(journalRes.status, 200, "expected 200 from WireMock request journal");
   const journal = await journalRes.json();
@@ -67,7 +71,7 @@ async function main() {
   );
   assert.ok(matched, "expected WireMock journal to contain the app's inventory call");
 
-  console.log("API and WireMock checks passed: 200, 404, 405, and invalid-upstream 502");
+  console.log("API and WireMock checks passed: 200, 404, 405, and unavailable/malformed/timed-out 502 responses");
 }
 
 main().catch((err) => {

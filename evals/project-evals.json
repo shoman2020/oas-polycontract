@@ -101,7 +101,9 @@
         "CLIENT_SUITE: 'playwright-consumer'",
         "Specmatic mock data evaluations",
         "JavaScript consumer mock checks",
-        "Playwright consumer mock checks"
+        "Playwright consumer mock checks",
+        "Spectral rejects missing operationId fixture",
+        "oasdiff rejects removed operation fixture"
       ]
     },
     {
@@ -133,12 +135,12 @@
     },
     {
       "id": "api-behavior",
-      "description": "Core behavior and intentional negative pipeline canaries match the contracts",
+      "description": "Core behavior and expected failures in provider, Spectral, oasdiff, and API canaries match the contracts",
       "type": "api-behavior"
     },
     {
       "id": "testcontainers-safety",
-      "description": "Testcontainers use pinned upstream runtimes, a private network, and read-only source mounts",
+      "description": "Testcontainers use pinned runtimes and read-only mounts; Dependabot Docker entries require Dockerfiles",
       "type": "testcontainers-safety"
     },
     {

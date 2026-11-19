@@ -1,0 +1,19 @@
+{
+  "name": "inventory timeout",
+  "priority": 1,
+  "request": {
+    "method": "GET",
+    "urlPath": "/inventory/timeout-sku"
+  },
+  "response": {
+    "status": 200,
+    "fixedDelayMilliseconds": 6500,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "sku": "timeout-sku",
+      "available": 1
+    }
+  }
+}
