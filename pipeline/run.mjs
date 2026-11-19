@@ -263,7 +263,7 @@ class ContractPipeline {
 
   async startWireMock() {
     const artifactPath = await this.wireMockArtifactPath();
-    return this.startService(runtimeImages.wiremock, 'wiremock', {
+    const wireMock = await this.startService(runtimeImages.wiremock, 'wiremock', {
       command: ['/tmp/wiremock-standalone.jar', '--root-dir', '/home/wiremock', '--global-response-templating'],
       mounts: [{
         source: join(repositoryRoot, 'demo/downstream/wiremock'),
@@ -271,7 +271,30 @@ class ContractPipeline {
         mode: 'ro',
       }],
       copyFiles: [{ source: artifactPath, target: '/tmp/wiremock-standalone.jar', mode: 0o444 }],
-      waitStrategy: Wait.forLogMessage(/Started NetworkTrafficServerConnector/, 1),
+      waitStrategy: Wait.forLogMessage(/version:\s+\d+\.\d+\.\d+/, 1),
+    });
+    await this.waitForHttp('WireMock readiness', 'http://wiremock:8080/__admin/mappings');
+    return wireMock;
+  }
+
+  async waitForHttp(name, url) {
+    const script = [
+      'const deadline = Date.now() + 90000;',
+      'while (Date.now() < deadline) {',
+      '  try {',
+      '    const response = await fetch(process.env.READINESS_URL, { signal: AbortSignal.timeout(2000) });',
+      '    if (response.ok) process.exit(0);',
+      '  } catch {}',
+      '  await new Promise((resolve) => setTimeout(resolve, 500));',
+      '}',
+      'console.error(`Service did not become ready: ${process.env.READINESS_URL}`);',
+      'process.exit(1);',
+    ].join('\n');
+    await this.runTask(name, runtimeImages.app, {
+      entrypoint: ['node', '--input-type=module', '-e'],
+      command: [script],
+      user: 'node',
+      environment: { READINESS_URL: url },
     });
   }
 

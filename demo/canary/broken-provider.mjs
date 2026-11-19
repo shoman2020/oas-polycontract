@@ -10,7 +10,13 @@ const server = http.createServer((request, response) => {
   }
 
   if (request.method === "GET" && /^\/products\/[^/]+$/.test(pathname)) {
-    const sku = decodeURIComponent(pathname.slice("/products/".length));
+    let sku;
+    try {
+      sku = decodeURIComponent(pathname.slice("/products/".length));
+    } catch {
+      response.writeHead(400).end(JSON.stringify({ message: "Invalid SKU encoding" }));
+      return;
+    }
     response.writeHead(200).end(JSON.stringify({ sku, available: "7" }));
     return;
   }

@@ -466,6 +466,10 @@ function checkApiBehavior() {
     || !canaryPipeline.includes("readOnlyMount('clients/shared')")) {
     failures.push('api-behavior: JavaScript failure canary must receive the shared feature cases used by its suite');
   }
+  if (!pipeline.includes("await this.waitForHttp('WireMock readiness', 'http://wiremock:8080/__admin/mappings')")
+    || !pipeline.includes('async waitForHttp(name, url)')) {
+    failures.push('api-behavior: WireMock startup must wait for an HTTP health response after process startup');
+  }
   if (!statefulSource.includes('input.status !== order.status') || !statefulSource.includes('Cannot change order')) {
     failures.push('api-behavior: Order service must preserve idempotent repeats and reject illegal transitions');
   }
