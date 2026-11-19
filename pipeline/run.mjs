@@ -15,50 +15,12 @@ const readOnlyMount = (path, target = `/repo/${path}`) => ({
 const contractMounts = [
   readOnlyMount('demo'),
   readOnlyMount('openapi'),
-  readOnlyMount('contracts/events'),
+  readOnlyMount('contracts'),
   readOnlyMount('gates/lint'),
 ];
 
-const localImages = {
-  app: 'oas-polycontract-app:latest',
-  wiremock: 'oas-polycontract-wiremock:latest',
-  stateful: 'oas-polycontract-stateful:local',
-  rust: 'oas-polycontract-rust:local',
-  go: 'oas-polycontract-go:local',
-  python: 'oas-polycontract-python:local',
-  js: 'oas-polycontract-js:local',
-  ts: 'oas-polycontract-ts:local',
-  playwright: 'oas-polycontract-playwright:local',
-  java: 'oas-polycontract-java:local',
-  csharp: 'oas-polycontract-csharp:local',
-};
-
-const clientImages = [
-  { key: 'rust', context: 'clients/rust', args: ['RUST_VERSION'] },
-  { key: 'go', context: 'clients/go', args: ['GO_VERSION'] },
-  { key: 'python', context: 'clients/python', args: ['PYTHON_VERSION'] },
-  { key: 'js', context: 'clients/js', args: ['NODE_VERSION'] },
-  { key: 'ts', context: 'clients/ts', args: ['NODE_VERSION', 'NPM_VERSION'] },
-  { key: 'playwright', context: 'clients/playwright', args: ['NODE_VERSION'] },
-  { key: 'java', context: 'clients/java', args: ['MAVEN_VERSION', 'JAVA_VERSION'] },
-  { key: 'csharp', context: 'clients/csharp', args: ['DOTNET_VERSION'] },
-];
-
-// Keep these images available for consumer mock checks in focused local runs.
-const consumerClientImages = new Set(['js', 'playwright']);
-const clientKeyBySuiteName = new Map([
-  ['Rust', 'rust'],
-  ['Go', 'go'],
-  ['Python', 'python'],
-  ['JavaScript', 'js'],
-  ['TypeScript', 'ts'],
-  ['Java', 'java'],
-  ['C#', 'csharp'],
-]);
-const selectedNativeClients = new Set(parseNativeClientSelection(
-  process.env.POLYCONTRACT_NATIVE_CLIENTS,
-  clientImages.filter(({ key }) => key !== 'playwright').map(({ key }) => key),
-));
+const nativeClientKeys = ['rust', 'go', 'python', 'js', 'ts', 'java', 'csharp'];
+const selectedNativeClients = new Set(parseNativeClientSelection(process.env.POLYCONTRACT_NATIVE_CLIENTS, nativeClientKeys));
 
 const versions = readVersionPins(join(repositoryRoot, '.github/versions.env'), [
   'OASDIFF_VERSION',
@@ -67,11 +29,32 @@ const versions = readVersionPins(join(repositoryRoot, '.github/versions.env'), [
   'SPECTRAL_VERSION',
   'TESTCONTAINERS_RYUK_VERSION',
   'WIREMOCK_VERSION',
-  ...new Set(clientImages.flatMap(({ args }) => args)),
+  'RUST_VERSION',
+  'GO_VERSION',
+  'PYTHON_VERSION',
+  'NODE_VERSION',
+  'NPM_VERSION',
+  'MAVEN_VERSION',
+  'JAVA_VERSION',
+  'DOTNET_VERSION',
 ]);
 
 process.env.RYUK_CONTAINER_IMAGE = `testcontainers/ryuk:${versions.TESTCONTAINERS_RYUK_VERSION}`;
-const { GenericContainer, Network, PullPolicy, Wait } = await import('testcontainers');
+const { GenericContainer, Network, Wait } = await import('testcontainers');
+const nodeAlpine = `node:${versions.NODE_VERSION}-alpine`;
+const runtimeImages = {
+  app: nodeAlpine,
+  stateful: nodeAlpine,
+  wiremock: `wiremock/wiremock:${versions.WIREMOCK_VERSION}`,
+  rust: `rust:${versions.RUST_VERSION}-bookworm`,
+  go: `golang:${versions.GO_VERSION}-alpine`,
+  python: `python:${versions.PYTHON_VERSION}-slim`,
+  js: nodeAlpine,
+  ts: nodeAlpine,
+  playwright: `node:${versions.NODE_VERSION}-bookworm-slim`,
+  java: `maven:${versions.MAVEN_VERSION}-eclipse-temurin-${versions.JAVA_VERSION}`,
+  csharp: `mcr.microsoft.com/dotnet/sdk:${versions.DOTNET_VERSION}`,
+};
 
 class ContractPipeline {
   constructor() {
@@ -90,13 +73,15 @@ class ContractPipeline {
         this.network = await new Network().start();
       });
       await this.stage('Repository evaluations', () => this.runEvaluations());
+      await this.stage('API behavior unit tests', () => this.runServiceUnitTests());
       await this.stage('Contract lint', () => this.runContractLint());
       await this.stage('Compatibility', () => this.runOasDiff());
-      await this.stage('Build local images', () => this.buildImages());
+      await this.stage('Negative contract canaries', () => this.runNegativeCanaries());
       await this.stage('Provider and downstream contract tests', () => this.runProviderTests());
       await this.stage('Stateless fuzzing', () => this.runStatelessFuzzing());
       await this.stage('Stateful API tests', () => this.runStatefulTests());
       await this.stage('Native API integration suites', () => this.runNativeSuites());
+      await this.stage('BDD acceptance features', () => this.runBddFeatures());
       await this.stage('Consumer mock checks and evaluations', () => this.runConsumerTests());
       console.log('==> Contract pipeline passed');
     } catch (error) {
@@ -130,32 +115,6 @@ class ContractPipeline {
     }
   }
 
-  async buildImage(name, context, buildArgs = {}) {
-    const image = await GenericContainer
-      .fromDockerfile(join(repositoryRoot, context))
-      .withBuildArgs(buildArgs)
-      .build(name, { deleteOnExit: false });
-    return image;
-  }
-
-  async buildImages() {
-    await this.buildImage(localImages.wiremock, 'demo/wiremock', {
-      WIREMOCK_VERSION: versions.WIREMOCK_VERSION,
-    });
-    await this.buildImage(localImages.app, 'demo/app', {
-      NODE_VERSION: versions.NODE_VERSION,
-    });
-    await this.buildImage(localImages.stateful, 'demo/stateful', {
-      NODE_VERSION: versions.NODE_VERSION,
-    });
-
-    for (const client of clientImages) {
-      if (!consumerClientImages.has(client.key) && !selectedNativeClients.has(client.key)) continue;
-      const buildArgs = Object.fromEntries(client.args.map((key) => [key, versions[key]]));
-      await this.buildImage(localImages[client.key], client.context, buildArgs);
-    }
-  }
-
   runEvaluations() {
     const result = spawnSync(process.execPath, [join(repositoryRoot, 'evals/run.mjs')], {
       cwd: repositoryRoot,
@@ -175,10 +134,10 @@ class ContractPipeline {
         stream.on('err', (line) => process.stderr.write(line));
       });
 
-    if (options.localImage) container = container.withPullPolicy(PullPolicy.neverPull());
     if (options.workingDir) container = container.withWorkingDir(options.workingDir);
     if (options.entrypoint) container = container.withEntrypoint(options.entrypoint);
     if (options.environment) container = container.withEnvironment(options.environment);
+    if (options.user) container = container.withUser(options.user);
     if (options.command) container = container.withCommand(options.command);
     if (options.mounts) container = container.withBindMounts(options.mounts);
     return container;
@@ -189,6 +148,24 @@ class ContractPipeline {
     const container = this.commandContainer(image, options);
     const completed = await container.start();
     await completed.stop().catch((error) => console.warn(`Container cleanup for ${name}: ${error.message}`));
+  }
+
+  async runExpectedFailure(name, image, options, { command, outputPattern }) {
+    const script = [
+      'set +e',
+      `output=$(${command} 2>&1)`,
+      'status=$?',
+      'printf "%s\\n" "$output"',
+      'printf "__POLYCONTRACT_EXIT_CODE=%s\\n" "$status"',
+      'if [ "$status" -eq 0 ]; then exit 97; fi',
+      `printf "%s" "$output" | grep -Eiq '${outputPattern}'`,
+    ].join('\n');
+    await this.runTask(name, image, {
+      ...options,
+      entrypoint: ['/bin/sh', '-c'],
+      command: [script],
+    });
+    console.log(`  <- ${name}: confirmed non-zero exit with expected failure output`);
   }
 
   async startService(image, alias, options = {}) {
@@ -209,10 +186,11 @@ class ContractPipeline {
       container = container.withWaitStrategy(Wait.forSuccessfulCommand('true'));
     }
 
-    if (options.localImage) container = container.withPullPolicy(PullPolicy.neverPull());
     if (options.command) container = container.withCommand(options.command);
     if (options.environment) container = container.withEnvironment(options.environment);
     if (options.workingDir) container = container.withWorkingDir(options.workingDir);
+    if (options.entrypoint) container = container.withEntrypoint(options.entrypoint);
+    if (options.user) container = container.withUser(options.user);
     if (options.mounts) container = container.withBindMounts(options.mounts);
 
     const started = await container.start();
@@ -221,8 +199,7 @@ class ContractPipeline {
   }
 
   async startWireMock() {
-    return this.startService(localImages.wiremock, 'wiremock', {
-      localImage: true,
+    return this.startService(runtimeImages.wiremock, 'wiremock', {
       command: ['--global-response-templating'],
       mounts: [{
         source: join(repositoryRoot, 'demo/downstream/wiremock'),
@@ -240,8 +217,10 @@ class ContractPipeline {
   }
 
   async startProductApi() {
-    return this.startService(localImages.app, 'app', {
-      localImage: true,
+    return this.startService(runtimeImages.app, 'app', {
+      entrypoint: ['node', '/repo/demo/app/server.mjs'],
+      command: [],
+      user: 'node',
       environment: {
         INVENTORY_URL: 'http://wiremock:8080',
         PORT: '8080',
@@ -253,12 +232,15 @@ class ContractPipeline {
         retries: 10,
         startPeriod: 2000,
       },
+      mounts: [readOnlyMount('demo/app')],
     });
   }
 
   async startStatefulApi() {
-    return this.startService(localImages.stateful, 'stateful-app', {
-      localImage: true,
+    return this.startService(runtimeImages.stateful, 'stateful-app', {
+      entrypoint: ['node', '/repo/demo/stateful/server.mjs'],
+      command: [],
+      user: 'node',
       environment: { PORT: '8082' },
       healthCheck: {
         test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:8082/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"],
@@ -267,6 +249,7 @@ class ContractPipeline {
         retries: 10,
         startPeriod: 2000,
       },
+      mounts: [readOnlyMount('demo/stateful')],
     });
   }
 
@@ -290,24 +273,99 @@ class ContractPipeline {
     ], '.spectral-asyncapi.yaml', contractMounts);
   }
 
-  async runOasDiff() {
-    await this.runTask('OpenAPI compatibility', `tufin/oasdiff:v${versions.OASDIFF_VERSION}`, {
-      command: ['breaking', '/repo/openapi/openapi.base.yaml', '/repo/openapi/openapi.yaml'],
-      mounts: [readOnlyMount('openapi')],
+  async runServiceUnitTests() {
+    await this.runTask('API behavior unit tests', runtimeImages.app, {
+      entrypoint: ['node', '--test'],
+      command: [
+        '/repo/demo/app/tests/server.test.mjs',
+        '/repo/demo/stateful/server.test.mjs',
+      ],
+      user: 'node',
+      mounts: [readOnlyMount('demo')],
     });
+  }
+
+  async runOasDiff() {
+    const baselineChecks = [
+      ['Product', '/repo/contracts/baselines/product.openapi.yaml', '/repo/demo/openapi.yaml'],
+      ['Order', '/repo/contracts/baselines/order.openapi.yaml', '/repo/demo/stateful/openapi.yaml'],
+      ['Inventory', '/repo/contracts/baselines/inventory.openapi.yaml', '/repo/demo/downstream/openapi.yaml'],
+    ];
+    for (const [service, baseline, candidate] of baselineChecks) {
+      await this.runTask(`OpenAPI compatibility: ${service}`, `tufin/oasdiff:v${versions.OASDIFF_VERSION}`, {
+        command: ['breaking', baseline, candidate],
+        mounts: [readOnlyMount('contracts/baselines'), readOnlyMount('demo')],
+      });
+    }
+  }
+
+  async runNegativeCanaries() {
+    await this.startService(runtimeImages.app, 'broken-provider', {
+      entrypoint: ['node', '/repo/demo/canary/broken-provider.mjs'],
+      command: [],
+      user: 'node',
+      mounts: [readOnlyMount('demo/canary')],
+      healthCheck: {
+        test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:8080/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"],
+        interval: 5000,
+        timeout: 3000,
+        retries: 10,
+        startPeriod: 2000,
+      },
+    });
+
+    await this.runTask('Validate broken-provider canary fixture', runtimeImages.app, {
+      entrypoint: ['node', '-e'],
+      command: ["fetch('http://broken-provider:8080/products/demo-sku').then(async r => { const b = await r.json(); process.exit(r.status === 200 && typeof b.available === 'string' ? 0 : 1); }).catch(() => process.exit(1))"],
+    });
+
+    await this.runExpectedFailure(
+      'Specmatic rejects broken Product provider',
+      `specmatic/specmatic:${versions.SPECMATIC_VERSION}`,
+      {
+        workingDir: '/tmp',
+        mounts: [readOnlyMount('demo')],
+      },
+      {
+        command: 'specmatic test /repo/demo/openapi.yaml --testBaseURL=http://broken-provider:8080',
+        outputPattern: 'available.{0,100}string|string.{0,100}available|schema.{0,100}(fail|mismatch)|response.{0,100}(fail|mismatch)',
+      },
+    );
+
+    await this.runExpectedFailure(
+      'JavaScript OAS validator rejects broken Product provider',
+      runtimeImages.js,
+      {
+        user: 'node',
+        environment: {
+          API_BASE_URL: 'http://broken-provider:8080',
+          OPENAPI_SPEC: '/repo/demo/openapi.yaml',
+          CLIENT_SOURCE: '/repo/clients/js',
+          CLIENT_SUITE: 'js-canary',
+          NPM_VERSION: versions.NPM_VERSION,
+        },
+        mounts: [readOnlyMount('demo'), readOnlyMount('clients/js'), readOnlyMount('pipeline/client-suite.sh')],
+      },
+      {
+        command: 'sh /repo/pipeline/client-suite.sh',
+        outputPattern: 'ERR_ASSERTION|AssertionError',
+      },
+    );
   }
 
   async runProviderTests() {
     await this.startWireMock();
     await this.startProductApi();
 
-    await this.runTask('WireMock downstream integration', localImages.app, {
-      localImage: true,
-      command: ['node', 'tests/wiremock.integration.mjs'],
+    await this.runTask('WireMock downstream integration', runtimeImages.app, {
+      entrypoint: ['node', '/repo/demo/app/tests/wiremock.integration.mjs'],
+      command: [],
+      user: 'node',
       environment: {
         APP_URL: 'http://app:8080',
         WIREMOCK_URL: 'http://wiremock:8080',
       },
+      mounts: [readOnlyMount('demo/app')],
     });
     await this.runTask('Specmatic downstream provider', `specmatic/specmatic:${versions.SPECMATIC_VERSION}`, {
       workingDir: '/tmp',
@@ -355,29 +413,58 @@ class ContractPipeline {
       STATEFUL_OPENAPI_SPEC: '/repo/demo/stateful/openapi.yaml',
     };
     const suites = [
-      ['Rust', localImages.rust, commonEnvironment],
-      ['Go', localImages.go, commonEnvironment],
-      ['Python', localImages.python, commonEnvironment],
-      ['JavaScript', localImages.js, commonEnvironment],
-      ['TypeScript', localImages.ts, commonEnvironment],
-      ['Playwright API', localImages.playwright, {
-        API_BASE_URL: commonEnvironment.API_BASE_URL,
-        OPENAPI_SPEC: commonEnvironment.OPENAPI_SPEC,
-      }, ['npm', 'run', 'test:provider']],
-      ['Java', localImages.java, commonEnvironment],
-      ['C#', localImages.csharp, commonEnvironment],
+      ['rust', 'Rust'],
+      ['go', 'Go'],
+      ['python', 'Python'],
+      ['js', 'JavaScript'],
+      ['ts', 'TypeScript'],
+      ['playwright', 'Playwright API'],
+      ['java', 'Java'],
+      ['csharp', 'C#'],
     ];
 
-    for (const [name, image, environment, command] of suites) {
-      const nativeClientKey = clientKeyBySuiteName.get(name);
-      if (nativeClientKey && !selectedNativeClients.has(nativeClientKey)) continue;
-      await this.runTask(`${name} API integration suite`, image, {
-        localImage: true,
+    for (const [key, name] of suites) {
+      if (key !== 'playwright' && !selectedNativeClients.has(key)) continue;
+      const environment = {
+        ...commonEnvironment,
+        CLIENT_SUITE: key,
+        CLIENT_SOURCE: `/repo/clients/${key}`,
+        NPM_VERSION: versions.NPM_VERSION,
+      };
+      await this.runTask(`${name} API integration suite`, runtimeImages[key], {
+        entrypoint: ['/bin/sh', '/repo/pipeline/client-suite.sh'],
+        command: [],
+        user: '10001:10001',
         environment,
-        command,
-        mounts: [readOnlyMount('demo')],
+        mounts: [
+          readOnlyMount(`clients/${key}`),
+          readOnlyMount('pipeline/client-suite.sh'),
+          readOnlyMount('demo'),
+        ],
       });
     }
+  }
+
+  async runBddFeatures() {
+    await this.runTask('JavaScript BDD acceptance features', runtimeImages.js, {
+      entrypoint: ['/bin/sh', '/repo/pipeline/client-suite.sh'],
+      command: [],
+      user: '10001:10001',
+      environment: {
+        CLIENT_SUITE: 'js-bdd',
+        CLIENT_SOURCE: '/repo/clients/js',
+        API_BASE_URL: 'http://app:8080',
+        OPENAPI_SPEC: '/repo/demo/openapi.yaml',
+        STATEFUL_API_BASE_URL: 'http://stateful-app:8082',
+        STATEFUL_OPENAPI_SPEC: '/repo/demo/stateful/openapi.yaml',
+        NPM_VERSION: versions.NPM_VERSION,
+      },
+      mounts: [
+        readOnlyMount('clients/js'),
+        readOnlyMount('pipeline/client-suite.sh'),
+        readOnlyMount('demo'),
+      ],
+    });
   }
 
   async runConsumerTests() {
@@ -394,29 +481,36 @@ class ContractPipeline {
       MOCK_URL: 'http://specmatic-mock:9000',
       MOCK_EVALS_PATH: '/repo/evals/mock-data-evals.json',
     };
-    await this.runTask('Specmatic mock data evaluations', localImages.app, {
-      localImage: true,
-      command: ['node', 'tests/specmatic-mock.integration.mjs'],
+    await this.runTask('Specmatic mock data evaluations', runtimeImages.app, {
+      entrypoint: ['node', '/repo/demo/app/tests/specmatic-mock.integration.mjs'],
+      command: [],
+      user: 'node',
       environment: mockEnvironment,
-      mounts: [readOnlyMount('evals/mock-data-evals.json')],
+      mounts: [readOnlyMount('demo/app'), readOnlyMount('evals/mock-data-evals.json')],
     });
-    await this.runTask('JavaScript consumer mock checks', localImages.js, {
-      localImage: true,
-      command: ['npm', 'run', 'test:consumer'],
+    await this.runTask('JavaScript consumer mock checks', runtimeImages.js, {
+      entrypoint: ['/bin/sh', '/repo/pipeline/client-suite.sh'],
+      command: [],
+      user: '10001:10001',
       environment: {
+        CLIENT_SUITE: 'js-consumer',
+        CLIENT_SOURCE: '/repo/clients/js',
         API_BASE_URL: 'http://specmatic-mock:9000',
         OPENAPI_SPEC: '/repo/demo/openapi.yaml',
       },
-      mounts: [readOnlyMount('demo')],
+      mounts: [readOnlyMount('clients/js'), readOnlyMount('pipeline/client-suite.sh'), readOnlyMount('demo')],
     });
-    await this.runTask('Playwright consumer mock checks', localImages.playwright, {
-      localImage: true,
-      command: ['npm', 'run', 'test:consumer'],
+    await this.runTask('Playwright consumer mock checks', runtimeImages.playwright, {
+      entrypoint: ['/bin/sh', '/repo/pipeline/client-suite.sh'],
+      command: [],
+      user: '10001:10001',
       environment: {
+        CLIENT_SUITE: 'playwright-consumer',
+        CLIENT_SOURCE: '/repo/clients/playwright',
         API_BASE_URL: 'http://specmatic-mock:9000',
         OPENAPI_SPEC: '/repo/demo/openapi.yaml',
       },
-      mounts: [readOnlyMount('demo')],
+      mounts: [readOnlyMount('clients/playwright'), readOnlyMount('pipeline/client-suite.sh'), readOnlyMount('demo')],
     });
   }
 

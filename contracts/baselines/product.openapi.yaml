@@ -1,0 +1,142 @@
+openapi: 3.0.3
+info:
+  title: Product API
+  version: 1.0.0
+  description: >
+    Demo provider API. Serves product details by looking up availability
+    from a downstream inventory service (see demo/downstream/openapi.yaml).
+  contact:
+    name: SHIFT-LEFT.NL and Ahmed Abdelwahab
+    url: https://shift-left.nl
+servers:
+  - url: http://localhost:8080
+    description: Local demo service from the host.
+  - url: http://app:8080
+    description: Product service on the isolated Testcontainers network.
+tags:
+  - name: health
+    description: Service availability.
+  - name: products
+    description: Product lookup operations.
+paths:
+  /healthz:
+    get:
+      tags: [health]
+      summary: Liveness check
+      description: Returns the current health status of the Product API.
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: ok
+        "405":
+          description: The route does not allow the requested HTTP method
+          headers:
+            Allow:
+              schema:
+                type: string
+              description: Allowed HTTP methods for the route
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /products/{sku}:
+    get:
+      tags: [products]
+      summary: Get a product by SKU
+      description: Returns product details and inventory availability for the supplied SKU.
+      operationId: getProduct
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+          examples:
+            demo:
+              value: demo-sku
+            limited:
+              value: limited-sku
+            product-not-found:
+              value: not-found-sku
+            inventory-unavailable:
+              value: unavailable-sku
+      responses:
+        "200":
+          description: Product found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+              examples:
+                demo:
+                  value:
+                    sku: demo-sku
+                    available: 7
+                limited:
+                  value:
+                    sku: limited-sku
+                    available: 2
+        "404":
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                product-not-found:
+                  value:
+                    message: No inventory record for not-found-sku
+        "400":
+          description: The SKU path segment has invalid percent encoding
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "502":
+          description: Inventory service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                inventory-unavailable:
+                  value:
+                    message: Inventory service unavailable
+        "405":
+          description: The route does not allow the requested HTTP method
+          headers:
+            Allow:
+              schema:
+                type: string
+              description: Allowed HTTP methods for the route
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    Product:
+      type: object
+      required: [sku, available]
+      properties:
+        sku:
+          type: string
+        available:
+          type: integer
+          minimum: 0
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+

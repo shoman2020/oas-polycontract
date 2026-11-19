@@ -20,6 +20,16 @@ function matchRoute(pathname) {
   return product ? { name: "product", encodedSku: product[1] } : null;
 }
 
+function isInventoryResponse(value, expectedSku, contentType) {
+  return contentType?.split(";", 1)[0].trim().toLowerCase() === "application/json"
+    && value !== null
+    && typeof value === "object"
+    && !Array.isArray(value)
+    && value.sku === expectedSku
+    && Number.isInteger(value.available)
+    && value.available >= 0;
+}
+
 async function handleRequest(request, response, dependencies) {
   const url = new URL(request.url ?? "/", "http://localhost");
   const route = matchRoute(url.pathname);
@@ -63,6 +73,10 @@ async function handleRequest(request, response, dependencies) {
     }
 
     const inventory = await upstream.json();
+    if (!isInventoryResponse(inventory, sku, upstream.headers.get("content-type"))) {
+      sendJson(response, 502, { message: "Inventory service unavailable" });
+      return;
+    }
     sendJson(response, 200, {
       sku: inventory.sku,
       available: inventory.available,

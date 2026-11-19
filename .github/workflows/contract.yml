@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: contract-${{ github.ref }}
-  cancel-in-progress: false
+  group: contract-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   contract-examples:
@@ -32,6 +32,7 @@ jobs:
           source .github/versions.env
           echo "NODE_VERSION=$NODE_VERSION" >> "$GITHUB_ENV"
           echo "NPM_VERSION=$NPM_VERSION" >> "$GITHUB_ENV"
+          echo "WIREMOCK_VERSION=$WIREMOCK_VERSION" >> "$GITHUB_ENV"
           echo "TRIVY_VERSION=$TRIVY_VERSION" >> "$GITHUB_ENV"
           echo "SPECMATIC_VERSION=$SPECMATIC_VERSION" >> "$GITHUB_ENV"
 
@@ -44,10 +45,12 @@ jobs:
         run: npm install --global npm@${NPM_VERSION}
 
       - name: Check shell syntax
-        run: bash -n run.sh
+        run: bash -n run.sh pipeline/client-suite.sh
 
-      - name: Check Testcontainers runner syntax
-        run: node --check pipeline/run.mjs
+      - name: Check pipeline JavaScript syntax
+        run: |
+          node --check pipeline/run.mjs
+          node --check evals/run.mjs
 
       - name: Run the local contract pipeline
         env:
@@ -62,12 +65,12 @@ jobs:
           path: ${{ runner.temp }}/pipeline-timings.csv
           if-no-files-found: warn
 
-      # Scan built runtime images here; security.yml scans repository dependencies and configuration.
+      # Scan the pinned upstream runtimes used by the demo; security.yml scans repository dependencies and configuration.
       - name: Scan application container image
         if: always()
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: oas-polycontract-app:latest
+          image-ref: node:${{ env.NODE_VERSION }}-alpine
           format: table
           vuln-type: os,library
           severity: HIGH,CRITICAL
@@ -79,7 +82,7 @@ jobs:
         if: always()
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: oas-polycontract-wiremock:latest
+          image-ref: wiremock/wiremock:${{ env.WIREMOCK_VERSION }}
           format: table
           vuln-type: os,library
           severity: HIGH,CRITICAL

@@ -30,6 +30,16 @@ paths:
                   status:
                     type: string
                     enum: [ok]
+        "405":
+          description: The route does not allow the requested HTTP method
+          headers:
+            Allow:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /orders:
     post:
       tags: [orders]
@@ -78,6 +88,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "405":
+          description: The route does not allow the requested HTTP method
+          headers:
+            Allow:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
   /orders/{orderId}:
     parameters:
       - name: orderId
@@ -104,10 +124,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "405":
+          description: The route does not allow the requested HTTP method
+          headers:
+            Allow:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
     patch:
       tags: [orders]
       summary: Move an order to a new state
-      description: Confirms or cancels the identified order.
+      description: Confirms or cancels the identified order. Repeating the current status is idempotent and returns the unchanged order with HTTP 200; invalid transitions return HTTP 409.
       operationId: updateOrder
       requestBody:
         required: true
@@ -156,6 +186,16 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
+        "405":
+          description: The route does not allow the requested HTTP method
+          headers:
+            Allow:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
     delete:
       tags: [orders]
       summary: Delete an order
@@ -171,6 +211,16 @@ paths:
                 orderId: "$request.path.orderId"
         "404":
           description: Order does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "405":
+          description: The route does not allow the requested HTTP method
+          headers:
+            Allow:
+              schema:
+                type: string
           content:
             application/json:
               schema:

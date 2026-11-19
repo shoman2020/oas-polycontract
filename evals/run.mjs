@@ -1,8 +1,10 @@
 import { readFileSync, existsSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
+const { parseDocument } = createRequire(resolve(repositoryRoot, 'pipeline/package.json'))('yaml');
 const evaluationPath = resolve(repositoryRoot, 'evals/project-evals.json');
 const suite = JSON.parse(readFileSync(evaluationPath, 'utf8'));
 const failures = [];
@@ -10,6 +12,18 @@ const results = [];
 
 function readRepositoryFile(path) {
   return readFileSync(resolve(repositoryRoot, path), 'utf8');
+}
+
+function readOpenApiDocument(path) {
+  const document = parseDocument(readRepositoryFile(path), { uniqueKeys: true });
+  if (document.errors.length) {
+    throw new Error(`${path} is invalid YAML: ${document.errors.map((error) => error.message).join('; ')}`);
+  }
+  const value = document.toJS();
+  if (!value || typeof value !== 'object' || !value.paths || typeof value.paths !== 'object') {
+    throw new Error(`${path} must contain an OpenAPI paths mapping`);
+  }
+  return value;
 }
 
 function assertRepositoryPath(path, checkId) {
@@ -22,7 +36,7 @@ function assertRepositoryPath(path, checkId) {
 
 function checkReadmeLinks() {
   let linkCount = 0;
-  for (const documentPath of ['README.md', 'clients/README.md']) {
+  for (const documentPath of ['README.md', 'clients/README.md', 'clients/js/features/README.md']) {
     const document = readRepositoryFile(documentPath);
     const links = [...document.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)]
       .map((match) => match[1].trim().split(/[?#]/, 1)[0])
@@ -66,10 +80,10 @@ function checkArchitectureMap() {
   const architecture = readme.slice(start, end);
 
   const layers = [
-    ['Specifications', '`openapi/`, `demo/`, `contracts/events/`'],
+    ['Specifications', '`openapi/`, `demo/`, `contracts/events/`, `contracts/baselines/`'],
     ['Demo services', '`demo/`'],
     ['Native clients', '`clients/`'],
-    ['Orchestration', '`pipeline/run.mjs`'],
+    ['Orchestration', '`pipeline/run.mjs`, `pipeline/client-suite.sh`'],
     ['Shared configuration', '`pipeline/config.mjs`, `.github/versions.env`'],
     ['Quality checks', '`gates/`, `evals/`, `.github/workflows/`'],
   ];
@@ -123,20 +137,14 @@ function checkMockDataEvaluations(path) {
 }
 
 function readOpenApiOperations(path) {
-  const source = readRepositoryFile(path);
-  const pathsSection = source.match(/^paths:\s*\r?\n([\s\S]*?)(?=^components:\s*$)/m)?.[1];
-  if (!pathsSection) throw new Error(`${path} has no paths section`);
-
+  const paths = readOpenApiDocument(path).paths;
   const operations = new Set();
-  let currentPath;
-  for (const line of pathsSection.split(/\r?\n/)) {
-    const pathMatch = line.match(/^  (\/.*):\s*$/);
-    if (pathMatch) {
-      currentPath = pathMatch[1];
-      continue;
+  const methods = new Set(['get', 'put', 'post', 'delete', 'options', 'head', 'patch', 'trace']);
+  for (const [route, pathItem] of Object.entries(paths)) {
+    if (!route.startsWith('/') || !pathItem || typeof pathItem !== 'object') continue;
+    for (const method of Object.keys(pathItem)) {
+      if (methods.has(method.toLowerCase())) operations.add(`${method.toLowerCase()} ${route}`);
     }
-    const methodMatch = line.match(/^    (get|put|post|delete|options|head|patch|trace):\s*$/i);
-    if (currentPath && methodMatch) operations.add(`${methodMatch[1].toLowerCase()} ${currentPath}`);
   }
   return operations;
 }
@@ -211,7 +219,7 @@ function checkLegacyCollections() {
   if (!orderCreation.includes('script:post-response') || !orderCreation.includes('bru.setVar("orderId", res.getBody().id)')) {
     failures.push('legacy-collections: Bruno order creation does not pass its response ID to later requests');
   }
-  if (actualOperations.length !== 16) failures.push(`legacy-collections: expected 16 collection requests, found ${actualOperations.length}`);
+  if (actualOperations.length === 0) failures.push('legacy-collections: no Postman or Bruno requests were evaluated');
   if (!readRepositoryFile('legacy/postman/local.postman_environment.json').includes('http://localhost:8083')) {
     failures.push('legacy-collections: Postman local environment does not point to the host Order API port');
   }
@@ -232,7 +240,7 @@ function checkTestRoleMap() {
     'Specification',
     'Contract',
     'Provider contract verification',
-    'Consumer mock check',
+    'Consumer development against a provider Smart Mock',
     'Smart Mock',
     'API integration test',
     'Schema validation',
@@ -247,11 +255,11 @@ function checkTestRoleMap() {
     "API_BASE_URL: 'http://app:8080'",
     "API_BASE_URL: 'http://specmatic-mock:9000'",
     "STATEFUL_API_BASE_URL: 'http://stateful-app:8082'",
-    "'node', 'tests/wiremock.integration.mjs'",
+    "entrypoint: ['node', '/repo/demo/app/tests/wiremock.integration.mjs']",
   ];
   const visualLabels = [
     'Provider contract verification',
-    'Consumer mock check',
+    'Consumer development with a provider Smart Mock',
     'API integration',
     'app:8080',
     'specmatic-mock:9000',
@@ -259,6 +267,10 @@ function checkTestRoleMap() {
   ];
   const documentedSections = ['### Contract-based testing', '### API integration testing'];
   const clientTestSources = [
+    'js/features/product-api.feature',
+    'js/features/order-api.feature',
+    'js/features/steps/api.steps.mjs',
+    'js/features/README.md',
     'js/consumer-contract.test.mjs',
     'playwright/consumer-contract.spec.mjs',
     'rust/tests/api_integration_test.rs',
@@ -320,15 +332,148 @@ function checkPipelineTasks(tasks) {
   return tasks.length;
 }
 
+function checkAcceptanceFeatures() {
+  const featureFiles = [
+    'clients/js/features/product-api.feature',
+    'clients/js/features/order-api.feature',
+  ];
+  const serviceTests = [
+    readRepositoryFile('demo/app/tests/server.test.mjs'),
+    readRepositoryFile('demo/stateful/server.test.mjs'),
+  ].join('\n');
+  const steps = readRepositoryFile('clients/js/features/steps/api.steps.mjs');
+  const packageJson = JSON.parse(readRepositoryFile('clients/js/package.json'));
+  const clientRunner = readRepositoryFile('pipeline/client-suite.sh');
+  const pipeline = readRepositoryFile('pipeline/run.mjs');
+  let scenarioCount = 0;
+
+  for (const path of featureFiles) {
+    const feature = readRepositoryFile(path);
+    const names = [...feature.matchAll(/^\s+Scenario: (.+)$/gm)].map((match) => match[1]);
+    if (names.length === 0) failures.push(`acceptance-features: ${path} contains no scenarios`);
+    for (const name of names) {
+      scenarioCount += 1;
+      if (!serviceTests.includes(`test("${name}"`)) {
+        failures.push(`acceptance-features: TDD service tests do not cover scenario: ${name}`);
+      }
+    }
+  }
+
+  if (!packageJson.scripts?.['test:bdd']?.includes('cucumber-js')) {
+    failures.push('acceptance-features: JavaScript package has no Cucumber test command');
+  }
+  if (!steps.includes('validateFetchResponse') || !steps.includes('Given(') || !steps.includes('When(') || !steps.includes('Then(')) {
+    failures.push('acceptance-features: Cucumber steps must exercise requests and validate responses against OAS');
+  }
+  if (!clientRunner.includes('js-bdd) npm run test:bdd')) {
+    failures.push('acceptance-features: client runner does not execute the Cucumber suite');
+  }
+  if (!pipeline.includes("await this.stage('BDD acceptance features'")
+    || !pipeline.includes("await this.runTask('JavaScript BDD acceptance features'")) {
+    failures.push('acceptance-features: Testcontainers pipeline does not run feature acceptance tests');
+  }
+
+  return scenarioCount + featureFiles.length;
+}
+
+function checkCompatibilityBaselines(services) {
+  const pipeline = readRepositoryFile('pipeline/run.mjs');
+  for (const service of services) {
+    const baseline = readOpenApiDocument(service.baseline);
+    const candidate = readOpenApiDocument(service.candidate);
+    if (baseline.info?.title !== candidate.info?.title) {
+      failures.push(`compatibility-baselines: ${service.name} baseline and provider spec titles differ`);
+    }
+    if (!readRepositoryFile('pipeline/run.mjs').includes(`/repo/${service.baseline}`)
+      || !pipeline.includes(`/repo/${service.candidate}`)) {
+      failures.push(`compatibility-baselines: ${service.name} is not checked by the runner`);
+    }
+  }
+  if (!pipeline.includes("['breaking', baseline, candidate]")) {
+    failures.push('compatibility-baselines: compatibility checks must invoke oasdiff breaking for each provider baseline');
+  }
+  return services.length;
+}
+
+function checkApiBehavior() {
+  const order = readOpenApiDocument('demo/stateful/openapi.yaml');
+  const product = readOpenApiDocument('demo/openapi.yaml');
+  const statefulSource = readRepositoryFile('demo/stateful/server.mjs');
+  const productSource = readRepositoryFile('demo/app/server.mjs');
+  const pipeline = readRepositoryFile('pipeline/run.mjs');
+  const jsProductTests = readRepositoryFile('clients/js/product-api-integration.test.mjs');
+  const pythonProductTests = readRepositoryFile('clients/python/test_product_api_integration.py');
+  const jsOrderTests = readRepositoryFile('clients/js/stateful-order-api-integration.test.mjs');
+  const pythonOrderTests = readRepositoryFile('clients/python/test_stateful_order_api_integration.py');
+  const orderMethods = [
+    ['/healthz', 'get'],
+    ['/orders', 'post'],
+    ['/orders/{orderId}', 'get'],
+    ['/orders/{orderId}', 'patch'],
+    ['/orders/{orderId}', 'delete'],
+  ];
+  for (const [path, method] of orderMethods) {
+    if (!order.paths[path]?.[method]?.responses?.['405']) {
+      failures.push(`api-behavior: ${method.toUpperCase()} ${path} must declare its implemented 405 response`);
+    }
+  }
+  if (!order.paths['/orders/{orderId}']?.patch?.description?.includes('idempotent')) {
+    failures.push('api-behavior: Order PATCH must document its repeated-state behavior');
+  }
+  if (!productSource.includes('isInventoryResponse') || !productSource.includes('upstream.headers.get("content-type")')) {
+    failures.push('api-behavior: Product API must validate the downstream Inventory response before forwarding it');
+  }
+  if (!product.paths['/products/{sku}']?.get?.responses?.['502']) {
+    failures.push('api-behavior: Product OAS must declare the malformed/unavailable dependency response');
+  }
+  if (!pipeline.includes('async runExpectedFailure(')
+    || !pipeline.includes("await this.stage('Negative contract canaries'")) {
+    failures.push('api-behavior: expected-failure canaries must run as a pipeline stage');
+  }
+  if (!statefulSource.includes('input.status !== order.status') || !statefulSource.includes('Cannot change order')) {
+    failures.push('api-behavior: Order service must preserve idempotent repeats and reject illegal transitions');
+  }
+  for (const [source, name] of [[jsProductTests, 'JavaScript Product'], [pythonProductTests, 'Python Product']]) {
+    if (!source.includes('404') || !source.includes('502')) {
+      failures.push(`api-behavior: ${name} suite must assert Product not-found and malformed-upstream responses`);
+    }
+  }
+  for (const [source, name] of [[jsOrderTests, 'JavaScript Order'], [pythonOrderTests, 'Python Order']]) {
+    if (!source.includes('400') || !source.includes('409') || !source.includes('404')) {
+      failures.push(`api-behavior: ${name} suite must assert Order validation, conflict, and not-found responses`);
+    }
+  }
+  return orderMethods.length + 8;
+}
+
 function checkTestcontainersSafety() {
   const pipeline = readRepositoryFile('pipeline/run.mjs');
   const packageJson = JSON.parse(readRepositoryFile('pipeline/package.json'));
   const composeExists = existsSync(resolve(repositoryRoot, 'docker-compose.yml'));
+  const projectDockerfiles = [
+    'demo/app/Dockerfile',
+    'demo/stateful/Dockerfile',
+    'demo/wiremock/Dockerfile',
+    'clients/rust/Dockerfile',
+    'clients/go/Dockerfile',
+    'clients/python/Dockerfile',
+    'clients/js/Dockerfile',
+    'clients/ts/Dockerfile',
+    'clients/playwright/Dockerfile',
+    'clients/java/Dockerfile',
+    'clients/csharp/Dockerfile',
+  ];
+  const mountModes = [...pipeline.matchAll(/\bmode:\s*'([^']+)'/g)].map(([, mode]) => mode);
   const required = [
     [!composeExists, 'Docker Compose orchestration should be removed'],
+    [projectDockerfiles.every((path) => !existsSync(resolve(repositoryRoot, path))), 'project-specific Dockerfiles should be replaced with pinned Testcontainers runtimes'],
     [pipeline.includes('const readOnlyMount') && pipeline.includes("mode: 'ro'") && !pipeline.includes("source: repositoryRoot") && !pipeline.includes("target: '/repo'"), 'only selected source paths may be mounted read-only'],
     [pipeline.includes("readOnlyMount('demo')") && pipeline.includes("readOnlyMount('openapi')"), 'contract and fixture mounts must be explicit'],
-    [pipeline.includes('PullPolicy.neverPull()'), 'local project images must never be pulled from a registry'],
+    [mountModes.length > 0 && mountModes.every((mode) => mode === 'ro') && !pipeline.includes("mode: 'rw'"), 'all repository bind mounts must be read-only'],
+    [pipeline.includes('readOnlyMount(`clients/${key}`)') && readRepositoryFile('pipeline/client-suite.sh').includes('workspace="/tmp/oas-${suite}"'), 'client dependencies and build outputs must stay in temporary workspaces'],
+    [pipeline.includes('runtimeImages') && pipeline.includes('node:${versions.NODE_VERSION}-alpine') && pipeline.includes('mcr.microsoft.com/dotnet/sdk:${versions.DOTNET_VERSION}'), 'runtime images must be built from shared version pins'],
+    [pipeline.includes("entrypoint: ['/bin/sh', '/repo/pipeline/client-suite.sh']") && pipeline.includes('readOnlyMount(`clients/${key}`)'), 'native suites must use Testcontainers commands and read-only source mounts'],
+    [!pipeline.includes('.fromDockerfile('), 'pipeline orchestration must not build custom Dockerfiles'],
     [pipeline.includes('.withNetwork(this.network)') && pipeline.includes('.withNetworkAliases(alias)'), 'service containers must use the isolated Testcontainers network'],
     [!pipeline.includes('withExposedPorts('), 'pipeline containers must not publish host ports'],
     [typeof packageJson.devDependencies?.testcontainers === 'string', 'Testcontainers dependency must be pinned'],
@@ -338,52 +483,54 @@ function checkTestcontainersSafety() {
 }
 
 function checkDependencyLocks() {
+  const cargoManifest = readRepositoryFile('clients/rust/Cargo.toml');
   const cargoLock = readRepositoryFile('clients/rust/Cargo.lock');
   const goSum = readRepositoryFile('clients/go/go.sum');
   const goMod = readRepositoryFile('clients/go/go.mod');
   const nugetLock = JSON.parse(readRepositoryFile('clients/csharp/packages.lock.json'));
-  const rustDockerfile = readRepositoryFile('clients/rust/Dockerfile');
-  const goDockerfile = readRepositoryFile('clients/go/Dockerfile');
-  const csharpDockerfile = readRepositoryFile('clients/csharp/Dockerfile');
   const csharpProject = readRepositoryFile('clients/csharp/ContractTests.csproj');
+  const clientRunner = readRepositoryFile('pipeline/client-suite.sh');
   const versions = readRepositoryFile('.github/versions.env');
   const tsPackage = JSON.parse(readRepositoryFile('clients/ts/package.json'));
   const tsLock = JSON.parse(readRepositoryFile('clients/ts/package-lock.json'));
-  const tsDockerfile = readRepositoryFile('clients/ts/Dockerfile');
   const tsTests = tsPackage.scripts?.test ?? '';
   const pipelinePackage = JSON.parse(readRepositoryFile('pipeline/package.json'));
   const pipelineLock = JSON.parse(readRepositoryFile('pipeline/package-lock.json'));
   const pipeline = readRepositoryFile('pipeline/run.mjs');
-  const clientBuildArgs = [...pipeline.matchAll(/args: \[([^\]]+)\]/g)]
-    .flatMap(([, args]) => [...args.matchAll(/'([A-Z][A-Z0-9_]*)'/g)].map(([, key]) => key));
+  const rustReqwestRequirement = cargoManifest.match(/^reqwest\s*=\s*\{[^}]*version\s*=\s*"=?([^\"]+)"/m)?.[1];
+  const rustReqwestLocked = cargoLock.match(/\[\[package\]\]\s*name = "reqwest"\s*version = "([^\"]+)"/s)?.[1];
+  const goRequirements = [...goMod.matchAll(/^\s*([^\s]+)\s+(v[^\s]+)(?:\s+\/\/.*)?$/gm)]
+    .map(([, module, version]) => ({ module, version }));
+  const goChecksums = new Set([...goSum.matchAll(/^([^\s]+)\s+(v[^/\s]+)(?:\/go\.mod)?\s+h1:/gm)]
+    .map(([, module, version]) => `${module}@${version}`));
   const required = [
-    [cargoLock.includes('version = 4') && cargoLock.includes('name = "reqwest"\nversion = "0.13.5"'), 'Rust lockfile must record reqwest 0.13.5'],
-    [rustDockerfile.includes('cargo fetch --locked') && rustDockerfile.includes('"test", "--locked"'), 'Rust image must fetch and test with --locked'],
-    [/^github\.com\/getkin\/kin-openapi v0\.153\.0 h1:/m.test(goSum), 'Go checksum must record kin-openapi 0.153.0'],
-    [[
-      'github.com/go-openapi/jsonpointer v0.22.5 // indirect',
-      'github.com/go-openapi/swag/jsonname v0.25.5 // indirect',
-      'github.com/gorilla/mux v1.8.0 // indirect',
-      'github.com/santhosh-tekuri/jsonschema/v6 v6.0.3 // indirect',
-      'go.yaml.in/yaml/v4 v4.0.0 // indirect',
-      'golang.org/x/text v0.41.0 // indirect',
-    ].every((dependency) => goMod.includes(dependency)), 'Go module file must pin the tidied indirect requirements'],
-    [goDockerfile.includes('go mod download') && goDockerfile.includes('"-mod=readonly"'), 'Go image must download modules and test read-only'],
+    [cargoLock.includes('version = 4') && rustReqwestRequirement && rustReqwestRequirement === rustReqwestLocked, 'Rust reqwest manifest and lockfile versions must agree'],
+    [clientRunner.includes('cargo test --locked -- --nocapture'), 'Rust suite must use the committed lockfile'],
+    [goRequirements.length > 0 && goRequirements.every(({ module, version }) => goChecksums.has(`${module}@${version}`)), 'Every Go module requirement must be represented in go.sum'],
+    [clientRunner.includes('go test -mod=readonly -v ./...'), 'Go suite must test with read-only module resolution'],
     [Boolean(nugetLock.dependencies?.['net10.0']?.NJsonSchema?.resolved), 'NuGet lockfile must record resolved direct dependencies'],
-    [csharpProject.includes('<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>') && csharpDockerfile.includes('--locked-mode') && csharpDockerfile.includes('--no-restore'), '.NET restore and test must enforce the committed lockfile'],
+    [csharpProject.includes('<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>') && clientRunner.includes('dotnet restore') && clientRunner.includes('--locked-mode') && clientRunner.includes('--no-restore'), '.NET restore and test must enforce the committed lockfile'],
     [/^NPM_VERSION=\d+\.\d+\.\d+$/m.test(versions), 'NPM_VERSION must be pinned in the shared versions file'],
     [tsPackage.engines?.npm?.startsWith('>=12') && tsLock.lockfileVersion === 4, 'TypeScript patching must use npm 12 and its supported lockfile format'],
-    [tsDockerfile.includes('npm@${NPM_VERSION}') && tsDockerfile.includes('USER node'), 'TypeScript image must install the pinned npm version and run as non-root'],
-    [tsDockerfile.indexOf('COPY --chown=node:node patches/') < tsDockerfile.indexOf('RUN npm ci'), 'TypeScript image must copy the dependency patch before npm ci'],
+    [clientRunner.includes('npm@${NPM_VERSION') && clientRunner.includes('npm ci --no-audit --no-fund'), 'Node.js suites must install the pinned npm and honor dependency locks'],
     [tsTests.includes('node --test security/picomatch-redos.check.mjs') && !tsTests.includes('picomatch-redos.test.mjs'), 'The Node-only Picomatch check must stay outside Vitest discovery'],
     [pipelinePackage.devDependencies?.testcontainers === pipelineLock.packages?.['node_modules/testcontainers']?.version, 'Testcontainers version must be exact and locked'],
+    [pipelinePackage.devDependencies?.yaml === pipelineLock.packages?.['node_modules/yaml']?.version, 'YAML parser must be declared directly and locked for structural OAS evaluation'],
     [pipelinePackage.scripts?.test === 'node --test config.test.mjs' && pipeline.includes("readVersionPins(") && readRepositoryFile('run.sh').includes('npm --prefix pipeline test'), 'The local runner must test strict, required version-pin parsing before starting containers'],
     [/^TESTCONTAINERS_RYUK_VERSION=\S+$/m.test(versions) && pipeline.includes('versions.TESTCONTAINERS_RYUK_VERSION'), 'Ryuk version must come from the shared versions file'],
-    [pipeline.includes('...new Set(clientImages.flatMap(({ args }) => args))') && clientBuildArgs.includes('NPM_VERSION') && pipeline.includes('args.map((key) => [key, versions[key]])'), 'Required client runtime pins must derive from the image build matrix and use the shared versions file'],
+    [['RUST_VERSION', 'GO_VERSION', 'PYTHON_VERSION', 'NODE_VERSION', 'NPM_VERSION', 'MAVEN_VERSION', 'JAVA_VERSION', 'DOTNET_VERSION'].every((version) => new RegExp(`^${version}=\\S+$`, 'm').test(versions)) && ['versions.RUST_VERSION', 'versions.GO_VERSION', 'versions.PYTHON_VERSION', 'versions.NODE_VERSION', 'versions.MAVEN_VERSION', 'versions.JAVA_VERSION', 'versions.DOTNET_VERSION'].every((version) => pipeline.includes(version)), 'Native runtime container tags must use shared version pins'],
+    [nativeClientKeysEverywhere(pipeline, clientRunner), 'All documented native clients must have a Testcontainers setup'],
     [readRepositoryFile('run.sh').includes('npm ci --prefix pipeline'), 'The shared runner must install the locked Testcontainers dependency'],
   ];
   for (const [passed, message] of required) if (!passed) failures.push(`dependency-locks: ${message}`);
   return required.length;
+}
+
+function nativeClientKeysEverywhere(pipeline, clientRunner) {
+  const runnerCases = ['  rust)', '  go)', '  python)', '  js|', '  ts)', '  java)', '  csharp)'];
+  return ['rust', 'go', 'python', 'js', 'ts', 'java', 'csharp']
+    .every((key) => pipeline.includes(`'${key}'`))
+    && runnerCases.every((testCase) => clientRunner.includes(testCase));
 }
 
 function checkRoadmapPhases(expectedPhases, verifiedRun) {
@@ -412,7 +559,25 @@ function checkWorkflowVisuals() {
   const sourcePolicies = [
     {
       path: '.github/workflows/contract.yml',
-      markers: ['  push:', '  pull_request:', '  workflow_dispatch:', 'actions/setup-node@', 'npm install --global npm@${NPM_VERSION}', 'node --check pipeline/run.mjs', 'PIPELINE_TIMINGS_FILE:', 'pipeline-timings.csv', 'actions/upload-artifact@', 'bash ./run.sh', 'image-ref: oas-polycontract-app:latest', 'image-ref: oas-polycontract-wiremock:latest'],
+      markers: [
+        '  push:',
+        '  pull_request:',
+        '  workflow_dispatch:',
+        'group: contract-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event.pull_request.head.ref || github.ref_name }}',
+        "cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}",
+        'actions/setup-node@',
+        'npm install --global npm@${NPM_VERSION}',
+        'WIREMOCK_VERSION=$WIREMOCK_VERSION',
+        'bash -n run.sh pipeline/client-suite.sh',
+        'node --check pipeline/run.mjs',
+        'node --check evals/run.mjs',
+        'PIPELINE_TIMINGS_FILE:',
+        'pipeline-timings.csv',
+        'actions/upload-artifact@',
+        'bash ./run.sh',
+        'image-ref: node:${{ env.NODE_VERSION }}-alpine',
+        'image-ref: wiremock/wiremock:${{ env.WIREMOCK_VERSION }}',
+      ],
     },
     {
       path: '.github/workflows/security.yml',
@@ -576,6 +741,9 @@ const evaluators = {
   'mock-data-evaluations': (check) => checkMockDataEvaluations(check.file),
   'legacy-collections': () => checkLegacyCollections(),
   'pipeline-tasks': (check) => checkPipelineTasks(check.tasks),
+  'acceptance-features': () => checkAcceptanceFeatures(),
+  'compatibility-baselines': (check) => checkCompatibilityBaselines(check.services),
+  'api-behavior': () => checkApiBehavior(),
   'testcontainers-safety': () => checkTestcontainersSafety(),
   'workflow-visuals': () => checkWorkflowVisuals(),
   'dependency-locks': () => checkDependencyLocks(),

@@ -69,6 +69,8 @@ paths:
               value: not-found-sku
             inventory-unavailable:
               value: unavailable-sku
+            inventory-malformed:
+              value: malformed-sku
       responses:
         "200":
           description: Product found

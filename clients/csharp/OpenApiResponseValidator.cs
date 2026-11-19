@@ -56,7 +56,12 @@ internal sealed class OpenApiResponseValidator
             schemaNode = NodeAt(_spec, referencePath[2..].Split('/').Select(UnescapePointerSegment).ToArray());
         }
 
-        var schema = await JsonSchema.FromJsonAsync(ToJsonNode(schemaNode)!.ToJsonString());
+        var schemaJson = ToJsonNode(schemaNode) as JsonObject
+            ?? throw new InvalidOperationException("OpenAPI JSON response schema must be an object");
+        schemaJson["$defs"] = ToJsonNode(NodeAt(_spec, "components", "schemas"));
+        schemaJson["$schema"] = "https://json-schema.org/draft/2020-12/schema";
+        NormalizeSchema(schemaJson);
+        var schema = await JsonSchema.FromJsonAsync(schemaJson.ToJsonString());
         var errors = schema.Validate(body);
         if (errors.Count != 0)
             throw new InvalidOperationException(string.Join(Environment.NewLine, errors));
@@ -71,6 +76,51 @@ internal sealed class OpenApiResponseValidator
     }
 
     private static string UnescapePointerSegment(string segment) => segment.Replace("~1", "/").Replace("~0", "~");
+
+    private static void NormalizeSchema(JsonNode? node)
+    {
+        if (node is JsonArray array)
+        {
+            foreach (var item in array) NormalizeSchema(item);
+            return;
+        }
+
+        if (node is not JsonObject schema) return;
+
+        var nullable = schema["nullable"] is JsonValue nullableValue
+            && nullableValue.TryGetValue<bool>(out var isNullable)
+            && isNullable;
+        schema.Remove("nullable");
+        if (nullable
+            && schema["type"] is JsonValue typeNode
+            && typeNode.TryGetValue<string>(out var typeName))
+        {
+            schema["type"] = new JsonArray(JsonValue.Create(typeName), JsonValue.Create("null"));
+        }
+
+        if (schema["exclusiveMinimum"] is JsonValue exclusiveNode
+            && exclusiveNode.TryGetValue<bool>(out var exclusive))
+        {
+            if (exclusive && schema["minimum"] is JsonNode minimum)
+            {
+                schema["exclusiveMinimum"] = minimum.DeepClone();
+                schema.Remove("minimum");
+            }
+            else if (!exclusive)
+            {
+                schema.Remove("exclusiveMinimum");
+            }
+        }
+
+        if (schema["$ref"] is JsonValue referenceNode
+            && referenceNode.TryGetValue<string>(out var reference)
+            && reference.StartsWith("#/components/schemas/", StringComparison.Ordinal))
+        {
+            schema["$ref"] = "#/$defs/" + reference["#/components/schemas/".Length..];
+        }
+
+        foreach (var value in schema.ToArray()) NormalizeSchema(value.Value);
+    }
 
     private static JsonNode? ToJsonNode(YamlNode node) => node switch
     {

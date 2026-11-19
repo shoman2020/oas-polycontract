@@ -1,0 +1,222 @@
+openapi: 3.0.3
+info:
+  title: Stateful Order Example API
+  version: 1.0.0
+  description: Isolated in-memory API used to demonstrate linked stateful contract tests.
+  contact:
+    name: oas-polycontract maintainers
+    url: https://shift-left.nl
+servers:
+  - url: http://stateful-app:8082
+tags:
+  - name: orders
+    description: Create and exercise an order resource lifecycle.
+paths:
+  /healthz:
+    get:
+      tags: [orders]
+      summary: Check service health
+      description: Returns the health status of the Order API.
+      operationId: getStatefulHealth
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    enum: [ok]
+  /orders:
+    post:
+      tags: [orders]
+      summary: Create an order
+      description: Creates an order in the initial created state.
+      operationId: createOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrder"
+            examples:
+              demo:
+                value:
+                  sku: demo-sku
+                  quantity: 2
+      responses:
+        "201":
+          description: Order created
+          headers:
+            Location:
+              description: Path to the new order
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+          links:
+            ReadCreatedOrder:
+              operationId: getOrder
+              parameters:
+                orderId: "$response.body#/id"
+            UpdateCreatedOrder:
+              operationId: updateOrder
+              parameters:
+                orderId: "$response.body#/id"
+            DeleteCreatedOrder:
+              operationId: deleteOrder
+              parameters:
+                orderId: "$response.body#/id"
+        "400":
+          description: Invalid order input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /orders/{orderId}:
+    parameters:
+      - name: orderId
+        in: path
+        required: true
+        description: Identifier returned by createOrder
+        schema:
+          type: string
+    get:
+      tags: [orders]
+      summary: Read an order
+      description: Returns the current state of the identified order.
+      operationId: getOrder
+      responses:
+        "200":
+          description: Current order state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "404":
+          description: Order does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    patch:
+      tags: [orders]
+      summary: Move an order to a new state
+      description: Confirms or cancels the identified order.
+      operationId: updateOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateOrder"
+            examples:
+              confirm:
+                value:
+                  status: confirmed
+              cancel:
+                value:
+                  status: cancelled
+      responses:
+        "200":
+          description: Order state updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+          links:
+            ReadUpdatedOrder:
+              operationId: getOrder
+              parameters:
+                orderId: "$request.path.orderId"
+            DeleteUpdatedOrder:
+              operationId: deleteOrder
+              parameters:
+                orderId: "$request.path.orderId"
+        "400":
+          description: Invalid order state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Order does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Requested state transition is not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      tags: [orders]
+      summary: Delete an order
+      description: Deletes the identified order.
+      operationId: deleteOrder
+      responses:
+        "204":
+          description: Order deleted
+          links:
+            VerifyDeletedOrder:
+              operationId: getOrder
+              parameters:
+                orderId: "$request.path.orderId"
+        "404":
+          description: Order does not exist
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+components:
+  schemas:
+    CreateOrder:
+      type: object
+      additionalProperties: false
+      required: [sku, quantity]
+      properties:
+        sku:
+          type: string
+          minLength: 1
+          maxLength: 64
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 100
+    UpdateOrder:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [confirmed, cancelled]
+    Order:
+      type: object
+      additionalProperties: false
+      required: [id, sku, quantity, status]
+      properties:
+        id:
+          type: string
+        sku:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+        status:
+          type: string
+          enum: [created, confirmed, cancelled]
+    Error:
+      type: object
+      additionalProperties: false
+      required: [message]
+      properties:
+        message:
+          type: string

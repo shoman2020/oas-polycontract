@@ -2,21 +2,21 @@
 
 One reviewed specification contract per API boundary. Clear ownership means less maintenance and more trust.
 
-## Status — 18 November 2026
+## Status — 19 November 2026
 
 | Area | Delivered | Remaining |
 |---|---|---|
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | Runtime event tests need a provider or broker |
-| Tests | Specmatic provider verification and provider-spec consumer mock checks (not CDC), WireMock, fuzzing, stateful flows, seven native languages, Playwright; [adoption implementation run 44349546211 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546211) | Pilot against representative company APIs |
+| Tests | Specmatic provider verification, consumer development against a provider Smart Mock, WireMock, stateful and stateless fuzzing, negative canaries, native error-path tests, Gherkin acceptance scenarios, and isolated service unit tests | Run updated pipeline; pilot against representative company APIs |
 | Legacy migration | Project-specific Postman and Bruno collections follow Product and Order OAS | Import team-owned history if teams provide their collections |
 | Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, and SecureAI-Scan; [adoption implementation run 44349546212 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546212) | GenAI positive controls are manual demos; no application AI runtime |
 | Dependencies | Cargo, Go, NuGet, npm, Python, Maven, and Testcontainers pins or locks; minimatch alert #3 fixed | Replace the Picomatch patch when upstream publishes a fix |
 | Performance | Pre-Testcontainers [five-sample reference](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941): 304s cold, 201s warm median (200–205s range), build 91s cold and 2s warm | Dispatch the manual Ubuntu 24.04/26.04 matrix after Testcontainers migration |
-| Enterprise adoption | Scope limits and a selective local language-suite option are documented | Add CDC artifacts, validator coverage, approved runtime matrix, and production-like test environments based on a pilot |
-| Review response | Stale Compose wording removed; CDC, validator, state, scan, cost, and benchmark limits clarified; local evaluation 13/13 and pipeline tests 6/6 | — |
+| Enterprise adoption | Scope limits and a selective local language-suite option are documented | Add consumer-owned contracts, validator coverage, approved runtime matrix, and production-like test environments based on a pilot |
+| Review response | Added provider-specific compatibility snapshots, expected-failure canaries, error-path tests, validator conformance cases, and read-only contract mounts; pipeline verification pending | Run the updated CI workflow |
 | Showcase | Interactive contract, test-role, pipeline, workflow, and performance views; current source published by [run 44349546414](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546414) | — |
 
-The shared test vocabulary and examples are in the [README testing model](README.md#testing-model-and-terminology). This roadmap tracks delivery and prerequisites; it is not a second testing guide.
+The shared test vocabulary and examples are in the [README testing model](README.md#testing-model-and-terminology). Specifications are read-only inputs in CI and are changed only through reviewed source updates. For separate provider and consumer projects, publish an immutable specification artifact and pin its version in both repos.
 
 Two existing CI checklist actions remain: requiring contract and security checks on `main` (Phase 10; branch protection is currently disabled) and running the post-migration performance matrix (Phase 12). Phase 17 tracks broader enterprise adoption work that needs a representative pilot.
 
@@ -26,19 +26,25 @@ Two existing CI checklist actions remain: requiring contract and security checks
 - [x] Repository, ownership, contribution guide, and shared runner.
 
 ### Phase 1 — Contract source
-- [x] Keep the reviewed Catalog OAS as the compatibility baseline.
+- [x] Keep the reviewed Catalog OAS as a design scaffold, separate from provider compatibility baselines.
 - [x] Add separate runnable Product, Order, and Inventory contracts.
+- [x] Add reviewed compatibility snapshots for each runnable provider.
 - [x] Keep the repository contract-first; candidate-spec generation is unnecessary while code does not generate the root OAS.
 
 ### Phase 2 — Contract governance
-- [x] Lint OAS and AsyncAPI and check root compatibility.
-- [x] Run provider, consumer-mock, downstream, examples, stateless fuzz, and stateful checks.
+- [x] Lint OAS and AsyncAPI and compare Product, Order, and Inventory against provider-specific compatibility snapshots.
+- [x] Run Specmatic and native-suite canaries that prove a schema-invalid Product provider fails.
+- [x] Run provider, consumer Smart Mock, downstream, examples, stateless fuzz, and stateful checks.
 - [x] Record the remaining repository merge-policy setting in Phase 10.
 
 ### Phase 3 — Native clients
 - [x] Add Rust, Go, Python, JavaScript, TypeScript, Java, and C# API suites.
 - [x] Cover Product and stateful Order flows in the seven native languages.
-- [x] Separate provider, consumer-mock, and live API tests; add Playwright API examples.
+- [x] Assert Product 404 and malformed-upstream 502 paths in JavaScript and Python; assert Order 400, 404, and 409 behavior in native suites.
+- [x] Add Rust and C# conformance tests for nullable values, `exclusiveMinimum`, and nested local references.
+- [x] Separate provider verification, consumer Smart Mock checks, and live API tests; add Playwright API examples.
+- [x] Add Product and Order Gherkin acceptance features; Cucumber reads scenario data and validates live responses against OAS.
+- [x] Add matching service unit tests and run them before pipeline contract gates; repository evaluations check scenario-to-unit-test mapping.
 
 ### Phase 4 — Debug views
 - [x] Add optional Swagger UI and Prism views of the root OAS.
@@ -54,6 +60,9 @@ Two existing CI checklist actions remain: requiring contract and security checks
 - [x] Use an isolated network, health checks, one-shot tasks, and cleanup on success or failure.
 - [x] Support Ubuntu CI and local Docker Desktop or Colima with the documented shell setup.
 - [x] Validate all tool and client runtime pins before container startup.
+- [x] Run pinned upstream language runtimes instead of project-specific Dockerfiles; install dependencies and write build outputs in temporary container workspaces.
+- [x] Mount contracts, fixtures, and client source read-only so test execution cannot mutate OAS files.
+- [x] Run Gherkin-driven Cucumber acceptance tests and isolated service unit tests in CI.
 
 ### Phase 7 — Security
 - [x] Run CodeQL, Gitleaks, Trivy, Dependency Review, and weekly Dependabot.
@@ -67,6 +76,7 @@ Two existing CI checklist actions remain: requiring contract and security checks
 - [x] Keep the client guide focused on frameworks, validators, and source files.
 - [x] Map contract, service, client, orchestration, configuration, and gate ownership in the README.
 - [x] Check documentation links, structure, test roles, workflows, and roadmap phases in repository evaluations.
+- [x] Document the BDD acceptance and TDD service-test workflow in the README and client guide.
 
 ### Phase 9 — Reproducible dependencies
 - [x] Commit Cargo, Go, and NuGet locks; enforce locked Rust/.NET and read-only Go builds.
@@ -92,13 +102,15 @@ Two existing CI checklist actions remain: requiring contract and security checks
 ### Phase 14 — Public-use hardening
 - [x] Keep pipeline services on a private Testcontainers network without host port publication.
 - [x] Mount only required contract, fixture, and lint paths read-only.
-- [x] Never pull same-named registry images for local project images.
+- [x] Use explicit pinned upstream runtime images; no local project images need building or registry-name protection.
 - [x] Disable persisted checkout credentials and evaluate these protections.
 
 ### Phase 15 — Testcontainers orchestration
 - [x] Replace Compose-based CI orchestration with a Node.js Testcontainers runner.
-- [x] Keep tool versions centralized and runtime requirements consistent.
-- [x] Pass the pipeline after migration and enterprise-adoption changes; [contract run 44349546211 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546211).
+- [x] Keep tool versions centralized and run language suites with pinned upstream runtimes and shared shell setup.
+- [x] Remove project-specific Dockerfiles; use read-only source mounts and temporary dependency/build directories.
+- [ ] Run the updated pipeline after these changes.
+- [x] Run feature-driven Cucumber acceptance tests in a pinned Node.js Testcontainer.
 
 ### Phase 16 — Pipeline configuration
 - [x] Reject malformed, duplicate, and missing tool/client runtime pins.
@@ -106,14 +118,15 @@ Two existing CI checklist actions remain: requiring contract and security checks
 - [x] Test pin parsing and run the tests before container startup.
 
 ### Phase 17 — Enterprise adoption
-- [x] Distinguish provider verification, provider-spec mock checks, and live API integration tests; state that the mock checks are not CDC.
-- [x] Scope the C# NJsonSchema adapter and document that language validators do not provide identical OAS coverage.
+- [x] Distinguish live provider verification, consumer development against a provider Smart Mock, and live API integration tests; document that no consumer-owned contract is published.
+- [x] Scope Rust and C# validator adapters with conformance tests and document that language validators do not provide identical OAS coverage.
+- [x] Keep OAS inputs read-only and document immutable version pinning for separate provider and consumer repositories.
 - [x] Scope in-memory Order data to each app instance and document its non-production limits.
 - [x] Allow local runs to select native suites with `POLYCONTRACT_NATIVE_CLIENTS`; CI runs all seven by default.
 - [x] Keep SecureAI and Semgrep positive-control fixtures manual while scanning repository source on regular security triggers.
 - [ ] Pilot with representative company APIs, auth flows, pagination, error cases, versioning, and real downstream dependencies.
 - [ ] Agree an OAS feature support matrix and the validator strategy for each supported language.
-- [ ] Add consumer-owned CDC artifacts and provider verification if pilot teams require CDC guarantees.
+- [ ] Add consumer-owned contracts and provider verification if pilot teams need consumer-specific expectations checked.
 - [ ] Validate the approved company runtime matrix and isolated test-environment requirements.
 
 ## Conditional work
@@ -125,6 +138,7 @@ These items need an external input or repository setting before implementation:
 | Enforce required checks | Repository administrator configures branch protection. |
 | Compare runner performance | Maintainer dispatches the manual workflow. |
 | Validate enterprise adoption | A pilot team supplies representative API contracts and approved runtime requirements. |
+
 | Test WebSocket or Kafka runtime | A service implementation and broker/server are available. |
 | Configure environment URLs | A deployed API environment exists. |
 | Migrate historic requests | The owning team supplies Postman/Bruno exports. |
@@ -135,7 +149,8 @@ This reference repo has no stable runtime API to package. A `create-polycontract
 
 ## Progress
 
-- 18 Nov: Applied the review findings: clarified that provider-spec mock checks are not CDC, documented enterprise adoption requirements and validator limits, isolated Order state per app instance, added selective local language suites, moved positive controls to manual runs, and corrected stale Compose references. Local evaluation passed 13/13, pipeline configuration tests passed 6/6, and the [contract](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546211), [security](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546212), and [showcase](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546414) workflows passed.
+- 19 Nov: Added Cucumber acceptance scenarios for Product and Order. Scenario values come from Gherkin, response validation uses the relevant OAS, and isolated Node.js service tests cover the same named behaviors. Repository evaluations verify feature, test, and pipeline wiring. Cucumber dry-run and local service tests passed; full Testcontainers pipeline verification remains pending.
+- 18 Nov: Applied the review findings: clarified that provider-spec Smart Mock checks do not capture consumer-owned expectations, documented enterprise adoption requirements and validator limits, isolated Order state per app instance, added selective local language suites, moved positive controls to manual runs, and corrected stale Compose references. Local evaluation passed 13/13, pipeline configuration tests passed 6/6, and the [contract](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546211), [security](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546212), and [showcase](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546414) workflows passed.
 - 18 Nov: Branch protection remains disabled; the post-migration benchmark still needs a manual dispatch.
 - 18 Nov: Added a SecureAI-Scan positive control. Version 0.13.0 detected `HIGH AI001` in the temporary example; CI verified the SARIF, recorded the finding, uploaded the artifact, and passed the clean project scan.
 - 18 Nov: Added Semgrep taint-rule examples for prompt-to-system-message flows in Rust, Go, Java, and C#. The custom rules target a defined pattern and need SDK-specific source/sink tuning in applications.

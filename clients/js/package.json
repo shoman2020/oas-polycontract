@@ -4,11 +4,14 @@
   "type": "module",
   "scripts": {
     "test": "node --test product-api-integration.test.mjs stateful-order-api-integration.test.mjs",
-    "test:consumer": "node --test consumer-contract.test.mjs"
+    "test:consumer": "node --test consumer-contract.test.mjs",
+    "test:bdd": "cucumber-js --import features/steps/api.steps.mjs features"
   },
   "dependencies": {
     "@oaverify/core": "7.3.1",
     "@oaverify/syntax": "7.3.1"
+  },
+  "devDependencies": {
+    "@cucumber/cucumber": "13.3.0"
   }
 }
-

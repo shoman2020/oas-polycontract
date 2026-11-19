@@ -1,10 +1,10 @@
 # oas-polycontract
 
-oas-polycontract is a runnable reference template for specification-led API testing. It shows how one contract per interface can guide provider checks, consumer mock development, and native API integration tests. The sample APIs are intentionally small; they demonstrate the workflow, not enterprise-scale coverage.
+oas-polycontract is a runnable reference template for specification-led API testing. It shows how one contract per interface can guide provider verification, consumer development against a Smart Mock, and native API integration tests. The sample APIs are intentionally small; they demonstrate the workflow, not enterprise-scale coverage.
 
 ## Purpose
 
-- Keep one reviewed contract for each API boundary and use it to guide provider verification and consumer mock checks.
+- Keep one reviewed contract for each API boundary and use it to guide provider verification and consumer development against a provider Smart Mock.
 - Validate live behavior with native integration suites. Specmatic verifies the provider and serves a provider-spec mock; Schemathesis covers fuzzing and stateful flows.
 - Use Swagger UI and Prism to inspect the Catalog scaffold; use the Postman and Bruno examples with the runnable Product and Order APIs.
 - Reduce duplicate specs and overlapping tools to lower maintenance and tooling costs.
@@ -23,7 +23,10 @@ flowchart LR
   ProductOAS[Product OAS] --> ProviderTest[Specmatic provider verification]
   ProviderTest --> ProductAPI[Live Product API]
   ProductOAS --> SmartMock[Specmatic Smart Mock]
-  SmartMock --> ConsumerTests[Consumer mock checks · not CDC]
+  SmartMock --> ConsumerTests[Consumer development with a provider Smart Mock]
+  ProductFeatures[Product and Order Gherkin features] --> BDD[Cucumber acceptance tests]
+  BDD --> ProductAPI
+  BDD --> OrderAPI
   ProductOAS --> NativeSuites
   subgraph NativeSuites["Native API integration suites"]
     direction TB
@@ -48,7 +51,7 @@ flowchart LR
   OrderOAS --> Collections
 ```
 
-Native suites are code-based API integration tests: they call the running APIs, validate exercised responses with language-specific tools, and assert behavior in each test framework. Specmatic provider verification targets the live Product API. Consumer mock checks target a Smart Mock generated from the provider OAS; they are not consumer-driven contract testing (CDC) and do not publish consumer-owned contracts. Schemathesis generates Product fuzz cases and stateful Order flows. Playwright uses APIRequestContext, not browser UI automation.
+Native suites are code-based API integration tests: they call the running APIs, validate exercised responses with language-specific tools, and assert behavior in each test framework. Specmatic provider verification targets the live Product API. Consumer-side checks run against a Smart Mock generated from the provider OAS, giving consumer teams an early integration target. They do not publish consumer-owned contracts or validate consumer-specific expectations. Schemathesis generates Product fuzz cases and stateful Order flows. Playwright uses APIRequestContext, not browser UI automation.
 
 ### CI workflow
 
@@ -59,7 +62,9 @@ flowchart TB
   Manual[Manual workflow dispatch] --> Contract
   Contract --> Runner[Testcontainers runner in Node.js]
   Runner --> Runtime[Docker-compatible container runtime]
-  Runtime --> Tasks[Build images, start services, run test containers]
+  Runtime --> Tasks[Pull pinned runtimes, start services, run test containers]
+  Tasks --> ServiceTests[Node.js service unit tests]
+  Tasks --> BDD[Feature-driven Cucumber acceptance tests]
   Tasks --> Cleanup[Stop containers and network]
   Runner --> ImageScans[Trivy image scans]
 
@@ -92,15 +97,19 @@ Requires Node.js 26, npm 12.2.2, and a Docker-compatible container runtime. Test
 bash ./run.sh
 ```
 
-`run.sh` checks the pinned Node.js/npm versions, installs the locked pipeline dependency, and starts an isolated Testcontainers network. It runs repository evaluations and contract gates, builds 11 local images for the demo services and client suites, starts the APIs, executes Specmatic/WireMock examples, fuzzing and API suites, then stops the containers and network. Task containers receive only needed contract or fixture paths as read-only mounts. Use Docker Desktop or Colima on macOS, or Docker Desktop with WSL/Git Bash on Windows. CI uses Ubuntu.
+`run.sh` checks the pinned Node.js/npm versions, installs the locked pipeline dependency, and starts an isolated Testcontainers network. It runs repository evaluations and contract gates, pulls versioned upstream runtime images, starts the APIs, and executes Specmatic/WireMock examples, fuzzing, and API suites. Contract, fixture, and client source mounts are read-only; dependency downloads and build outputs stay in temporary container directories. Tests cannot rewrite the checked-in OAS. Update a contract through a reviewed source change, then update its compatibility baseline in the same change when the new version is intentional. Use Docker Desktop or Colima on macOS, or Docker Desktop with WSL/Git Bash on Windows. CI uses Ubuntu.
 
 The enterprise adoption implementation in [commit 2fe49dc](https://github.com/shoman2020/oas-polycontract/commit/2fe49dc8e897c1b53acb985c4758cd255f44d31e) passed [contract run 44349546211](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546211) and [security run 44349546212](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546212) on 18 Nov 2026. The contract workflow publishes stage timings as a CSV artifact.
 
-The default runs all seven native language suites. For a focused local run, select a comma-separated subset; JavaScript and Playwright remain available for consumer mock checks:
+The default runs all seven native language suites. For a focused local run, select a comma-separated subset; JavaScript and Playwright also check consumer flows against the provider Smart Mock:
 
 ```sh
 POLYCONTRACT_NATIVE_CLIENTS=rust,python bash ./run.sh
 ```
+
+## Behavior scenarios and test-driven changes
+
+The [Product and Order Gherkin features](clients/js/features/README.md) drive Cucumber acceptance tests; scenario inputs and expected outcomes come from the `.feature` files. Node.js service tests cover the same behavior at unit level and run before the API gates. For a behavior change, add or update a scenario, write a failing unit test, implement the smallest change, then run the focused tests and full pipeline. Live API suites validate HTTP responses against OAS.
 
 ## Enterprise adoption
 
@@ -109,22 +118,24 @@ Treat this repository as a pilot template. Before adopting it across teams, adap
 | Area | Current example | Adoption step |
 |---|---|---|
 | API coverage | One Product lookup and one in-memory Order lifecycle | Pilot with representative APIs, including authentication, errors, pagination, versioning, and downstream failure modes. |
-| Consumer ownership | Provider OAS generates the Smart Mock; no consumer-owned CDC artifact | Add a versioned contract per consumer and a provider verification flow if teams need CDC guarantees. |
+| Consumer ownership | Provider OAS generates the Smart Mock; this example has no consumer-owned contract | Add a versioned contract per consumer and provider verification when teams need to check their own expectations. |
 | Validators | Each language uses a different validator; the C# adapter covers this demo’s status, JSON media type, schema, and local references | Agree a supported OAS feature matrix and test each language against it. Use the shared Spectral, Specmatic, and Schemathesis gates for contract-wide checks. |
 | Runtime state | Order data is in memory, scoped to one app instance, and lost on restart | Use isolated test data and a service-backed store for tests that need persistence, parallel environments, or multi-instance behavior. |
 | Runtime versions | CI tests one centrally pinned toolchain | Align pins with approved company versions and add compatibility jobs for the runtimes teams support. |
-| CI cost | The full run builds 11 local images and runs all client suites | Measure the full workflow in the target CI environment before making it a required check; use the CSV stage timings to tune parallelism and coverage. |
+| CI cost | The full run pulls pinned runtime images and runs all client suites; client dependencies install into temporary containers | Measure the full workflow in the target CI environment before making it a required check; use the CSV stage timings to tune caching, parallelism, and coverage. |
 | Merge governance | Workflows report checks; `main` does not currently require them | Require the contract and security checks in repository rules before using the template as a merge gate. |
 
 The Order service remains a stateful test fixture, not a production implementation. Its in-memory store isolates each server instance but does not provide persistence or coordination between replicas. The pinned toolchain is a tested reference set, not a promise of compatibility with every company runtime.
 
-For a multi-team rollout, assign an accountable owner to each API boundary instead of routing all contract changes through a central test team. Providers version and verify their specifications; consumers own separate CDC contracts when their integration needs require them. Share approved templates and CI policies while letting each service choose its test environment and supported runtime matrix.
+For a multi-team rollout, assign an accountable owner to each API boundary instead of routing all contract changes through a central test team. Providers version and verify their specifications; consumers maintain separate expectations when their integrations need them verified. Share approved templates and CI policies while letting each service choose its test environment and supported runtime matrix.
 
 ## Contracts
 
+Specifications are reviewed source files and read-only pipeline inputs. Tests, generators, and client suites must not edit them. In separate provider and consumer repositories, publish an immutable OAS artifact or commit tag and pin the same version in both projects. Change the specification through a reviewed source update; update the matching compatibility baseline only as part of an intentional contract release.
+
 | Boundary | Contract | Implementation and checks |
 |---|---|---|
-| Product Catalog | [Root OAS](openapi/openapi.yaml) | Design scaffold; Spectral, oasdiff, Swagger UI, Prism |
+| Product Catalog | [Root OAS](openapi/openapi.yaml) | Design scaffold; Spectral, Swagger UI, Prism |
 | Product API | [Demo OAS](demo/openapi.yaml) | Node.js; Specmatic, Schemathesis, seven languages, Playwright |
 | Order API | [Stateful OAS](demo/stateful/openapi.yaml) | In-memory Node.js; stateful Schemathesis and seven native suites |
 | Inventory dependency | [Downstream OAS](demo/downstream/openapi.yaml) | WireMock mappings, Specmatic, downstream integration |
@@ -136,10 +147,10 @@ OpenAPI describes HTTP operations and payloads such as JSON and XML. AsyncAPI de
 
 | Layer | Responsibility | Source |
 |---|---|---|
-| Specifications | Define each API boundary and examples; one OAS for HTTP and AsyncAPI for events | `openapi/`, `demo/`, `contracts/events/` |
+| Specifications | Define API boundaries, examples, and accepted compatibility snapshots | `openapi/`, `demo/`, `contracts/events/`, `contracts/baselines/` |
 | Demo services | Implement Product, Order, and WireMock-backed Inventory examples | `demo/` |
-| Native clients | Encapsulate HTTP calls; language validators check exercised responses and tests assert behavior | `clients/` |
-| Orchestration | Compose pipeline stages, containers, network, and cleanup | `pipeline/run.mjs` |
+| Native clients | Encapsulate HTTP calls; language validators check exercised responses and tests assert behavior | `clients/`, `clients/js/features/` |
+| Orchestration | Compose pipeline stages, containers, network, cleanup, and native suite execution | `pipeline/run.mjs`, `pipeline/client-suite.sh` |
 | Shared configuration | Parse and validate required runtime pins before container startup | `pipeline/config.mjs`, `.github/versions.env` |
 | Quality checks | Validate contracts, project wiring, security, and dependencies | `gates/`, `evals/`, `.github/workflows/` |
 
@@ -156,22 +167,24 @@ Use these terms consistently across the contracts, tests, and pipeline:
 | Specification | Machine-readable interface definition, such as OAS or AsyncAPI. |
 | Contract | The agreed interface behavior expressed by its specification. |
 | Provider contract verification | Specmatic sends contract-derived requests to the running Product API. |
-| Consumer mock check (not CDC) | JavaScript and Playwright tests check expected responses from a Specmatic Smart Mock generated from the provider OAS. |
+| Consumer development against a provider Smart Mock | JavaScript and Playwright exercise responses generated from the provider OAS; consumer-owned expectations are not part of this example. |
 | Smart Mock | Specmatic server that returns responses defined by the provider's contract and examples. |
-| API integration test | A native suite calls a running application, validates status, media type, and schema, then asserts behavior. |
+| API integration test | A native suite calls a running application, validates declared operations against OAS, then asserts behavior. Undeclared methods are checked for HTTP 405 and `Allow`. |
 | Schema validation | Checks response shape and declared media type; it does not replace behavior assertions. |
 | Stateless fuzzing | Schemathesis generates independent Product requests from the OAS. |
 | Stateful testing | Linked operations share returned data; Order tests follow create, read, confirm, delete, then 404. |
 | Quality gate | A CI check that reports whether a change meets a stated requirement; merge enforcement is configured separately. |
+| BDD acceptance test | Cucumber runs the behavior scenarios in `clients/js/features/` against live Product and Order APIs; declared operations are checked against OAS. |
+| TDD unit test | Node.js service tests check API behavior in isolation; add the failing test before changing implementation. |
 
-Provider verification and consumer mock checks share the Product OAS but target different systems. The mock check helps a consumer develop against the provider’s declared interface; it does not establish consumer-driven expectations because this project has no consumer-owned contract artifact. API integration suites exercise live services.
+Provider verification and consumer development against a Smart Mock share the Product OAS but target different systems. The mock offers consumers an early integration target based on the provider’s declared interface. Consumer-owned expectations are not represented here. API integration suites exercise live services. Cucumber runs Product and Order acceptance scenarios from Gherkin against the live APIs; Node.js unit tests check service behavior in isolation.
 
 ### Contract-based testing
 
 | Role | Implementation | Target |
 |---|---|---|
 | Provider | Specmatic provider verification | Live Product API, app:8080 |
-| Consumer mock check | JavaScript and Playwright tests | Specmatic Smart Mock, specmatic-mock:9000 |
+| Consumer development | JavaScript and Playwright checks | Specmatic Smart Mock generated from provider OAS, `specmatic-mock:9000` |
 
 ### API integration testing
 
@@ -198,7 +211,7 @@ Specmatic mock data uses OAS examples, fixtures in `demo/openapi_examples`, and 
 | Gate | Check | Workflow |
 |---|---|---|
 | Contract quality | Spectral lint and OAS compatibility | `contract.yml` |
-| API behavior | Specmatic provider verification and consumer mock checks, WireMock, Schemathesis, and native integration suites | `contract.yml` |
+| API behavior | Specmatic provider verification, failing canaries, 404/400/409/502 assertions, WireMock, Schemathesis, and native integration suites | `contract.yml` |
 | Project consistency | Repository evaluations check links, structure, test roles, workflows, and roadmap | `contract.yml` |
 | Source and dependencies | CodeQL, Gitleaks, Trivy filesystem scan, Dependency Review, and Dependabot | `security.yml` |
 | Container images | Trivy scans for the app, WireMock, and Specmatic | `contract.yml` |
@@ -259,7 +272,8 @@ Each contract run reports stage timings and uploads a CSV artifact. The last fiv
 
 | Path | Purpose |
 |---|---|
-| openapi/ | Root contract and compatibility baseline |
+| openapi/ | Root Catalog design scaffold |
+| contracts/baselines/ | Reviewed compatibility snapshots for Product, Order, and Inventory providers |
 | contracts/events/ | AsyncAPI examples |
 | demo/ | Product, Order, Inventory, WireMock, and mock data |
 | legacy/ | Postman and Bruno collections adapted from project contracts |
@@ -267,10 +281,11 @@ Each contract run reports stage timings and uploads a CSV artifact. The last fiv
 | clients/rust/Cargo.lock; clients/go/go.sum; clients/csharp/packages.lock.json | Rust, Go, and .NET dependency locks |
 | gates/ | Contract lint, compatibility checks, and security examples |
 | evals/ | Documentation, roles, and pipeline checks |
+| clients/js/features/ | Gherkin acceptance scenarios and Cucumber step definitions |
 | docs/project-flow.html | Interactive showcase source, published on GitHub Pages |
 | .github/workflows/ | Contract, security, performance, and showcase automation |
 | .github/versions.env | Central tool and runtime version pins |
-| pipeline/; run.sh | Testcontainers runner, strict runtime-version parser and tests, local/CI entry point |
+| pipeline/run.mjs; pipeline/client-suite.sh; run.sh | Testcontainers orchestration, native suite entry point, runtime-pin parser and tests, local/CI entry point |
 
 ## Contribute
 

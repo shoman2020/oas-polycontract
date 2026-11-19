@@ -1,0 +1,18 @@
+{
+  "name": "inventory response with invalid availability type",
+  "priority": 1,
+  "request": {
+    "method": "GET",
+    "urlPath": "/inventory/malformed-sku"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "sku": "malformed-sku",
+      "available": "seven"
+    }
+  }
+}

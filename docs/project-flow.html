@@ -114,7 +114,7 @@
         <section class="scene" id="overview" aria-labelledby="scene-title-1">
           <span class="eyebrow">01 · Project purpose</span>
           <h1 id="scene-title-1" tabindex="-1">One reviewed contract. Consistent API checks.</h1>
-          <p class="lead">oas-polycontract is a runnable reference for a specification-led workflow: teams use a reviewed contract for provider verification, consumer mock checks, and live API integration tests.</p>
+          <p class="lead">oas-polycontract shows how a reviewed specification can guide provider verification, consumer development against a provider Smart Mock, and live API integration tests.</p>
           <div class="flow" aria-label="Contract drives provider, clients, and mock">
             <div class="flow-node"><b>Reviewed contracts</b><span>One source per API boundary</span></div><span class="flow-arrow" aria-hidden="true">→</span>
             <div class="flow-node"><b>Automated checks</b><span>Provider and API integration</span></div><span class="flow-arrow" aria-hidden="true">→</span>
@@ -128,35 +128,36 @@
           <h2 id="scene-title-2" tabindex="-1">Separate contracts by API boundary.</h2>
           <p class="lead">The repository keeps the design scaffold, runnable services, downstream dependency, and event examples distinct. Each contract has a clear scope and corresponding checks.</p>
           <div class="grid">
-            <article class="card"><span class="tag">Product Catalog</span><strong>Root OAS scaffold</strong><p><code>openapi/</code> holds the reviewed contract and compatibility baseline. It has no provider implementation.</p></article>
+            <article class="card"><span class="tag">Product Catalog</span><strong>Root OAS scaffold</strong><p><code>openapi/</code> holds a design example without a provider implementation. <code>contracts/baselines/</code> keeps separate accepted snapshots for runnable providers.</p></article>
             <article class="card"><span class="tag">Runnable APIs</span><strong>Product and Order examples</strong><p><code>demo/</code> contains one Product lookup, an in-memory Order lifecycle scoped to each app instance, and a WireMock-backed Inventory dependency.</p></article>
+            <article class="card"><span class="tag">Behavior tests</span><strong>Gherkin acceptance and service unit tests</strong><p><code>clients/js/features/</code> supplies Product and Order scenarios to Cucumber. Node.js service tests check those behaviors in isolation before pipeline gates run.</p></article>
             <article class="card"><span class="tag">Events and evaluations</span><strong>Separate contract types and checks</strong><p><code>contracts/events/</code> holds linted AsyncAPI examples. <code>evals/</code> checks docs, test entry points, collection paths, pipeline wiring, mock cases, and roadmap progress.</p></article>
             <article class="card"><span class="tag">Phase 5 · examples delivered</span><strong>Manual collection migration</strong><p><code>legacy/</code> holds OAS-aligned Postman and Bruno examples for Product lookup and the stateful Order flow. Their paths are checked against the contracts.</p><p><a href="https://github.com/shoman2020/oas-polycontract/tree/main/legacy">Open the collections and setup guide</a></p></article>
           </div>
-          <div class="note">The event contracts are linted examples. This project does not include a WebSocket server or Kafka broker.</div>
+          <div class="note">Contracts are read-only pipeline inputs. Change them through reviewed source updates; publish immutable versions for provider and consumer projects to pin. Event contracts are linted examples; no WebSocket server or Kafka broker is included.</div>
         </section>
         <section class="scene" id="pipeline" aria-labelledby="scene-title-3" hidden>
           <span class="eyebrow">03 · Pipeline</span>
           <h2 id="scene-title-3" tabindex="-1">One command runs the demonstration.</h2>
-          <p class="lead">Run <code>bash ./run.sh</code> locally or in Ubuntu CI. The Node.js Testcontainers runner checks repository wiring, runs contract gates, builds the project images, then starts services on a private network. Health checks gate API tests; containers and the network are removed when the run ends.</p>
+          <p class="lead">Run <code>bash ./run.sh</code> locally or in Ubuntu CI. The Node.js Testcontainers runner checks repository wiring, runs contract gates, pulls pinned upstream runtimes, then starts services on a private network. OAS, fixtures, and client sources are read-only mounts; dependency and build output stays in temporary directories. Health checks gate API tests, and the runner removes containers and the network when the run ends.</p>
           <div class="grid">
             <article class="card"><span class="tag">Contract gates</span><strong>Lint and compatibility</strong><p>Spectral checks OpenAPI and AsyncAPI; oasdiff checks the root contract against its baseline.</p></article>
-            <article class="card"><span class="tag">Container orchestration</span><strong>Testcontainers for Node.js</strong><p>Builds the app and client images, creates an isolated network, waits for service health, runs one-shot checks, and cleans up without publishing ports.</p></article>
+            <article class="card"><span class="tag">Container orchestration</span><strong>Testcontainers for Node.js</strong><p>Uses pinned upstream language runtimes, creates an isolated network, waits for service health, runs one-shot checks, and cleans up without publishing ports.</p></article>
             <article class="card"><span class="tag">API integration</span><strong>Native suites and Playwright</strong><p>Language suites call the Product API at <code>app:8080</code> and Order API at <code>stateful-app:8082</code>. See the framework box in the test-role map.</p></article>
           </div>
-          <div class="mini-flow"><span class="step"><b>Repository evaluations</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Contract gates</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Build and run Testcontainers</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Trivy image scans</b></span></div>
+          <div class="mini-flow"><span class="step"><b>Repository evaluations</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Service unit tests</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Contract and API gates</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>BDD acceptance features</b></span><span class="step-arrow" aria-hidden="true">→</span><span class="step"><b>Trivy image scans</b></span></div>
           <div class="note">For a focused local run, set <code>POLYCONTRACT_NATIVE_CLIENTS=rust,python</code>. CI leaves it unset and runs all seven native suites.</div>
         </section>
         <section class="scene" id="workflows" aria-labelledby="scene-title-4" hidden>
           <span class="eyebrow">04 · GitHub workflows</span>
           <h2 id="scene-title-4" tabindex="-1">Separate workflow triggers. Clear scan ownership.</h2>
-          <p class="lead">Contract, security, and showcase workflows run on their own triggers. A manual performance workflow compares cold and warm pipeline runs on Ubuntu 24.04 and 26.04.</p>
+          <p class="lead">Contract, security, and showcase workflows run on their own triggers. Contract CI runs isolated service tests, feature-driven Cucumber acceptance tests, and native API suites. A manual performance workflow compares cold and warm pipeline runs on Ubuntu 24.04 and 26.04.</p>
           <div class="workflow-map" role="group" aria-label="GitHub Actions workflow responsibilities">
             <section class="workflow-lane" aria-labelledby="workflow-contract">
               <h3 id="workflow-contract">contract.yml</h3>
               <p class="workflow-trigger">Push · pull request · manual run</p>
               <div class="workflow-chain">
-                <div class="workflow-step"><strong>run.sh · Testcontainers</strong><br>Node.js runner builds images and creates an isolated network</div>
+                <div class="workflow-step"><strong>run.sh · Testcontainers</strong><br>Node.js runner pulls pinned runtimes and creates an isolated network</div>
                 <div class="workflow-step"><strong>Evaluations and gates</strong><br>Repository checks, Spectral, oasdiff, contract tests, and fuzzing</div>
                 <div class="workflow-step"><strong>Trivy image scans</strong><br>App, WireMock, and Specmatic images</div>
               </div>
@@ -209,7 +210,7 @@
               </div>
             </section>
             <section class="test-flow-lane">
-              <h3>Consumer mock check · not CDC</h3>
+              <h3>Consumer development with a provider Smart Mock</h3>
               <div class="test-flow-chain">
                 <div class="test-flow-step"><strong>Product OAS</strong></div>
                 <div class="test-flow-step">Specmatic Smart Mock · <code>specmatic-mock:9000</code></div>
@@ -265,7 +266,7 @@
               </div>
             </section>
           </div>
-          <div class="note">The Smart Mock comes from the provider OAS; consumer checks here do not publish consumer-owned CDC artifacts. Integration suites validate live APIs. Manual collections support exploration and migration. See the <a href="https://github.com/shoman2020/oas-polycontract#contract-and-test-flow">README test flow</a> and <a href="https://github.com/shoman2020/oas-polycontract#enterprise-adoption">adoption limits</a>.</div>
+          <div class="note">The Smart Mock comes from the provider OAS. This example does not publish consumer-owned contracts or check consumer-specific expectations. Gherkin files supply acceptance-test inputs; Cucumber checks live Product and Order behavior against OAS. Isolated service tests provide TDD feedback before pipeline gates. Manual collections support exploration and migration. See the <a href="https://github.com/shoman2020/oas-polycontract/tree/main/clients/js/features">feature scenarios</a>, <a href="https://github.com/shoman2020/oas-polycontract#contract-and-test-flow">README test flow</a>, and <a href="https://github.com/shoman2020/oas-polycontract#enterprise-adoption">adoption limits</a>.</div>
         </section>
         <section class="scene" id="test-behavior" aria-labelledby="scene-title-6" hidden>
           <span class="eyebrow">06 · Test behavior</span>

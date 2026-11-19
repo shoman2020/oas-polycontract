@@ -7,6 +7,68 @@ struct OpenApiResponseValidator {
     document: Value,
 }
 
+fn normalize_openapi_schema(schema: &Value, document: &Value) -> Value {
+    fn normalize_node(node: &mut Value) {
+        match node {
+            Value::Object(object) => {
+                let nullable = object
+                    .remove("nullable")
+                    .and_then(|value| value.as_bool())
+                    .unwrap_or(false);
+                if nullable {
+                    if let Some(Value::String(schema_type)) = object.get("type").cloned() {
+                        object.insert(
+                            "type".to_owned(),
+                            Value::Array(vec![Value::String(schema_type), Value::String("null".to_owned())]),
+                        );
+                    }
+                }
+
+                match object.get("exclusiveMinimum").and_then(Value::as_bool) {
+                    Some(true) => {
+                        if let Some(minimum) = object.remove("minimum") {
+                            object.insert("exclusiveMinimum".to_owned(), minimum);
+                        }
+                    }
+                    Some(false) => {
+                        object.remove("exclusiveMinimum");
+                    }
+                    None => {}
+                }
+
+                if let Some(Value::String(reference)) = object.get_mut("$ref") {
+                    if let Some(name) = reference.strip_prefix("#/components/schemas/") {
+                        *reference = format!("#/$defs/{name}");
+                    }
+                }
+                for value in object.values_mut() {
+                    normalize_node(value);
+                }
+            }
+            Value::Array(items) => {
+                for item in items {
+                    normalize_node(item);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let mut normalized = schema.clone();
+    if let (Some(root), Some(definitions)) = (
+        normalized.as_object_mut(),
+        document.pointer("/components/schemas").and_then(Value::as_object),
+    ) {
+        root.insert("$defs".to_owned(), Value::Object(definitions.clone()));
+        root.insert(
+            "$schema".to_owned(),
+            Value::String("https://json-schema.org/draft/2020-12/schema".to_owned()),
+        );
+    }
+    normalize_node(&mut normalized);
+    normalized
+}
+
 impl OpenApiResponseValidator {
     fn from_file(path: &str) -> Result<Self, Box<dyn Error>> {
         let source = fs::read_to_string(path)?;
@@ -68,7 +130,8 @@ impl OpenApiResponseValidator {
         };
 
         let body: Value = serde_json::from_slice(body)?;
-        let validator = validator_for(schema)?;
+        let schema = normalize_openapi_schema(schema, &self.document);
+        let validator = validator_for(&schema)?;
         let errors: Vec<String> = validator.iter_errors(&body).map(|error| error.to_string()).collect();
         if !errors.is_empty() {
             return Err(io::Error::new(
@@ -79,6 +142,37 @@ impl OpenApiResponseValidator {
         }
         Ok(())
     }
+}
+
+#[test]
+fn rust_schema_adapter_covers_nullable_exclusive_minimum_and_nested_refs() {
+    let document = serde_json::json!({
+        "components": {
+            "schemas": {
+                "Child": {
+                    "type": "object",
+                    "required": ["score"],
+                    "properties": {
+                        "score": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+                    }
+                }
+            }
+        }
+    });
+    let schema = serde_json::json!({
+        "type": "object",
+        "required": ["label", "child"],
+        "properties": {
+            "label": { "type": "string", "nullable": true },
+            "child": { "$ref": "#/components/schemas/Child" }
+        }
+    });
+    let normalized = normalize_openapi_schema(&schema, &document);
+    let validator = validator_for(&normalized).expect("translated schema is supported");
+
+    assert!(validator.is_valid(&serde_json::json!({ "label": null, "child": { "score": 0.5 } })));
+    assert!(!validator.is_valid(&serde_json::json!({ "label": "ok", "child": { "score": 0 } })));
+    assert!(!validator.is_valid(&serde_json::json!({ "label": "ok", "child": { "score": "0.5" } })));
 }
 
 async fn validate_response(

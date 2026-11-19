@@ -1,0 +1,89 @@
+openapi: 3.0.3
+info:
+  title: Inventory API
+  version: 1.0.0
+  description: >
+    Downstream inventory contract. This is the app's one dependency;
+    WireMock's mapping under wiremock/mappings is checked against this
+    contract by the specmatic-downstream service.
+  contact:
+    name: SHIFT-LEFT.NL and Ahmed Abdelwahab
+    url: https://shift-left.nl
+servers:
+  - url: http://localhost:8081
+    description: Inventory WireMock service from the local host.
+  - url: http://wiremock:8080
+    description: WireMock service on the isolated Testcontainers network.
+tags:
+  - name: inventory
+    description: Inventory availability operations.
+paths:
+  /inventory/{sku}:
+    get:
+      tags: [inventory]
+      summary: Get inventory availability for a SKU
+      description: Returns the inventory availability for the supplied SKU.
+      operationId: getInventory
+      parameters:
+        - name: sku
+          in: path
+          required: true
+          schema:
+            type: string
+          examples:
+            demo:
+              value: demo-sku
+            missing:
+              value: not-found-sku
+            unavailable:
+              value: unavailable-sku
+      responses:
+        "200":
+          description: Inventory record found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Inventory"
+              examples:
+                demo:
+                  value:
+                    sku: demo-sku
+                    available: 7
+        "404":
+          description: Inventory record not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                missing:
+                  value:
+                    message: No inventory record for not-found-sku
+        "503":
+          description: Inventory service is unavailable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                unavailable:
+                  value:
+                    message: Inventory service unavailable
+components:
+  schemas:
+    Inventory:
+      type: object
+      required: [sku, available]
+      properties:
+        sku:
+          type: string
+        available:
+          type: integer
+          minimum: 0
+    Error:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
