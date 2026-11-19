@@ -1,6 +1,6 @@
 # Client test guide
 
-This guide maps each native stack to its runner, validator, and test files. For run requirements and the testing model, see the [README](../README.md).
+This guide maps each native stack to its runner, validator, and test files. See the [README testing model](../README.md#testing-model-and-terminology) for test roles and [run requirements](../README.md#run).
 
 ## Native stacks
 

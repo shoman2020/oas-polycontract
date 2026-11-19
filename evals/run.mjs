@@ -2,6 +2,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { auditMarkdownShellPaths } from './markdown-shell-paths.mjs';
 
 const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const { parseDocument } = createRequire(resolve(repositoryRoot, 'pipeline/package.json'))('yaml');
@@ -892,7 +893,14 @@ function checkWorkflowVisuals() {
   return workflowFiles.length + sourcePolicies.length + concepts.length + readmeTriggers.length + showcaseTriggers.length + sceneCount + laneCount + acceptanceFlowSources.length;
 }
 
+function checkMarkdownShellPaths() {
+  const audit = auditMarkdownShellPaths(repositoryRoot);
+  for (const issue of audit.issues) failures.push('markdown-shell-paths: ' + issue);
+  return audit.pathReferencesChecked;
+}
+
 const evaluators = {
+  'markdown-shell-paths': () => checkMarkdownShellPaths(),
   'readme-links': () => checkReadmeLinks(),
   'readme-tree': () => checkReadmeTree(),
   'architecture-map': () => checkArchitectureMap(),

@@ -2,6 +2,11 @@
   "name": "oas-polycontract repository evaluations",
   "checks": [
     {
+      "id": "markdown-shell-paths",
+      "description": "Local script paths, Docker build contexts, and bind mounts in Markdown shell examples resolve",
+      "type": "markdown-shell-paths"
+    },
+    {
       "id": "readme-links",
       "description": "README and client guide relative links resolve from their own locations",
       "type": "readme-links"
@@ -178,9 +183,10 @@
         15,
         16,
         17,
-        18
+        18,
+        19
       ],
-      "verifiedRun": "44624568894"
+      "verifiedRun": "44635628482"
     }
   ]
 }

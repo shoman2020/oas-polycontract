@@ -18,7 +18,7 @@ One reviewed specification contract per API boundary. Clear ownership means less
 
 See the [README](README.md) for the test model and contract release guidance.
 
-Open work includes the post-Testcontainers performance matrix (Phase 12), runtime event coverage, and pilot-dependent decisions in Phase 17.
+Open work includes the post-Testcontainers performance matrix (Phase 12), runtime event coverage, pilot-dependent decisions in Phase 17, and more structural Testcontainers checks (Phase 19).
 
 ## Phases
 
@@ -143,6 +143,12 @@ Open work includes the post-Testcontainers performance matrix (Phase 12), runtim
 - [x] Run the shared core gates and confirm the Specmatic example warning is gone; see run 44570728787.
 - [x] Verify Trivy scans the exported image archive and all eight isolated native matrix jobs pass; [contract run 44623074864](https://github.com/shoman2020/oas-polycontract/actions/runs/44623074864).
 
+### Phase 19 — Documentation and evaluation quality
+- [x] Replace manual collection setup that referenced removed Dockerfiles with pinned WireMock and host Node.js commands.
+- [x] Audit fenced Markdown shell examples for local scripts, source files, Docker build contexts, and static bind paths.
+- [x] Document that source-marker evaluations are guardrails, not behavior proofs.
+- [ ] Replace source-text Testcontainers assertions with structured or behavior-based checks where practical.
+
 ## Conditional work
 
 These items need an external input or repository setting before implementation:
@@ -155,6 +161,7 @@ These items need an external input or repository setting before implementation:
 | Configure environment URLs | A deployed API environment exists. |
 | Add consumer-owned contracts | Consumer owners supply their actual expectations and provider verification rules. |
 | Migrate historic requests | The owning team supplies Postman/Bruno exports. |
+| Refine Testcontainers fitness checks | Replace source-marker assertions with structural or behavior-based checks before applying them as company policy. |
 
 ## Package fit
 
@@ -166,6 +173,6 @@ The latest [main contract run 44635628482](https://github.com/shoman2020/oas-pol
 
 ## Progress
 
-- 20 Nov: Enabled main ruleset [27679805](https://github.com/shoman2020/oas-polycontract/settings/rules/27679805) with 20 required checks. Post-merge contract [44635628482](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628482) and security [44635628479](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628479) runs passed.
+- 20 Nov: Enabled main ruleset [27679805](https://github.com/shoman2020/oas-polycontract/settings/rules/27679805) with 20 required checks. Post-merge contract [44635628482](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628482) and security [44635628479](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628479) runs passed. Fixed stale collection setup and added a Markdown shell-path audit; Phase 19 tracks its scope and remaining evaluation work.
 - 19 Nov: Split contract CI into shared gates and isolated jobs for seven language suites plus Playwright. All eight suites and the Trivy scans passed in [run 44573964063](https://github.com/shoman2020/oas-polycontract/actions/runs/44573964063).
 - 19 Nov: Added Gherkin-driven scenarios, generated shared case data, negative canaries, error-path coverage, validator conformance cases, and fail-fast stage summaries. The full contract run [44563995399](https://github.com/shoman2020/oas-polycontract/actions/runs/44563995399) passed.
