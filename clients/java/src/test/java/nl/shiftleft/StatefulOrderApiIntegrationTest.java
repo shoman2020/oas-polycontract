@@ -61,8 +61,10 @@ class StatefulOrderApiIntegrationTest {
         StatefulOrderApi api = new StatefulOrderApiClient(baseUri, validation);
 
         Map<String, Object> invalid = FeatureCases.byId("order.invalid");
-        api.createOrder((String) invalid.get("sku"), ((Number) invalid.get("quantity")).intValue())
-            .then().statusCode(((Number) invalid.get("expectedStatus")).intValue());
+        api.createOrderUnvalidated((String) invalid.get("sku"), ((Number) invalid.get("quantity")).intValue())
+            .then()
+            .statusCode(((Number) invalid.get("expectedStatus")).intValue())
+            .body("message", equalTo(invalid.get("expectedMessage")));
 
         Map<String, Object> scenario = FeatureCases.byId("order.illegal-transition");
         Response created = api.createOrder((String) scenario.get("sku"), ((Number) scenario.get("quantity")).intValue())

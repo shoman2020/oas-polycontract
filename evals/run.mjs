@@ -508,6 +508,9 @@ function checkApiBehavior() {
 function checkTestcontainersSafety() {
   const pipeline = readRepositoryFile('pipeline/run.mjs');
   const packageJson = JSON.parse(readRepositoryFile('pipeline/package.json'));
+  const versionPins = readRepositoryFile('.github/versions.env');
+  const javaProductTests = readRepositoryFile('clients/java/src/test/java/nl/shiftleft/ProductApiIntegrationTest.java');
+  const javaOrderTests = readRepositoryFile('clients/java/src/test/java/nl/shiftleft/StatefulOrderApiIntegrationTest.java');
   const composeExists = existsSync(resolve(repositoryRoot, 'docker-compose.yml'));
   const projectDockerfiles = [
     'demo/app/Dockerfile',
@@ -536,6 +539,12 @@ function checkTestcontainersSafety() {
     [pipeline.includes('.withNetwork(this.network)') && pipeline.includes('.withNetworkAliases(alias)'), 'service containers must use the isolated Testcontainers network'],
     [!pipeline.includes('withExposedPorts('), 'pipeline containers must not publish host ports'],
     [typeof packageJson.devDependencies?.testcontainers === 'string', 'Testcontainers dependency must be pinned'],
+    [packageJson.engines?.npm === versionPins.match(/^NPM_VERSION=(\S+)$/m)?.[1], 'pipeline npm engine must match the shared npm version pin'],
+    [['cpu-features', 'protobufjs', 'ssh2'].every((name) => packageJson.allowScripts?.[name] === false), 'unneeded transitive npm install scripts must be explicitly denied'],
+    [pipeline.includes('mkdtempSync(join(tmpdir()') && pipeline.includes("openSync(artifactPath, 'wx+'"), 'WireMock artifacts must use a private temp directory and exclusive file descriptor'],
+    [pipeline.includes("spawnSync('curl'") && pipeline.includes('readSync(descriptor') && pipeline.includes('WIREMOCK_SHA256') && !pipeline.includes('fetch(artifactUrl'), 'WireMock download must be verified without writing response data through the JavaScript filesystem API'],
+    [!pipeline.includes('npm cache clean --force') && !pipeline.includes('--force >/dev/null'), 'Node runtime setup must not disable npm protections'],
+    [clientSuite.includes('mkdir -p "$workspace/target/classes"') && javaProductTests.includes('getProductPathUnvalidated') && javaOrderTests.includes('createOrderUnvalidated') && javaOrderTests.includes('expectedMessage'), 'Java tests isolate malformed inputs from request validation and check responses against feature data'],
   ];
   for (const [passed, message] of required) if (!passed) failures.push(`testcontainers-safety: ${message}`);
   return required.length;

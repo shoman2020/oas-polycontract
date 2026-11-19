@@ -152,6 +152,8 @@ This reference repo has no stable runtime API to package. A `create-polycontract
 
 ## Progress
 
+- 19 Nov: Contract run 44490734374 passed setup, evaluations, provider checks, fuzzing, and six native suites, then exposed Java invalid-input tests being rejected by the outbound OAS filter. Those tests now bypass request validation only for intentionally malformed inputs and assert responses from shared feature data. Aligned the npm engine pin, explicitly denied unused npm scripts, removed forced cache cleanup, and added the SLF4J no-op provider. WireMock staging now uses a private temp directory, exclusive descriptor, size bound, pinned SHA-256, and cleanup. Contract and CodeQL reruns are pending.
+
 - 19 Nov: Expanded Product and Order Gherkin scenarios across all seven native suites, including error paths and repeated state transitions. Split JavaScript Cucumber steps by API, kept generated scenario data in sync with feature files, and refactored API clients around encapsulated transport and language-appropriate interfaces. Pipeline configuration and repository evaluations pass locally; the full Testcontainers pipeline remains unverified.
 - 19 Nov: The first Testcontainers run reached provider checks but timed out waiting for a WireMock log message that its current runtime did not emit. Replaced it with process startup plus an HTTP readiness probe, and made the deliberately broken provider handle invalid UTF-8 input without crashing. The contract pipeline is being rerun.
 - 19 Nov: The rerun passed provider verification, WireMock checks, fuzzing, and Rust integration tests. Go compilation found that one test declared its API interface but called the concrete client; the test now exercises the interface. CI rerun is pending.

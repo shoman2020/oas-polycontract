@@ -17,4 +17,8 @@ abstract class HttpApiClient {
     protected RequestSpecification request() {
         return RestAssured.given().baseUri(baseUri).filter(contractFilter);
     }
+
+    protected RequestSpecification requestWithoutContractValidation() {
+        return RestAssured.given().baseUri(baseUri);
+    }
 }

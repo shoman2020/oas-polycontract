@@ -17,7 +17,8 @@
     "expectedStatus": 400,
     "api": "order",
     "feature": "Stateful Order lifecycle",
-    "scenario": "Reject an invalid order"
+    "scenario": "Reject an invalid order",
+    "expectedMessage": "sku and quantity are invalid"
   },
   {
     "caseId": "order.illegal-transition",

@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { closeSync, fstatSync, mkdirSync, mkdtempSync, openSync, readSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
@@ -159,13 +159,14 @@ class ContractPipeline {
 
   async prepareNodeTestImage() {
     const marker = '__POLYCONTRACT_NODE_RUNTIME_READY__';
+    const npmCacheDirectory = '/tmp/oas-polycontract-npm-cache';
     const preparation = new GenericContainer(nodeAlpine)
       .withNetwork(this.network)
       .withEntrypoint(['/bin/sh', '-c'])
       .withCommand([
-        `npm install --global npm@${versions.NPM_VERSION} --no-audit --no-fund && `
+        `npm install --global npm@${versions.NPM_VERSION} --no-audit --no-fund --cache=${npmCacheDirectory} && `
           + `test "$(npm --version)" = "${versions.NPM_VERSION}" && `
-          + `npm cache clean --force >/dev/null && echo ${marker} && sleep infinity`,
+          + `rm -rf ${npmCacheDirectory} && echo ${marker} && sleep infinity`,
       ])
       .withWaitStrategy(Wait.forLogMessage(new RegExp(marker), 1))
       .withStartupTimeout(300_000)
@@ -240,41 +241,62 @@ class ContractPipeline {
 
   async wireMockArtifactPath() {
     const artifactName = `wiremock-standalone-${versions.WIREMOCK_VERSION}.jar`;
-    const cacheDirectory = join(process.env.RUNNER_TEMP ?? tmpdir(), 'oas-polycontract');
+    const cacheDirectory = mkdtempSync(join(tmpdir(), 'oas-polycontract-'));
     const artifactPath = join(cacheDirectory, artifactName);
     const digest = (content) => createHash('sha256').update(content).digest('hex');
-
-    if (existsSync(artifactPath) && digest(readFileSync(artifactPath)) === versions.WIREMOCK_SHA256) {
-      return artifactPath;
-    }
-
     const artifactUrl = `https://repo.maven.apache.org/maven2/org/wiremock/wiremock-standalone/${versions.WIREMOCK_VERSION}/${artifactName}`;
-    const response = await fetch(artifactUrl, { signal: AbortSignal.timeout(60_000) });
-    if (!response.ok) throw new Error(`WireMock download failed: HTTP ${response.status}`);
-    const content = Buffer.from(await response.arrayBuffer());
-    if (digest(content) !== versions.WIREMOCK_SHA256) {
-      throw new Error(`WireMock ${versions.WIREMOCK_VERSION} SHA-256 did not match the pinned value`);
-    }
+    let descriptor;
+    let retainArtifact = false;
+    try {
+      descriptor = openSync(artifactPath, 'wx+', 0o600);
+      const download = spawnSync('curl', [
+        '--fail', '--silent', '--show-error', '--location', '--retry', '3',
+        '--proto', '=https', '--proto-redir', '=https', '--connect-timeout', '15', '--max-time', '60', '--retry-max-time', '90', '--max-filesize', '33554432', artifactUrl,
+      ], { stdio: ['ignore', descriptor, 'pipe'] });
+      if (download.error) throw new Error(`WireMock download failed: ${download.error.message}`, { cause: download.error });
+      if (download.status !== 0) {
+        const detail = download.stderr?.toString('utf8').trim();
+        throw new Error(`WireMock download failed${detail ? `: ${detail}` : ` with exit code ${download.status}`}`);
+      }
 
-    mkdirSync(cacheDirectory, { recursive: true });
-    writeFileSync(artifactPath, content, { mode: 0o444 });
-    return artifactPath;
+      const { size } = fstatSync(descriptor);
+      if (size === 0 || size > 33_554_432) throw new Error(`WireMock artifact size is invalid: ${size} bytes`);
+      const content = Buffer.alloc(size);
+      let offset = 0;
+      while (offset < size) {
+        const bytesRead = readSync(descriptor, content, offset, size - offset, offset);
+        if (bytesRead === 0) throw new Error('WireMock artifact download was incomplete');
+        offset += bytesRead;
+      }
+      if (digest(content) !== versions.WIREMOCK_SHA256) {
+        throw new Error(`WireMock ${versions.WIREMOCK_VERSION} SHA-256 did not match the pinned value`);
+      }
+      retainArtifact = true;
+      return artifactPath;
+    } finally {
+      if (descriptor !== undefined) closeSync(descriptor);
+      if (!retainArtifact) rmSync(cacheDirectory, { recursive: true, force: true });
+    }
   }
 
   async startWireMock() {
     const artifactPath = await this.wireMockArtifactPath();
-    const wireMock = await this.startService(runtimeImages.wiremock, 'wiremock', {
-      command: ['/tmp/wiremock-standalone.jar', '--root-dir', '/home/wiremock', '--global-response-templating'],
-      mounts: [{
-        source: join(repositoryRoot, 'demo/downstream/wiremock'),
-        target: '/home/wiremock',
-        mode: 'ro',
-      }],
-      copyFiles: [{ source: artifactPath, target: '/tmp/wiremock-standalone.jar', mode: 0o444 }],
-      waitStrategy: Wait.forLogMessage(/version:\s+\d+\.\d+\.\d+/, 1),
-    });
-    await this.waitForHttp('WireMock readiness', 'http://wiremock:8080/__admin/mappings');
-    return wireMock;
+    try {
+      const wireMock = await this.startService(runtimeImages.wiremock, 'wiremock', {
+        command: ['/tmp/wiremock-standalone.jar', '--root-dir', '/home/wiremock', '--global-response-templating'],
+        mounts: [{
+          source: join(repositoryRoot, 'demo/downstream/wiremock'),
+          target: '/home/wiremock',
+          mode: 'ro',
+        }],
+        copyFiles: [{ source: artifactPath, target: '/tmp/wiremock-standalone.jar', mode: 0o444 }],
+        waitStrategy: Wait.forLogMessage(/version:\s+\d+\.\d+\.\d+/, 1),
+      });
+      await this.waitForHttp('WireMock readiness', 'http://wiremock:8080/__admin/mappings');
+      return wireMock;
+    } finally {
+      rmSync(dirname(artifactPath), { recursive: true, force: true });
+    }
   }
 
   async waitForHttp(name, url) {

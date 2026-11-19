@@ -15,8 +15,9 @@ final class ProductApiClient extends HttpApiClient implements ProductApi {
             .get("/products/{sku}");
     }
 
-    public Response getProductPath(String path) {
-        return request()
+    public Response getProductPathUnvalidated(String path) {
+        return requestWithoutContractValidation()
+            .urlEncodingEnabled(false)
         .when()
             .get(path);
     }

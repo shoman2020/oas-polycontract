@@ -34,7 +34,7 @@ class ProductApiIntegrationTest {
         for (String caseId : new String[] {"product.not-found", "product.bad-upstream", "product.malformed-path"}) {
             Map<String, Object> scenario = FeatureCases.byId(caseId);
             Response response = scenario.containsKey("path")
-                ? api.getProductPath((String) scenario.get("path"))
+                ? api.getProductPathUnvalidated((String) scenario.get("path"))
                 : api.getProduct((String) scenario.get("sku"));
             response.then()
                 .statusCode(((Number) scenario.get("expectedStatus")).intValue())

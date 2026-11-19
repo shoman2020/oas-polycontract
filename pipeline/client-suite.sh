@@ -55,6 +55,7 @@ case "$suite" in
     workspace=/tmp/oas-java
     mkdir -p "$workspace"
     cp -R "$client_source"/. "$workspace"/
+    mkdir -p "$workspace/target/classes" "$workspace/target/test-classes"
     mvn -B -ntp -f "$workspace/pom.xml" -Dmaven.repo.local=/tmp/oas-maven-repository test
     ;;
   csharp)

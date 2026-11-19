@@ -17,6 +17,14 @@ final class StatefulOrderApiClient extends HttpApiClient implements StatefulOrde
             .post("/orders");
     }
 
+    public Response createOrderUnvalidated(String sku, int quantity) {
+        return requestWithoutContractValidation()
+            .contentType("application/json")
+            .body(Map.of("sku", sku, "quantity", quantity))
+        .when()
+            .post("/orders");
+    }
+
     public Response getOrder(String orderId) {
         return request()
             .pathParam("orderId", orderId)

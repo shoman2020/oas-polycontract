@@ -14,7 +14,7 @@ Feature: Stateful Order lifecycle
   Scenario: Reject an invalid order
     Given the acceptance data:
       """json
-      {"caseId":"order.invalid","sku":"","quantity":0,"expectedStatus":400}
+      {"caseId":"order.invalid","sku":"","quantity":0,"expectedStatus":400,"expectedMessage":"sku and quantity are invalid"}
       """
     When a client creates an order with SKU "" and quantity 0
     Then the response is 400 and matches the Order error contract
