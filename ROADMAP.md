@@ -7,7 +7,7 @@ One reviewed specification contract per API boundary. Clear ownership means less
 | Area | Delivered | Remaining |
 |---|---|---|
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | Runtime event tests need a provider or broker |
-| Tests | Specmatic provider verification, consumer development against a provider Smart Mock, WireMock, stateful and stateless fuzzing, negative canaries, seven-language error-path suites driven by shared Gherkin data, and isolated service unit tests; [contract run 44565579793 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44565579793) | Pilot against representative company APIs |
+| Tests | Specmatic provider verification, consumer development against a provider Smart Mock, WireMock, stateful and stateless fuzzing, negative canaries, seven-language error-path suites driven by shared Gherkin data, and isolated service unit tests; [contract run 44572561626 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44572561626) | Pilot against representative company APIs |
 | Legacy migration | Project-specific Postman and Bruno collections follow Product and Order OAS | Import team-owned history if teams provide their collections |
 | Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, and SecureAI-Scan; [adoption implementation run 44349546212 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546212) | GenAI positive controls are manual demos; no application AI runtime |
 | Dependencies | Cargo, Go, NuGet, npm, Python, Maven, and Testcontainers pins or locks; minimatch alert #3 fixed | Replace the Picomatch patch when upstream publishes a fix |
@@ -141,7 +141,7 @@ Two existing CI checklist actions remain: requiring contract and security checks
 - [x] Export the generated Node test runtime to a tar archive before Testcontainers cleanup so Trivy can scan the exact runtime built by the pipeline.
 - [x] Pair the `inventory-malformed` request example with its documented 502 response.
 - [x] Run the shared core gates and confirm the Specmatic example warning is gone; see run 44570728787.
-- [ ] Verify Trivy scans the exported image archive and all isolated native matrix jobs pass.
+- [x] Verify Trivy scans the exported image archive and all eight isolated native matrix jobs pass; [contract run 44572561626](https://github.com/shoman2020/oas-polycontract/actions/runs/44572561626).
 
 ## Conditional work
 
@@ -173,8 +173,8 @@ Run [44565579793](https://github.com/shoman2020/oas-polycontract/actions/runs/44
 
 ## Progress
 
-- 19 Nov: Split run [44570193982](https://github.com/shoman2020/oas-polycontract/actions/runs/44570193982) exposed a missing Trivy label in the interactive map. Run [44570728787](https://github.com/shoman2020/oas-polycontract/actions/runs/44570728787) then passed all 16 repository evaluations and shared contract gates; Specmatic's unmatched-example warning is gone. The Trivy step could not find the Testcontainers-created image after pipeline cleanup, so CI now exports an image archive before cleanup for scanning. Stack matrix verification is pending.
-- 19 Nov: Split contract CI into one shared `core` job and isolated per-stack `native` matrix jobs. Updated README and interactive workflow diagrams, added per-stack timings, and matched the malformed-inventory request example with its 502 response. CI verification pending.
+- 19 Nov: Run [44570193982](https://github.com/shoman2020/oas-polycontract/actions/runs/44570193982) exposed a missing Trivy label in the interactive map. Run [44570728787](https://github.com/shoman2020/oas-polycontract/actions/runs/44570728787) passed all 16 repository evaluations and shared gates, but Trivy could not find the generated Node image after cleanup. CI now exports that image before cleanup. [Run 44572561626](https://github.com/shoman2020/oas-polycontract/actions/runs/44572561626) passed Trivy scans and all eight isolated stack jobs.
+- 19 Nov: Split contract CI into one shared `core` job and isolated per-stack `native` matrix jobs. Updated README and interactive workflow diagrams, added per-stack timings, and paired the malformed-inventory request example with its 502 response. The core run emitted no unmatched Specmatic example warnings.
 
 - 19 Nov: Consolidated Testcontainers container configuration and service health checks to remove duplicated builder and readiness setup. Service health and one-shot completion strategies remain distinct. [Contract run 44563995399 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44563995399).
 - 19 Nov: Run 44557734234 exposed a missing comma in UUID Order ID generation; the object literal was fixed and the complete Testcontainers contract run 44563995399 passed. The README and interactive flow show two Gherkin paths: API-specific Cucumber steps run source features against live services, while the generator exports shared JSON consumed by the seven native suites. Tools and languages are examples with suggested migration options.
