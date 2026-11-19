@@ -65,8 +65,9 @@ case "$suite" in
     export DOTNET_CLI_HOME=/tmp/oas-dotnet-home
     export NUGET_PACKAGES=/tmp/oas-nuget
     export DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE=true
-    dotnet restore "$workspace/ContractTests.csproj" --locked-mode
-    dotnet test "$workspace/ContractTests.csproj" --no-restore
+    cd "$workspace"
+    dotnet restore ContractTests.csproj --locked-mode
+    dotnet test ContractTests.csproj --no-restore
     ;;
   *)
     echo "Unsupported client suite: $suite" >&2
