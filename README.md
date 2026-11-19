@@ -157,7 +157,7 @@ The Catalog scaffold and Product API intentionally model different boundaries, n
 | Specifications | Define API boundaries, examples, and accepted compatibility snapshots | `openapi/`, `demo/`, `contracts/events/`, `contracts/baselines/` |
 | Demo services | Implement Product, Order, and WireMock-backed Inventory examples | `demo/` |
 | Native clients | Encapsulate HTTP calls; language validators check exercised responses and tests assert behavior | `clients/`, `clients/features/`, `clients/shared/` |
-| Orchestration | Compose pipeline stages, containers, network, cleanup, and native suite execution | `pipeline/run.mjs`, `pipeline/client-suite.sh` |
+| Orchestration | A shared Testcontainers builder applies network, logging, mounts, and runtime options; stage methods keep service and one-shot readiness separate | `pipeline/run.mjs`, `pipeline/client-suite.sh` |
 | Shared configuration | Parse and validate required runtime pins before container startup | `pipeline/config.mjs`, `.github/versions.env` |
 | Quality checks | Validate contracts, project wiring, security, and dependencies | `gates/`, `evals/`, `.github/workflows/` |
 

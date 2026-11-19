@@ -63,6 +63,14 @@ const runtimeImages = {
   csharp: `mcr.microsoft.com/dotnet/sdk:${versions.DOTNET_VERSION}`,
 };
 
+const serviceHealthCheck = (port) => ({
+  test: ['CMD', 'node', '-e', `fetch('http://127.0.0.1:${port}/healthz').then(response => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))`],
+  interval: 5000,
+  timeout: 3000,
+  retries: 10,
+  startPeriod: 2000,
+});
+
 class ContractPipeline {
   constructor() {
     this.network = undefined;
@@ -138,15 +146,30 @@ class ContractPipeline {
     if (result.status !== 0) throw new Error(`Repository evaluations exited with ${result.status}`);
   }
 
-  commandContainer(image, options = {}) {
+  createContainer(image, options = {}) {
+    const { alias } = options;
+    const isService = Boolean(alias);
     let container = new GenericContainer(image)
       .withNetwork(this.network)
-      .withWaitStrategy(Wait.forOneShotStartup())
-      .withStartupTimeout(options.timeout ?? 60 * 60 * 1000)
+      .withStartupTimeout(options.timeout ?? (isService ? 120_000 : 60 * 60 * 1000))
       .withLogConsumer((stream) => {
         stream.on('data', (line) => process.stdout.write(line));
         stream.on('err', (line) => process.stderr.write(line));
       });
+
+    if (alias) container = container.withNetworkAliases(alias);
+
+    if (options.waitStrategy) {
+      container = container.withWaitStrategy(options.waitStrategy);
+    } else if (options.healthCheck) {
+      container = container
+        .withHealthCheck(options.healthCheck)
+        .withWaitStrategy(Wait.forHealthCheck());
+    } else if (isService) {
+      container = container.withWaitStrategy(Wait.forSuccessfulCommand('true'));
+    } else {
+      container = container.withWaitStrategy(Wait.forOneShotStartup());
+    }
 
     if (options.workingDir) container = container.withWorkingDir(options.workingDir);
     if (options.entrypoint) container = container.withEntrypoint(options.entrypoint);
@@ -154,7 +177,12 @@ class ContractPipeline {
     if (options.user) container = container.withUser(options.user);
     if (options.command) container = container.withCommand(options.command);
     if (options.mounts) container = container.withBindMounts(options.mounts);
+    if (options.copyFiles) container = container.withCopyFilesToContainer(options.copyFiles);
     return container;
+  }
+
+  commandContainer(image, options = {}) {
+    return this.createContainer(image, options);
   }
 
   async runTask(name, image, options = {}) {
@@ -167,20 +195,16 @@ class ContractPipeline {
   async prepareNodeTestImage() {
     const marker = '__POLYCONTRACT_NODE_RUNTIME_READY__';
     const npmCacheDirectory = '/tmp/oas-polycontract-npm-cache';
-    const preparation = new GenericContainer(nodeAlpine)
-      .withNetwork(this.network)
+    const preparation = this.createContainer(nodeAlpine, {
+      timeout: 300_000,
+      waitStrategy: Wait.forLogMessage(new RegExp(marker), 1),
+    })
       .withEntrypoint(['/bin/sh', '-c'])
       .withCommand([
         `npm install --global npm@${versions.NPM_VERSION} --no-audit --no-fund --cache=${npmCacheDirectory} && `
           + `test "$(npm --version)" = "${versions.NPM_VERSION}" && `
           + `rm -rf ${npmCacheDirectory} && echo ${marker} && sleep infinity`,
-      ])
-      .withWaitStrategy(Wait.forLogMessage(new RegExp(marker), 1))
-      .withStartupTimeout(300_000)
-      .withLogConsumer((stream) => {
-        stream.on('data', (line) => process.stdout.write(line));
-        stream.on('err', (line) => process.stderr.write(line));
-      });
+      ]);
 
     const started = await preparation.start();
     try {
@@ -214,33 +238,7 @@ class ContractPipeline {
   }
 
   async startService(image, alias, options = {}) {
-    let container = new GenericContainer(image)
-      .withNetwork(this.network)
-      .withNetworkAliases(alias)
-      .withStartupTimeout(120_000)
-      .withLogConsumer((stream) => {
-        stream.on('data', (line) => process.stdout.write(line));
-        stream.on('err', (line) => process.stderr.write(line));
-      });
-
-    if (options.waitStrategy) {
-      container = container.withWaitStrategy(options.waitStrategy);
-    } else if (options.healthCheck) {
-      container = container
-        .withHealthCheck(options.healthCheck)
-        .withWaitStrategy(Wait.forHealthCheck());
-    } else {
-      container = container.withWaitStrategy(Wait.forSuccessfulCommand('true'));
-    }
-
-    if (options.command) container = container.withCommand(options.command);
-    if (options.environment) container = container.withEnvironment(options.environment);
-    if (options.workingDir) container = container.withWorkingDir(options.workingDir);
-    if (options.entrypoint) container = container.withEntrypoint(options.entrypoint);
-    if (options.user) container = container.withUser(options.user);
-    if (options.mounts) container = container.withBindMounts(options.mounts);
-    if (options.copyFiles) container = container.withCopyFilesToContainer(options.copyFiles);
-
+    const container = this.createContainer(image, { ...options, alias });
     const started = await container.start();
     this.services.push(started);
     return started;
@@ -336,13 +334,7 @@ class ContractPipeline {
         INVENTORY_URL: 'http://wiremock:8080',
         PORT: '8080',
       },
-      healthCheck: {
-        test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:8080/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"],
-        interval: 5000,
-        timeout: 3000,
-        retries: 10,
-        startPeriod: 2000,
-      },
+      healthCheck: serviceHealthCheck(8080),
       mounts: [readOnlyMount('demo/app')],
     });
   }
@@ -353,13 +345,7 @@ class ContractPipeline {
       command: [],
       user: 'node',
       environment: { PORT: '8082' },
-      healthCheck: {
-        test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:8082/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"],
-        interval: 5000,
-        timeout: 3000,
-        retries: 10,
-        startPeriod: 2000,
-      },
+      healthCheck: serviceHealthCheck(8082),
       mounts: [readOnlyMount('demo/stateful')],
     });
   }
@@ -416,13 +402,7 @@ class ContractPipeline {
       command: [],
       user: 'node',
       mounts: [readOnlyMount('demo/canary')],
-      healthCheck: {
-        test: ['CMD', 'node', '-e', "fetch('http://127.0.0.1:8080/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"],
-        interval: 5000,
-        timeout: 3000,
-        retries: 10,
-        startPeriod: 2000,
-      },
+      healthCheck: serviceHealthCheck(8080),
     });
 
     await this.runTask('Validate broken-provider canary fixture', runtimeImages.app, {

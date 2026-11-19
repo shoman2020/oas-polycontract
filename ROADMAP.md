@@ -63,6 +63,7 @@ Two existing CI checklist actions remain: requiring contract and security checks
 - [x] Use an isolated network, health checks, one-shot tasks, and cleanup on success or failure.
 - [x] Support Ubuntu CI and local Docker Desktop or Colima with the documented shell setup.
 - [x] Validate all tool and client runtime pins before container startup.
+- [x] Share Testcontainers setup for service and one-shot containers while keeping their readiness strategies explicit.
 - [x] Run pinned upstream language runtimes instead of project-specific Dockerfiles; install dependencies and write build outputs in temporary container workspaces.
 - [x] Mount contracts, fixtures, and client source read-only so test execution cannot mutate OAS files.
 - [x] Run Gherkin-driven Cucumber acceptance tests and isolated service unit tests in CI.
@@ -152,6 +153,7 @@ This reference repo has no stable runtime API to package. A `create-polycontract
 
 ## Progress
 
+- 19 Nov: Consolidated Testcontainers container configuration and service health checks to remove duplicated builder and readiness setup. Service health and one-shot completion strategies remain distinct.
 - 19 Nov: Run 44557734234 exposed a missing comma in UUID Order ID generation; the object literal was fixed and the complete Testcontainers contract run 44558869057 passed. The README and interactive flow show two Gherkin paths: API-specific Cucumber steps run source features against live services, while the generator exports shared JSON consumed by the seven native suites. Tools and languages are examples with suggested migration options.
 - 19 Nov: Run 44552231115 exposed a missing npm pin in JavaScript and Playwright consumer containers. Both received `NPM_VERSION`; the complete follow-up contract run 44558869057 passed.
 - 19 Nov: Applied the review follow-up: UUID Order identifiers with concurrency/isolation tests, fail-closed nested external C# schema references, explicit Catalog-versus-Product boundary descriptions, `.nvmrc` setup guidance, and skipped-stage reporting after fail-fast errors. Contract run 44558869057 passed. Consumer-owned contracts, event runtime tests, branch protection, post-migration performance, and broader validator coverage remain open for their listed prerequisites.
