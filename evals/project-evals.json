@@ -106,7 +106,7 @@
     },
     {
       "id": "compatibility-baselines",
-      "description": "Every running provider is compared with its own pinned OpenAPI baseline",
+      "description": "Provider baselines are checked and Catalog/Product schemas are explicit, distinct API boundaries",
       "type": "compatibility-baselines",
       "services": [
         {
@@ -159,8 +159,28 @@
       "id": "roadmap-phases",
       "description": "Roadmap defines sequential phases and records the latest verified contract run",
       "type": "roadmap-phases",
-      "expectedPhases": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
-      "verifiedRun": "44572561626"
+      "expectedPhases": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18
+      ],
+      "verifiedRun": "44573964063"
     }
   ]
 }

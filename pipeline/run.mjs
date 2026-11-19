@@ -1,4 +1,3 @@
-import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { closeSync, fstatSync, mkdirSync, mkdtempSync, openSync, readSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -6,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { parseNativeClientSelection, readVersionPins } from './config.mjs';
 import { completeStageReport } from './stage-report.mjs';
+import { runChildProcess } from './commands.mjs';
 
 const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 
@@ -155,13 +155,14 @@ class ContractPipeline {
     }
   }
 
-  runEvaluations() {
-    const result = spawnSync(process.execPath, [join(repositoryRoot, 'evals/run.mjs')], {
+  async runEvaluations() {
+    const result = await runChildProcess(process.execPath, [join(repositoryRoot, 'evals/run.mjs')], {
       cwd: repositoryRoot,
       stdio: 'inherit',
     });
-    if (result.error) throw result.error;
-    if (result.status !== 0) throw new Error(`Repository evaluations exited with ${result.status}`);
+    if (result.exitCode !== 0) {
+      throw new Error(`Repository evaluations exited with ${result.exitCode ?? result.signal}`);
+    }
   }
 
   createContainer(image, options = {}) {
@@ -234,14 +235,12 @@ class ContractPipeline {
       if (process.env.NODE_TEST_IMAGE_ARCHIVE) {
         const archivePath = resolve(process.env.NODE_TEST_IMAGE_ARCHIVE);
         mkdirSync(dirname(archivePath), { recursive: true });
-        const exportedImage = spawnSync('docker', [
+        const exportedImage = await runChildProcess('docker', [
           'image', 'save', '--output', archivePath, nodeTestImage,
         ], { stdio: 'inherit' });
-        if (exportedImage.error) {
-          throw new Error(`Could not export prepared Node image: ${exportedImage.error.message}`, { cause: exportedImage.error });
-        }
-        if (exportedImage.status !== 0) {
-          throw new Error(`Could not export prepared Node image (docker image save exited ${exportedImage.status})`);
+        if (exportedImage.exitCode !== 0) {
+          const result = exportedImage.signal ? `signal ${exportedImage.signal}` : `exit code ${exportedImage.exitCode}`;
+          throw new Error(`Could not export prepared Node image (docker image save: ${result})`);
         }
         console.log(`  <- Exported ${nodeTestImage} to ${archivePath}`);
       }
@@ -286,14 +285,14 @@ class ContractPipeline {
     let retainArtifact = false;
     try {
       descriptor = openSync(artifactPath, 'wx+', 0o600);
-      const download = spawnSync('curl', [
+      const download = await runChildProcess('curl', [
         '--fail', '--silent', '--show-error', '--location', '--retry', '3',
         '--proto', '=https', '--proto-redir', '=https', '--connect-timeout', '15', '--max-time', '60', '--retry-max-time', '90', '--max-filesize', '33554432', artifactUrl,
       ], { stdio: ['ignore', descriptor, 'pipe'] });
-      if (download.error) throw new Error(`WireMock download failed: ${download.error.message}`, { cause: download.error });
-      if (download.status !== 0) {
-        const detail = download.stderr?.toString('utf8').trim();
-        throw new Error(`WireMock download failed${detail ? `: ${detail}` : ` with exit code ${download.status}`}`);
+      if (download.exitCode !== 0) {
+        const detail = download.stderr.trim();
+        const result = download.signal ? `signal ${download.signal}` : `exit code ${download.exitCode}`;
+        throw new Error(`WireMock download failed${detail ? `: ${detail}` : ` with ${result}`}`);
       }
 
       const { size } = fstatSync(descriptor);

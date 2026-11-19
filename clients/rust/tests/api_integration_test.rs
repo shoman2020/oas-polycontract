@@ -147,7 +147,54 @@ impl OpenApiResponseValidator {
 }
 
 #[test]
-fn rust_schema_adapter_covers_nullable_exclusive_minimum_and_nested_refs() {
+fn nullable_schema_accepts_null_and_declared_type() {
+    let schema = serde_json::json!({
+        "type": "object",
+        "properties": {
+            "label": { "type": "string", "nullable": true }
+        }
+    });
+    let normalized = normalize_openapi_schema(&schema, &serde_json::json!({}));
+    assert_eq!(normalized.pointer("/properties/label/type"), Some(&serde_json::json!(["string", "null"])));
+    let validator = validator_for(&normalized).expect("nullable schema is supported");
+
+    assert!(validator.is_valid(&serde_json::json!({ "label": null })));
+    assert!(validator.is_valid(&serde_json::json!({ "label": "available" })));
+    assert!(!validator.is_valid(&serde_json::json!({ "label": 42 })));
+}
+
+#[test]
+fn exclusive_minimum_true_rejects_the_boundary_value() {
+    let schema = serde_json::json!({
+        "type": "object",
+        "properties": {
+            "score": { "type": "number", "minimum": 0, "exclusiveMinimum": true }
+        }
+    });
+    let normalized = normalize_openapi_schema(&schema, &serde_json::json!({}));
+    let validator = validator_for(&normalized).expect("exclusive minimum is supported");
+
+    assert!(validator.is_valid(&serde_json::json!({ "score": 0.01 })));
+    assert!(!validator.is_valid(&serde_json::json!({ "score": 0 })));
+}
+
+#[test]
+fn exclusive_minimum_false_keeps_the_inclusive_minimum() {
+    let schema = serde_json::json!({
+        "type": "object",
+        "properties": {
+            "score": { "type": "number", "minimum": 0, "exclusiveMinimum": false }
+        }
+    });
+    let normalized = normalize_openapi_schema(&schema, &serde_json::json!({}));
+    let validator = validator_for(&normalized).expect("inclusive minimum is supported");
+
+    assert!(validator.is_valid(&serde_json::json!({ "score": 0 })));
+    assert!(!validator.is_valid(&serde_json::json!({ "score": -0.01 })));
+}
+
+#[test]
+fn nested_local_references_are_rewritten_recursively() {
     let document = serde_json::json!({
         "components": {
             "schemas": {
@@ -163,18 +210,28 @@ fn rust_schema_adapter_covers_nullable_exclusive_minimum_and_nested_refs() {
     });
     let schema = serde_json::json!({
         "type": "object",
-        "required": ["label", "child"],
+        "required": ["child", "children"],
         "properties": {
-            "label": { "type": "string", "nullable": true },
-            "child": { "$ref": "#/components/schemas/Child" }
+            "child": { "$ref": "#/components/schemas/Child" },
+            "children": {
+                "type": "array",
+                "items": { "$ref": "#/components/schemas/Child" }
+            }
         }
     });
     let normalized = normalize_openapi_schema(&schema, &document);
-    let validator = validator_for(&normalized).expect("translated schema is supported");
+    assert_eq!(normalized.pointer("/properties/child/$ref"), Some(&serde_json::json!("#/$defs/Child")));
+    assert_eq!(normalized.pointer("/properties/children/items/$ref"), Some(&serde_json::json!("#/$defs/Child")));
+    let validator = validator_for(&normalized).expect("nested local references are supported");
 
-    assert!(validator.is_valid(&serde_json::json!({ "label": null, "child": { "score": 0.5 } })));
-    assert!(!validator.is_valid(&serde_json::json!({ "label": "ok", "child": { "score": 0 } })));
-    assert!(!validator.is_valid(&serde_json::json!({ "label": "ok", "child": { "score": "0.5" } })));
+    assert!(validator.is_valid(&serde_json::json!({
+        "child": { "score": 0.5 },
+        "children": [{ "score": 1.0 }]
+    })));
+    assert!(!validator.is_valid(&serde_json::json!({
+        "child": { "score": 0 },
+        "children": []
+    })));
 }
 
 async fn validate_response(

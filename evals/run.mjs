@@ -416,7 +416,7 @@ function checkCompatibilityBaselines(services) {
     if (baseline.info?.title !== candidate.info?.title) {
       failures.push(`compatibility-baselines: ${service.name} baseline and provider spec titles differ`);
     }
-    if (!readRepositoryFile('pipeline/run.mjs').includes(`/repo/${service.baseline}`)
+    if (!pipeline.includes(`/repo/${service.baseline}`)
       || !pipeline.includes(`/repo/${service.candidate}`)) {
       failures.push(`compatibility-baselines: ${service.name} is not checked by the runner`);
     }
@@ -424,7 +424,24 @@ function checkCompatibilityBaselines(services) {
   if (!pipeline.includes("['breaking', baseline, candidate]")) {
     failures.push('compatibility-baselines: compatibility checks must invoke oasdiff breaking for each provider baseline');
   }
-  return services.length;
+
+  const catalog = readOpenApiDocument('openapi/openapi.yaml');
+  const demo = readOpenApiDocument('demo/openapi.yaml');
+  const catalogProduct = catalog.components?.schemas?.Product;
+  const demoProduct = demo.components?.schemas?.Product;
+  const readme = readRepositoryFile('README.md');
+  if (!catalog.info?.description?.includes('Design scaffold')
+    || !demoProduct?.description?.includes('separate')
+    || !demoProduct.description.includes('Catalog scaffold')
+    || !readme.includes('intentionally model different boundaries')) {
+    failures.push('compatibility-baselines: Catalog and demo Product contracts must be documented as separate API boundaries');
+  }
+  if (!['sku', 'name', 'available'].every((field) => catalogProduct?.required?.includes(field))
+    || !['sku', 'available'].every((field) => demoProduct?.required?.includes(field))
+    || demoProduct?.required?.includes('name')) {
+    failures.push('compatibility-baselines: Catalog Product and availability projection must retain their distinct required fields');
+  }
+  return services.length + 2;
 }
 
 function checkApiBehavior() {
@@ -563,7 +580,15 @@ function checkTestcontainersSafety() {
     [packageJson.engines?.npm === versionPins.match(/^NPM_VERSION=(\S+)$/m)?.[1], 'pipeline npm engine must match the shared npm version pin'],
     [['cpu-features', 'protobufjs', 'ssh2'].every((name) => packageJson.allowScripts?.[name] === false), 'unneeded transitive npm install scripts must be explicitly denied'],
     [pipeline.includes('mkdtempSync(join(tmpdir()') && pipeline.includes("openSync(artifactPath, 'wx+'"), 'WireMock artifacts must use a private temp directory and exclusive file descriptor'],
-    [pipeline.includes("spawnSync('curl'") && pipeline.includes('readSync(descriptor') && pipeline.includes('WIREMOCK_SHA256') && !pipeline.includes('fetch(artifactUrl'), 'WireMock download must be verified without writing response data through the JavaScript filesystem API'],
+    [pipeline.includes("import { runChildProcess } from './commands.mjs'")
+      && !pipeline.includes('spawnSync')
+      && pipeline.includes('await runChildProcess(process.execPath')
+      && pipeline.includes("await runChildProcess('curl'")
+      && pipeline.includes("await runChildProcess('docker'")
+      && readRepositoryFile('pipeline/commands.mjs').includes("import { spawn }")
+      && readRepositoryFile('pipeline/commands.test.mjs').includes('awaits a child process')
+      && pipeline.includes('readSync(descriptor') && pipeline.includes('WIREMOCK_SHA256'),
+      'pipeline subprocesses must use tested asynchronous execution while the WireMock artifact stays hash-checked'],
     [!pipeline.includes('npm cache clean --force') && !pipeline.includes('--force >/dev/null'), 'Node runtime setup must not disable npm protections'],
     [clientSuite.includes('mkdir -p "$workspace/target/classes"') && javaProductTests.includes('getProductPathUnvalidated') && javaOrderTests.includes('createOrderUnvalidated') && javaOrderTests.includes('expectedMessage'), 'Java tests isolate malformed inputs from request validation and check responses against feature data'],
     [csharpTestRunner === 'Microsoft.Testing.Platform' && clientSuite.includes('cd "$workspace"') && clientSuite.includes('dotnet test ContractTests.csproj --no-restore'), '.NET 10 C# tests must select MTP from their workspace global.json'],

@@ -8,7 +8,7 @@
   },
   "scripts": {
     "run": "node run.mjs",
-    "test": "node --test config.test.mjs stage-report.test.mjs ../clients/shared/feature-cases.test.mjs"
+    "test": "node --test config.test.mjs commands.test.mjs stage-report.test.mjs ../clients/shared/feature-cases.test.mjs"
   },
   "devDependencies": {
     "testcontainers": "12.2.1",
