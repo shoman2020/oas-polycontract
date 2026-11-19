@@ -45,7 +45,7 @@ public sealed class OpenApiResponseValidatorConformanceTests
                       exclusiveMinimum: true
             """;
         var specificationPath = Path.Combine(Path.GetTempPath(), $"oas-validator-{Guid.NewGuid():N}.yaml");
-        await File.WriteAllTextAsync(specificationPath, specification);
+        await File.WriteAllTextAsync(specificationPath, specification, TestContext.Current.CancellationToken);
         try
         {
             var validator = OpenApiResponseValidator.Load(specificationPath);
