@@ -130,7 +130,7 @@
           <div class="grid">
             <article class="card"><span class="tag">Product Catalog</span><strong>Root OAS scaffold</strong><p><code>openapi/</code> holds a design example without a provider implementation. <code>contracts/baselines/</code> keeps separate accepted snapshots for runnable providers.</p></article>
             <article class="card"><span class="tag">Runnable APIs</span><strong>Product and Order examples</strong><p><code>demo/</code> contains one Product lookup, an in-memory Order lifecycle scoped to each app instance, and a WireMock-backed Inventory dependency.</p></article>
-            <article class="card"><span class="tag">Behavior tests</span><strong>Gherkin acceptance and service unit tests</strong><p><code>clients/features/</code> supplies Product and Order scenarios. A generator writes shared case data for Cucumber and all seven native API suites; Node.js service tests check the behaviors in isolation.</p></article>
+            <article class="card"><span class="tag">Behavior tests</span><strong>Gherkin acceptance and service unit tests</strong><p><code>clients/features/</code> supplies Product and Order scenarios. API-specific Cucumber steps live in <code>clients/js/bdd/</code>. <code>clients/shared/generate-acceptance-cases.mjs</code> exports scenario data to <code>clients/shared/acceptance-cases.json</code> for all seven native API suites; Node.js service tests check behavior in isolation.</p></article>
             <article class="card"><span class="tag">Events and evaluations</span><strong>Separate contract types and checks</strong><p><code>contracts/events/</code> holds linted AsyncAPI examples. <code>evals/</code> checks docs, test entry points, collection paths, pipeline wiring, mock cases, and roadmap progress.</p></article>
             <article class="card"><span class="tag">Phase 5 · examples delivered</span><strong>Manual collection migration</strong><p><code>legacy/</code> holds OAS-aligned Postman and Bruno examples for Product lookup and the stateful Order flow. Their paths are checked against the contracts.</p><p><a href="https://github.com/shoman2020/oas-polycontract/tree/main/legacy">Open the collections and setup guide</a></p></article>
           </div>
@@ -244,9 +244,13 @@
               <h3>Shared API acceptance cases</h3>
               <div class="test-flow-chain">
                 <div class="test-flow-step"><strong>Product and Order Gherkin</strong><br><code>clients/features/</code></div>
-                <div class="test-flow-step">Generator writes <code>clients/shared/acceptance-cases.json</code></div>
-                <div class="test-flow-step">Cucumber uses API-specific steps against live services</div>
+                <div class="test-flow-step">Generator <code>clients/shared/generate-acceptance-cases.mjs</code> writes <code>clients/shared/acceptance-cases.json</code></div>
                 <div class="test-flow-step">Rust · Go · Python · JavaScript · TypeScript · Java · C# consume the same cases</div>
+              </div>
+              <div class="test-flow-chain">
+                <div class="test-flow-step"><strong>Gherkin features</strong> + API-specific steps in <code>clients/js/bdd/</code></div>
+                <div class="test-flow-step">Cucumber acceptance tests</div>
+                <div class="test-flow-step">Live Product and Order services</div>
               </div>
             </section>
             <section class="test-flow-lane">

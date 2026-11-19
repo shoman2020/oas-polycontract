@@ -824,13 +824,20 @@ function checkWorkflowVisuals() {
   if (sceneCount !== 8) failures.push(`workflow-visuals: expected 8 showcase slides, found ${sceneCount}`);
   if (laneCount !== 4) failures.push(`workflow-visuals: expected 4 workflow lanes, found ${laneCount}`);
   if (testFlowLaneCount !== 8) failures.push(`workflow-visuals: expected 8 interactive test-flow lanes, found ${testFlowLaneCount}`);
-  if (!showcase.includes('clients/shared/acceptance-cases.json')
-    || !showcase.includes('clients/features/')) {
-    failures.push('workflow-visuals: feature-driven tests must map shared generated cases from the Product and Order feature directory');
+  const acceptanceFlowSources = [
+    'clients/features/',
+    'clients/js/bdd/',
+    'clients/shared/generate-acceptance-cases.mjs',
+    'clients/shared/acceptance-cases.json',
+  ];
+  for (const source of acceptanceFlowSources) {
+    if (!readme.includes(source) || !showcase.includes(source)) {
+      failures.push(`workflow-visuals: README and interactive flow must map ${source}`);
+    }
   }
   if (workflowMapReferences < 6) failures.push(`workflow-visuals: expected 6 README links to interactive maps, found ${workflowMapReferences}`);
   if (!showcase.includes('aria-valuemax="8"')) failures.push('workflow-visuals: showcase progress range is not updated for 8 slides');
-  return workflowFiles.length + sourcePolicies.length + concepts.length + readmeTriggers.length + showcaseTriggers.length + sceneCount + laneCount;
+  return workflowFiles.length + sourcePolicies.length + concepts.length + readmeTriggers.length + showcaseTriggers.length + sceneCount + laneCount + acceptanceFlowSources.length;
 }
 
 const evaluators = {
