@@ -34,6 +34,7 @@ const versions = readVersionPins(join(repositoryRoot, '.github/versions.env'), [
   'OASDIFF_VERSION',
   'SCHEMATHESIS_VERSION',
   'SPECMATIC_VERSION',
+  'SPECMATIC_OPENJDK_VERSION',
   'SPECTRAL_VERSION',
   'TESTCONTAINERS_RYUK_VERSION',
   'NODE_TEST_IMAGE',
@@ -79,6 +80,7 @@ const serviceHealthCheck = (port) => ({
 class ContractPipeline {
   constructor() {
     this.network = undefined;
+    this.specmaticImage = `specmatic/specmatic:${versions.SPECMATIC_VERSION}`;
     this.services = [];
     this.stages = [];
     this.plannedStages = [];
@@ -96,6 +98,7 @@ class ContractPipeline {
     ];
     const contractPlan = [
       ...runtimeStages,
+      ['Prepare patched Specmatic runtime', () => this.prepareSpecmaticImage()],
       ['Repository evaluations', () => this.runEvaluations()],
       ['API behavior unit tests', () => this.runServiceUnitTests()],
       ['Contract lint', () => this.runContractLint()],
@@ -233,20 +236,67 @@ class ContractPipeline {
         comment: `Node ${versions.NODE_VERSION} with npm ${versions.NPM_VERSION}`,
       });
       if (process.env.NODE_TEST_IMAGE_ARCHIVE) {
-        const archivePath = resolve(process.env.NODE_TEST_IMAGE_ARCHIVE);
-        mkdirSync(dirname(archivePath), { recursive: true });
-        const exportedImage = await runChildProcess('docker', [
-          'image', 'save', '--output', archivePath, nodeTestImage,
-        ], { stdio: 'inherit' });
-        if (exportedImage.exitCode !== 0) {
-          const result = exportedImage.signal ? `signal ${exportedImage.signal}` : `exit code ${exportedImage.exitCode}`;
-          throw new Error(`Could not export prepared Node image (docker image save: ${result})`);
-        }
-        console.log(`  <- Exported ${nodeTestImage} to ${archivePath}`);
+        await this.exportImageArchive(nodeTestImage, process.env.NODE_TEST_IMAGE_ARCHIVE);
       }
       console.log(`  <- Prepared ${nodeTestImage}`);
     } finally {
       await started.stop().catch((error) => console.warn(`Node test image cleanup: ${error.message}`));
+    }
+  }
+
+  async exportImageArchive(image, archivePath) {
+    const resolvedArchivePath = resolve(archivePath);
+    mkdirSync(dirname(resolvedArchivePath), { recursive: true });
+    const exportedImage = await runChildProcess('docker', [
+      'image', 'save', '--output', resolvedArchivePath, image,
+    ], { stdio: 'inherit' });
+    if (exportedImage.exitCode !== 0) {
+      const result = exportedImage.signal ? `signal ${exportedImage.signal}` : `exit code ${exportedImage.exitCode}`;
+      throw new Error(`Could not export image ${image} (docker image save: ${result})`);
+    }
+    console.log(`  <- Exported ${image} to ${resolvedArchivePath}`);
+  }
+
+  async prepareSpecmaticImage() {
+    const marker = '__POLYCONTRACT_SPECMATIC_RUNTIME_READY__';
+    const specmaticTag = `${versions.SPECMATIC_VERSION}-openjdk-${versions.SPECMATIC_OPENJDK_VERSION}`;
+    const upstreamImage = `specmatic/specmatic:${versions.SPECMATIC_VERSION}`;
+    this.specmaticImage = `oas-polycontract/specmatic:${specmaticTag}`;
+    const preparation = this.createContainer(upstreamImage, {
+      timeout: 300_000,
+      entrypoint: ['/bin/sh', '-c'],
+      user: '0',
+      environment: { SPECMATIC_OPENJDK_VERSION: versions.SPECMATIC_OPENJDK_VERSION },
+      waitStrategy: Wait.forLogMessage(new RegExp(marker), 1),
+      command: [
+        'apk upgrade --no-cache "openjdk-17-default-jvm>=${SPECMATIC_OPENJDK_VERSION}" '
+          + '"openjdk-17-jre>=${SPECMATIC_OPENJDK_VERSION}" && java -version '
+          + `&& echo ${marker} && sleep infinity`,
+      ],
+    });
+
+    const started = await preparation.start();
+    try {
+      await started.commit({
+        repo: 'oas-polycontract/specmatic',
+        tag: specmaticTag,
+        comment: `Specmatic ${versions.SPECMATIC_VERSION} with patched Wolfi OpenJDK ${versions.SPECMATIC_OPENJDK_VERSION}`,
+        changes: [
+          'ENTRYPOINT ["/usr/local/bin/specmatic"]',
+          'CMD []',
+          'USER root',
+          'ENV SPECMATIC_OPENJDK_VERSION=',
+        ],
+      });
+      await this.runTask('Verify patched Specmatic CLI', this.specmaticImage, {
+        command: ['--help'],
+      });
+      if (process.env.SPECMATIC_IMAGE_ARCHIVE) {
+        await this.exportImageArchive(this.specmaticImage, process.env.SPECMATIC_IMAGE_ARCHIVE);
+      }
+      console.log(`  <- Prepared ${this.specmaticImage}`);
+    } finally {
+      await started.stop().catch((error) => console.warn(`Specmatic image cleanup: ${error.message}`));
     }
   }
 
@@ -280,19 +330,30 @@ class ContractPipeline {
     const cacheDirectory = mkdtempSync(join(tmpdir(), 'oas-polycontract-'));
     const artifactPath = join(cacheDirectory, artifactName);
     const digest = (content) => createHash('sha256').update(content).digest('hex');
-    const artifactUrl = `https://repo.maven.apache.org/maven2/org/wiremock/wiremock-standalone/${versions.WIREMOCK_VERSION}/${artifactName}`;
+    const artifactUrls = [
+      `https://repo.maven.apache.org/maven2/org/wiremock/wiremock-standalone/${versions.WIREMOCK_VERSION}/${artifactName}`,
+      `https://repo1.maven.org/maven2/org/wiremock/wiremock-standalone/${versions.WIREMOCK_VERSION}/${artifactName}`,
+    ];
     let descriptor;
     let retainArtifact = false;
     try {
       descriptor = openSync(artifactPath, 'wx+', 0o600);
-      const download = await runChildProcess('curl', [
-        '--fail', '--silent', '--show-error', '--location', '--retry', '3', '--retry-all-errors',
-        '--proto', '=https', '--proto-redir', '=https', '--connect-timeout', '15', '--max-time', '60', '--retry-max-time', '90', '--max-filesize', '33554432', artifactUrl,
-      ], { stdio: ['ignore', descriptor, 'pipe'] });
+      let download;
+      for (const [index, artifactUrl] of artifactUrls.entries()) {
+        if (index > 0) {
+          closeSync(descriptor);
+          descriptor = openSync(artifactPath, 'w+', 0o600);
+        }
+        download = await runChildProcess('curl', [
+          '--fail', '--silent', '--show-error', '--location', '--retry', '3', '--retry-all-errors',
+          '--proto', '=https', '--proto-redir', '=https', '--connect-timeout', '15', '--max-time', '60', '--retry-max-time', '90', '--max-filesize', '33554432', artifactUrl,
+        ], { stdio: ['ignore', descriptor, 'pipe'] });
+        if (download.exitCode === 0) break;
+      }
       if (download.exitCode !== 0) {
         const detail = download.stderr.trim();
         const result = download.signal ? `signal ${download.signal}` : `exit code ${download.exitCode}`;
-        throw new Error(`WireMock download failed${detail ? `: ${detail}` : ` with ${result}`}`);
+        throw new Error(`WireMock download failed from Maven Central mirrors${detail ? `: ${detail}` : ` with ${result}`}`);
       }
 
       const { size } = fstatSync(descriptor);
@@ -467,7 +528,7 @@ class ContractPipeline {
 
     await this.runExpectedFailure(
       'Specmatic rejects broken Product provider',
-      `specmatic/specmatic:${versions.SPECMATIC_VERSION}`,
+      this.specmaticImage,
       {
         workingDir: '/tmp',
         mounts: [readOnlyMount('demo')],
@@ -519,17 +580,17 @@ class ContractPipeline {
       },
       mounts: [readOnlyMount('demo/app')],
     });
-    await this.runTask('Specmatic downstream provider', `specmatic/specmatic:${versions.SPECMATIC_VERSION}`, {
+    await this.runTask('Specmatic downstream provider', this.specmaticImage, {
       workingDir: '/tmp',
       command: ['test', '/repo/demo/downstream/openapi.yaml', '--testBaseURL=http://wiremock:8080'],
       mounts: [readOnlyMount('demo/downstream')],
     });
-    await this.runTask('Specmatic Product provider', `specmatic/specmatic:${versions.SPECMATIC_VERSION}`, {
+    await this.runTask('Specmatic Product provider', this.specmaticImage, {
       workingDir: '/tmp',
       command: ['test', '/repo/demo/openapi.yaml', '--testBaseURL=http://app:8080'],
       mounts: [readOnlyMount('demo')],
     });
-    await this.runTask('Specmatic examples validation', `specmatic/specmatic:${versions.SPECMATIC_VERSION}`, {
+    await this.runTask('Specmatic examples validation', this.specmaticImage, {
       workingDir: '/tmp',
       command: ['examples', 'validate', '--spec-file', '/repo/demo/openapi.yaml'],
       mounts: [readOnlyMount('demo')],
@@ -630,7 +691,7 @@ class ContractPipeline {
   }
 
   async runConsumerTests() {
-    const image = `specmatic/specmatic:${versions.SPECMATIC_VERSION}`;
+    const image = this.specmaticImage;
     const mock = await this.startService(image, 'specmatic-mock', {
       workingDir: '/tmp',
       command: ['mock', '/repo/demo/openapi.yaml'],
