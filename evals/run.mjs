@@ -604,6 +604,7 @@ function checkTestcontainersSafety() {
     [!composeExists, 'Docker Compose orchestration should be removed'],
     [projectDockerfiles.every((path) => !existsSync(resolve(repositoryRoot, path))), 'project-specific Dockerfiles should be replaced with pinned Testcontainers runtimes'],
     [invalidDockerUpdates.length === 0, 'Dependabot Docker updates must target directories that contain a Dockerfile'],
+    [pipeline.includes("'--retry-all-errors'") && pipeline.includes('WIREMOCK_SHA256'), 'WireMock artifact downloads must retry errors and verify their pinned digest'],
     [pipeline.includes('const readOnlyMount') && pipeline.includes("mode: 'ro'") && !pipeline.includes("source: repositoryRoot") && !pipeline.includes("target: '/repo'"), 'only selected source paths may be mounted read-only'],
     [pipeline.includes("readOnlyMount('demo')") && pipeline.includes("readOnlyMount('openapi')"), 'contract and fixture mounts must be explicit'],
     [(consumerPipeline.match(/NPM_VERSION: versions\.NPM_VERSION/g) ?? []).length === 2, 'JavaScript and Playwright consumer suites must receive the pinned npm version'],
