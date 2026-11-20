@@ -1,14 +1,12 @@
 # API acceptance features
 
-Product and Order feature files hold acceptance behavior and input data. Each scenario includes a JSON DocString. The generator exports that data to [acceptance-cases.json](../shared/acceptance-cases.json), which all seven native language suites read. Run the generator after editing a feature; run.sh checks that the exported data is current.
+The [Product](product-api.feature) and [Order](order-api.feature) Gherkin files define acceptance scenarios and input data. A generator exports their JSON DocStrings to [shared case data](../shared/acceptance-cases.json), used by all seven native suites.
 
 | API | Feature | Cucumber steps | Isolated service tests |
 |---|---|---|---|
 | Product | [product-api.feature](product-api.feature) | [product-api.steps.mjs](../js/bdd/product-api.steps.mjs) | [server.test.mjs](../../demo/app/tests/server.test.mjs) |
 | Order | [order-api.feature](order-api.feature) | [order-api.steps.mjs](../js/bdd/order-api.steps.mjs) | [server.test.mjs](../../demo/stateful/server.test.mjs) |
 
-Shared Cucumber support lives in [support.mjs](../js/bdd/support.mjs). API-specific steps use language clients and validate declared responses against the matching OAS. The unsupported-method scenario checks HTTP 405 and Allow directly because that method is outside the OAS operation list.
+Steps validate declared responses against the API's OAS. The unsupported-method scenario checks 405 and `Allow` directly. For behavior changes, update the scenario and write a failing service test before implementation.
 
-The pipeline runs unit tests before provider, fuzzing, and live integration gates. Write a failing isolated service test for a behavior change, update its feature data, then implement the change and verify it through the native suites.
-
-Run the full pipeline with bash ./run.sh. Regenerate case data with node clients/shared/generate-acceptance-cases.mjs.
+Check generated data with `node clients/shared/generate-acceptance-cases.mjs --check`. The full test command is in the [README](../../README.md#run).

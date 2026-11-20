@@ -62,7 +62,7 @@ Native suites are code-based API integration tests: they call the running APIs, 
 
 ```mermaid
 flowchart TB
-  AnyPush[Push to any branch] --> Contract[contract.yml]
+  MainPush[Push to main] --> Contract[contract.yml]
   PullRequest[Pull request] --> Contract
   Manual[Manual workflow dispatch] --> Contract
   Contract --> CoreJob[Shared contract gate job]
@@ -101,21 +101,19 @@ flowchart TB
 
 ## Run
 
-Requires Node.js 26.13.1, npm 12.2.3, and a Docker-compatible container runtime. The repository includes `.nvmrc` for Node.js selection; with nvm, run `nvm use` and install the pinned npm with `npm install --global npm@12.2.3`. Testcontainers for Node.js manages the pipeline.
+Use the Node.js and npm versions in [`.github/versions.env`](.github/versions.env); `.nvmrc` pins Node.js. A Docker-compatible runtime is required.
 
 ```sh
 bash ./run.sh
 ```
 
-`run.sh` checks the exact pinned Node.js/npm versions, installs the locked pipeline dependency, and starts an isolated Testcontainers network. It prepares the Node test image with the pinned npm release, verifies a pinned WireMock standalone JAR by SHA-256, then runs shared contract gates and API suites. In CI, Trivy scans an exported Node test runtime archive, the WireMock image and verified standalone JAR, and the Specmatic image. Contract, fixture, and client source mounts are read-only; dependency downloads and build outputs stay in temporary container directories. Tests cannot rewrite the checked-in OAS. Update a contract through a reviewed source change, then update its compatibility baseline in the same change when the new version is intentional. Use Docker Desktop or Colima on macOS, or Docker Desktop with WSL/Git Bash on Windows. CI uses Ubuntu.
-
-The pipeline stops when a stage fails so dependent checks do not create cascading errors. Its timing report lists later stages as `skipped`, alongside completed and failed stages. Contract CI runs shared gates once, then starts a separate Testcontainers job for each language stack and Playwright. Each job starts its own Product, Order, and WireMock services and publishes a stack-specific timing artifact. Local `bash ./run.sh` runs the full sequence by default; `POLYCONTRACT_PIPELINE_PROFILE=core` and `native` select the corresponding CI profiles. CI runs the shared contract gates once, then starts a separate Testcontainers job for each native language stack and Playwright. Each job starts its own Product, Order, and WireMock services and publishes a stack-specific timing artifact. Local `bash ./run.sh` keeps the full sequential run by default; `POLYCONTRACT_PIPELINE_PROFILE=core` and `native` select the corresponding CI profiles.
-
-Full runs include seven language suites to demonstrate options. The seven language suites and the Specmatic and WireMock integrations are examples with suggested tools, not a required stack. Use this guide to migrate API tests to your team's native language and framework, keeping them in the same repository as the service or consumer. For a focused local run, select a comma-separated subset; JavaScript and Playwright also check consumer flows against the provider Smart Mock:
+The script checks runtime pins, runs pipeline unit checks, verifies generated feature data, then runs the full Testcontainers pipeline. To select native suites locally:
 
 ```sh
 POLYCONTRACT_NATIVE_CLIENTS=rust,python bash ./run.sh
 ```
+
+Set `POLYCONTRACT_PIPELINE_PROFILE` to `core` or `native` to run that CI section locally. The languages and tools are examples, not requirements; use the [client guide](clients/README.md) to adapt tests to your team's native stack and repository.
 
 ## Behavior scenarios and test-driven changes
 
@@ -127,13 +125,13 @@ Treat this repository as a pilot template. Before adopting it across teams, adap
 
 | Area | Current example | Adoption step |
 |---|---|---|
-| API coverage | One Product lookup and one in-memory Order lifecycle | Pilot with representative APIs, including authentication, errors, pagination, versioning, and downstream failure modes. |
+| API coverage | One Product lookup and one Order lifecycle; no authentication scheme or collection endpoint | Pilot with representative APIs, including authentication, collection operations, pagination, versioning, and downstream failure modes. |
 | Consumer ownership | Provider OAS generates the Smart Mock; this example has no consumer-owned contract | Add a versioned contract per consumer and provider verification when teams need to check their own expectations. |
 | Validators | Language validators differ. The Rust and C# adapters translate nullable values, `exclusiveMinimum`, and nested local component-schema references covered by conformance tests; neither claims full OAS 3.0 coverage. C# rejects external and unsupported references before schema resolution. | Agree a supported OAS feature matrix and test each language against it. Add coverage for constructs such as `allOf`, `anyOf`, and discriminators before relying on them. Use the shared Spectral, Specmatic, and Schemathesis gates for contract-wide checks. |
 | Runtime state | Order data is in memory, scoped to one app instance, and lost on restart | Use isolated test data and a service-backed store for tests that need persistence, parallel environments, or multi-instance behavior. |
 | Runtime versions | CI tests one centrally pinned toolchain | Align pins with approved company versions and add compatibility jobs for the runtimes teams support. |
-| CI cost | The full run pulls pinned runtime images and runs all client suites; client dependencies install into temporary containers | Measure the full workflow in the target CI environment before making it a required check; use the CSV stage timings to tune caching, parallelism, and coverage. |
-| Merge governance | The active [`main` ruleset](https://github.com/shoman2020/oas-polycontract/settings/rules/27679805) requires 20 contract, native-suite, and security checks | Adapt status contexts and PR/review requirements to the adopting repository's workflow and policy. |
+| CI cost | The full run pulls pinned runtime images and runs all client suites; client dependencies install into temporary containers | Measure target CI before setting timeouts, cost budgets, or performance thresholds. The active ruleset gates correctness and security, not runtime duration. |
+| Merge governance | The active [`main` ruleset](https://github.com/shoman2020/oas-polycontract/settings/rules/27679805) requires 20 status checks. PR-only merging and required code-owner review are not enabled; CODEOWNERS assigns the same owner set across all paths. | Set PR, review, and path ownership rules to match the adopting repository's policy. |
 
 The Order service remains a stateful test fixture, not a production implementation. It uses random UUIDs to avoid collisions between concurrent app instances, and tests confirm that each app instance has isolated data. Its in-memory store does not provide persistence or coordination between replicas, so a request routed to another replica may return 404. The pinned toolchain is a tested reference set, not a promise of compatibility with every company runtime.
 
@@ -221,13 +219,15 @@ Specmatic mock data uses OAS examples, fixtures in `demo/openapi_examples`, and 
 | Gate | Check | Workflow |
 |---|---|---|
 | Contract quality | Spectral lint and OAS compatibility | `contract.yml` |
-| API behavior | Specmatic provider verification, failing canaries, 404/400/409/502 assertions, WireMock, Schemathesis, and native integration suites | `contract.yml` |
-| Project consistency | Repository evaluations check links, structure, test roles, workflows, and roadmap | `contract.yml` |
+| API behavior | Specmatic provider verification, Spectral lint and canary, oasdiff ERR-level compatibility gate and canary, downstream timeout handling, error-path assertions, WireMock, Schemathesis, and native suites | `contract.yml` |
+| Project consistency | Repository evaluations check links, shell paths, contracts, structure, test roles, workflows, and roadmap | `contract.yml` |
 | Source and dependencies | CodeQL, Gitleaks, Trivy filesystem scan, Dependency Review, and Dependabot | `security.yml` |
 | Container and runtime artifacts | Trivy scans the exported Node test runtime, WireMock and Specmatic images, and verified WireMock JAR | `contract.yml` |
 | GenAI code | SecureAI-Scan scans repository source; manual positive controls demonstrate SecureAI-Scan and Semgrep rules | `security.yml` |
 
-Dependabot checks package manifests weekly. Contract CI runs on pushes, pull requests, and manual dispatch. Security CI runs on pushes to `main`, pull requests, a weekly schedule, and manual dispatch. See the [interactive workflow map](https://shoman2020.github.io/oas-polycontract/#workflows).
+Some repository checks match source markers to guard conventions; they do not prove runtime behavior. Tests and negative canaries provide that evidence.
+
+Dependabot checks package manifests weekly. Contract CI runs on pushes to `main`, pull requests, and manual dispatch. Security CI runs on pushes to `main`, pull requests, a weekly schedule, and manual dispatch. See the [interactive workflow map](https://shoman2020.github.io/oas-polycontract/#workflows).
 
 The [OWASP SecureAI-Scan](https://genai.owasp.org/solution/secureai-scan/) gate scans repository source for AI, LLM, and MCP risks. This project has no runtime AI or MCP integration. Manual `workflow_dispatch` runs can also execute isolated positive controls: the [SecureAI example](gates/security/run-genai-example.mjs) creates a temporary TypeScript chat handler with user input in a system prompt, checks for the expected high `AI001` finding, and saves its SARIF artifact. The temporary source is removed before the repository scan. Manual-only fixtures keep demonstration code out of routine pull-request scans.
 

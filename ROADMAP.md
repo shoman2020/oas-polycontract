@@ -7,18 +7,18 @@ One reviewed specification contract per API boundary. Clear ownership means less
 | Area | Delivered | Remaining |
 |---|---|---|
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | Runtime event tests need a provider or broker |
-| Tests | Specmatic provider verification, provider Smart Mock development checks, WireMock, stateful and stateless fuzzing, negative canaries, seven-language error-path suites driven by shared Gherkin data, and isolated service unit tests; [contract run 44624568894 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44624568894) | Pilot against representative company APIs |
+| Tests | Specmatic provider verification, Smart Mock development checks, WireMock, stateful and stateless fuzzing, provider/Spectral/oasdiff ERR-level failure canaries, seven-language error-path suites, and service unit tests; [contract run 44635628482 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628482) | Pilot against representative company APIs |
 | Legacy migration | Project-specific Postman and Bruno collections follow Product and Order OAS | Import team-owned history if teams provide their collections |
-| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, and SecureAI-Scan; [security run 44624568889 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44624568889) | GenAI positive controls are manual demos; no application AI runtime |
+| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, and SecureAI-Scan; [security run 44635628479 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628479) | No SBOM artifact or license policy; GenAI controls are manual demos and no application AI runtime exists |
 | Dependencies | Cargo, Go, NuGet, npm, Python, Maven, and Testcontainers pins or locks; minimatch alert #3 fixed | Replace the Picomatch patch when upstream publishes a fix |
-| Performance | Pre-Testcontainers [five-sample reference](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941): 304s cold, 201s warm median (200–205s range), build 91s cold and 2s warm | Dispatch the manual Ubuntu 24.04/26.04 matrix after Testcontainers migration |\n| Merge governance | Active `main` ruleset requires the contract gate, eight native suites, and eleven security checks | Adapt the required contexts to each adopting repository's workflows |
-| Enterprise adoption | Scope limits and a selective local language-suite option are documented | Add consumer-owned contracts, validator coverage, approved runtime matrix, and production-like test environments based on a pilot |
-| Review response | Added provider-specific compatibility snapshots, expected-failure canaries, error-path tests, focused Rust and C# validator conformance cases, explicit Catalog/Product boundary checks, asynchronous subprocess execution, and read-only contract mounts; Order IDs use UUIDs with concurrency and instance-isolation tests; C# rejects external nested schema references; failed-run summaries list skipped stages; [contract run 44563995399 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44563995399) | Broader validator coverage remains pilot work |
+| Performance | Pre-Testcontainers [five-sample reference](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941): 304s cold, 201s warm median (200–205s range), build 91s cold and 2s warm | Dispatch the manual Ubuntu 24.04/26.04 matrix after Testcontainers migration |
+| Merge governance | Active [`main` ruleset](https://github.com/shoman2020/oas-polycontract/settings/rules/27679805) requires 20 contract, native-suite, and security checks; latest main runs passed | PR-only merging and required code-owner review are not enabled |
+| Enterprise adoption | Scope limits and a selective local language-suite option are documented | Pilot with authenticated collection APIs, consumer-owned contracts, approved OAS feature/runtime matrices, and production-like environments |
 | Showcase | Interactive contract, test-role, pipeline, workflow, and performance views; current source published by [run 44349546414](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546414) | — |
 
-The shared test vocabulary and examples are in the [README testing model](README.md#testing-model-and-terminology). Specifications are read-only inputs in CI and are changed only through reviewed source updates. For separate provider and consumer projects, publish an immutable specification artifact and pin its version in both repos.
+See the [README](README.md) for the test model and contract release guidance.
 
-Open gates are the `main` merge policy (Phase 10), post-Testcontainers performance matrix (Phase 12), and pilot-dependent work in Phase 17. The connected GitHub integration cannot access branch rules (403), so Phase 10 still needs the repository owner settings session.
+Open work includes the post-Testcontainers performance matrix (Phase 12), runtime event coverage, pilot-dependent decisions (Phase 17), structural Testcontainers checks (Phase 19), and governance or supply-chain choices in Conditional work.
 
 ## Phases
 
@@ -34,6 +34,7 @@ Open gates are the `main` merge policy (Phase 10), post-Testcontainers performan
 ### Phase 2 — Contract governance
 - [x] Lint OAS and AsyncAPI and compare Product, Order, and Inventory against provider-specific compatibility snapshots.
 - [x] Run Specmatic and native-suite canaries that prove a schema-invalid Product provider fails.
+- [x] Run Spectral and oasdiff canaries that prove a lint violation and ERR-level breaking change fail their gates.
 - [x] Run provider, consumer Smart Mock, downstream, examples, stateless fuzz, and stateful checks.
 - [x] Track main-branch enforcement in Phase 10.
 
@@ -89,7 +90,7 @@ Open gates are the `main` merge policy (Phase 10), post-Testcontainers performan
 - [x] Fix minimatch alert #3 through glob 14.0.6, resolving patched minimatch 11.0.9.
 
 ### Phase 10 — Merge policy
-- [x] Activate repository ruleset [27679805](https://github.com/shoman2020/oas-polycontract/settings/rules/27679805) for `main`; it requires all 20 verified contexts: `contract-examples (ubuntu-26.04)`, `Native API suite (rust)`, `(go)`, `(python)`, `(js)`, `(ts)`, `(java)`, `(csharp)`, `(playwright)`, `CodeQL (go)`, `(java-kotlin)`, `(python)`, `(csharp)`, `(javascript-typescript)`, `(rust)`, `(actions)`, `Secret scan`, `Dependency and configuration scan`, `Dependency review`, and `OWASP GenAI scan`. It also blocks deletion and force-pushes. PR-only merging is not enabled.
+- [x] Activate repository ruleset [27679805](https://github.com/shoman2020/oas-polycontract/settings/rules/27679805) for `main`; it requires all 20 verified contexts: `contract-examples (ubuntu-26.04)`, `Native API suite (rust)`, `(go)`, `(python)`, `(js)`, `(ts)`, `(java)`, `(csharp)`, `(playwright)`, `CodeQL (go)`, `(java-kotlin)`, `(python)`, `(csharp)`, `(javascript-typescript)`, `(rust)`, `(actions)`, `Secret scan`, `Dependency and configuration scan`, `Dependency review`, and `OWASP GenAI scan`. It also blocks deletion and force-pushes. PR-only merging and required code-owner review are not enabled.
 
 ### Phase 11 — Showcase publishing
 - [x] Publish the interactive showcase with GitHub Actions.
@@ -143,20 +144,31 @@ Open gates are the `main` merge policy (Phase 10), post-Testcontainers performan
 - [x] Run the shared core gates and confirm the Specmatic example warning is gone; see run 44570728787.
 - [x] Verify Trivy scans the exported image archive and all eight isolated native matrix jobs pass; [contract run 44623074864](https://github.com/shoman2020/oas-polycontract/actions/runs/44623074864).
 
+### Phase 19 — Documentation and evaluation quality
+- [x] Replace manual collection setup that referenced removed Dockerfiles with pinned WireMock and host Node.js commands.
+- [x] Audit fenced Markdown shell examples for local scripts, source files, Docker build contexts, and static bind paths.
+- [x] Document that source-marker evaluations are guardrails, not behavior proofs.
+- [ ] Replace source-text Testcontainers assertions with structured or behavior-based checks where practical.
+
 ## Conditional work
 
 These items need an external input or repository setting before implementation:
 
 | Work | Prerequisite |
 |---|---|
-| Enforce required checks | Repository owner enables the exact contexts in Phase 10; the connected GitHub integration cannot access branch-rule APIs. |
 | Compare runner performance | Maintainer dispatches the manual workflow. |
 | Validate enterprise adoption | A pilot team supplies representative API contracts and approved runtime requirements. |
-
 | Add AsyncAPI runtime coverage | The repository has no event publisher; include a demo provider and broker/server when that example is ready to be maintained. |
 | Configure environment URLs | A deployed API environment exists. |
 | Add consumer-owned contracts | Consumer owners supply their actual expectations and provider verification rules. |
 | Migrate historic requests | The owning team supplies Postman/Bruno exports. |
+| Refine Testcontainers fitness checks | Replace source-marker assertions with structural or behavior-based checks before applying them as company policy. |
+| Require PR-only merges and code-owner review | Repository owner decides whether checks must run through reviewed pull requests; consider path-specific owners if API and tooling ownership separates. |
+| Add auth and collection API examples | Choose an authentication scheme and representative collection behavior with the pilot team. |
+| Measure test coverage | Choose language scope, report format, and thresholds before adding a gate. |
+| Publish SBOMs | Define artifact scope, format, retention, and consumers. |
+| Enforce license policy | Legal or architecture owners provide an approved license policy. |
+| Add issue and PR templates | Decide which fields public bug and feature reports must include. |
 
 ## Package fit
 
@@ -164,43 +176,10 @@ This reference repo has no stable runtime API to package. A `create-polycontract
 
 ## Specification diagnostics
 
-Run [44565579793](https://github.com/shoman2020/oas-polycontract/actions/runs/44565579793) completed successfully before the CI split:
-
-- Spectral reported zero error-severity findings for OpenAPI and AsyncAPI.
-- oasdiff reported no breaking changes. Product and Order baselines differed structurally; Inventory had no difference.
-- Specmatic warned four times that the `inventory-malformed` request example lacked a matching response example. The Product OAS now pairs it with a 502 response; core run [44570728787](https://github.com/shoman2020/oas-polycontract/actions/runs/44570728787) emitted no such warning.
-- The [line 314 output](https://github.com/shoman2020/oas-polycontract/actions/runs/44565579793/job/135706271073#step:9:314) is a clean Spectral result, and [line 353](https://github.com/shoman2020/oas-polycontract/actions/runs/44565579793/job/135706271073#step:9:353) is an informational compatibility result, not a breaking change.
-- [Lines 403](https://github.com/shoman2020/oas-polycontract/actions/runs/44565579793/job/135706271073#step:9:403) and [511](https://github.com/shoman2020/oas-polycontract/actions/runs/44565579793/job/135706271073#step:9:511) show intentional negative canaries: the gates reject a Product response where `available` is a string instead of a number. These are expected failures inside passing canary checks, not defects in the live provider.
+The latest [main contract run 44635628482](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628482) passed. Before the CI split, run [44565579793](https://github.com/shoman2020/oas-polycontract/actions/runs/44565579793) reported zero Spectral errors and no breaking changes. Its Specmatic example warning was fixed by pairing the malformed Inventory request with a 502 response; [run 44570728787](https://github.com/shoman2020/oas-polycontract/actions/runs/44570728787) confirmed the warning was gone. Negative canaries intentionally show rejection of invalid Product responses.
 
 ## Progress
 
-- 20 Nov: Main ruleset [27679805](https://github.com/shoman2020/oas-polycontract/settings/rules/27679805) is active with 20 required contract, native-suite, and security contexts. Contract run [44624568894](https://github.com/shoman2020/oas-polycontract/actions/runs/44624568894) and security run [44624568889](https://github.com/shoman2020/oas-polycontract/actions/runs/44624568889) passed. Runtime event tests, consumer-owned contracts, and the post-Testcontainers performance matrix remain open.
-- 19 Nov: Run [44570193982](https://github.com/shoman2020/oas-polycontract/actions/runs/44570193982) exposed a missing Trivy label in the interactive map. Run [44570728787](https://github.com/shoman2020/oas-polycontract/actions/runs/44570728787) passed all 16 repository evaluations and shared gates, but Trivy could not find the generated Node image after cleanup. CI now exports that image before cleanup. [Run 44573964063](https://github.com/shoman2020/oas-polycontract/actions/runs/44573964063) passed Trivy scans and all eight isolated stack jobs.
-- 19 Nov: Split contract CI into one shared `core` job and isolated per-stack `native` matrix jobs. Updated README and interactive workflow diagrams, added per-stack timings, and paired the malformed-inventory request example with its 502 response. The core run emitted no unmatched Specmatic example warnings.
-
-- 19 Nov: Consolidated Testcontainers container configuration and service health checks to remove duplicated builder and readiness setup. Service health and one-shot completion strategies remain distinct. [Contract run 44563995399 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44563995399).
-- 19 Nov: Run 44557734234 exposed a missing comma in UUID Order ID generation; the object literal was fixed and the complete Testcontainers contract run 44563995399 passed. The README and interactive flow show two Gherkin paths: API-specific Cucumber steps run source features against live services, while the generator exports shared JSON consumed by the seven native suites. Tools and languages are examples with suggested migration options.
-- 19 Nov: Run 44552231115 exposed a missing npm pin in JavaScript and Playwright consumer containers. Both received `NPM_VERSION`; the complete follow-up contract run 44563995399 passed.
-- 19 Nov: Applied the review follow-up: UUID Order identifiers with concurrency/isolation tests, fail-closed nested external C# schema references, explicit Catalog-versus-Product boundary descriptions, `.nvmrc` setup guidance, and skipped-stage reporting after fail-fast errors. Contract run 44563995399 passed. Consumer-owned contracts, event runtime tests, branch protection, post-migration performance, and broader validator coverage remain open for their listed prerequisites.
-
-- 19 Nov: Run 44549893064 passed evaluations and all contract/provider/fuzz/stateful stages; the C# 405 assertion then read `Allow` from the wrong .NET header collection. It now reads `Content.Headers.Allow`. Also fixed xUnit's cancellation-token analyzer warning and added an evaluation guard for the header location. CI rerun pending.
-
-- 19 Nov: Contract run passed evaluations, contracts, provider checks, fuzzing, and stateful tests, then failed in C# because .NET 10 selected VSTest for an xUnit v3 Microsoft.Testing.Platform project. Added a C# `global.json` selecting MTP, runs the test commands from that configured workspace, and guards this setup in repository evaluations. Pipeline rerun pending.
-
-- 19 Nov: CodeQL run 44495112186 completed every language job after WireMock staging moved to a private temporary directory, exclusive 0600 file creation, a size cap, pinned SHA-256 verification, and cleanup. Contract run 44495112117 stopped at the generated acceptance-data freshness check; commit 82a43f5 regenerated the JSON from the feature files. Contract verification is pending.
-
-- 19 Nov: Contract run 44490734374 passed setup, evaluations, provider checks, fuzzing, and six native suites, then exposed Java invalid-input tests being rejected by the outbound OAS filter. Those tests now bypass request validation only for intentionally malformed inputs and assert responses from shared feature data. Aligned the npm engine pin, explicitly denied unused npm scripts, removed forced cache cleanup, and added the SLF4J no-op provider. WireMock staging now uses a private temp directory, exclusive descriptor, size bound, pinned SHA-256, and cleanup. Contract and CodeQL reruns are pending.
-
-- 19 Nov: Expanded Product and Order Gherkin scenarios across all seven native suites, including error paths and repeated state transitions. Split JavaScript Cucumber steps by API, kept generated scenario data in sync with feature files, and refactored API clients around encapsulated transport and language-appropriate interfaces. Pipeline configuration and repository evaluations pass locally; the full Testcontainers pipeline remains unverified.
-- 19 Nov: The first Testcontainers run reached provider checks but timed out waiting for a WireMock log message that its current runtime did not emit. Replaced it with process startup plus an HTTP readiness probe, and made the deliberately broken provider handle invalid UTF-8 input without crashing. The contract pipeline is being rerun.
-- 19 Nov: The rerun passed provider verification, WireMock checks, fuzzing, and Rust integration tests. Go compilation found that one test declared its API interface but called the concrete client; the test now exercises the interface. CI rerun is pending.
-- 19 Nov: The next run passed WireMock, provider verification, fuzzing, Rust, Go, Python, and JavaScript. TypeScript compilation found a missing `acceptanceCases` export; it has been added and CI will verify the remaining suites.
-- 19 Nov: The third run confirmed the new TypeScript selector is used but found missing `api`, `feature`, and `scenario` fields in the TypeScript case type. The type now matches generated acceptance data; CI rerun is pending.
-- 18 Nov: Applied the review findings: clarified that provider-spec Smart Mock checks do not capture consumer-owned expectations, documented enterprise adoption requirements and validator limits, isolated Order state per app instance, added selective local language suites, moved positive controls to manual runs, and corrected stale Compose references. Local evaluation passed 13/13, pipeline configuration tests passed 6/6, and the [contract](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546211), [security](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546212), and [showcase](https://github.com/shoman2020/oas-polycontract/actions/runs/44349546414) workflows passed.
-- 18 Nov: Branch protection remains disabled; the post-migration benchmark still needs a manual dispatch.
-- 18 Nov: Added a SecureAI-Scan positive control. Version 0.13.0 detected `HIGH AI001` in the temporary example; CI verified the SARIF, recorded the finding, uploaded the artifact, and passed the clean project scan.
-- 18 Nov: Added Semgrep taint-rule examples for prompt-to-system-message flows in Rust, Go, Java, and C#. The custom rules target a defined pattern and need SDK-specific source/sink tuning in applications.
-- 18 Nov: Added strict, tested pipeline version validation; pin requirements now derive from the client build matrix.
-- 18 Nov: Contract and security pull request runs passed: [contract 44325433591](https://github.com/shoman2020/oas-polycontract/actions/runs/44325433591), [security 44325434450](https://github.com/shoman2020/oas-polycontract/actions/runs/44325434450). The aggregate CodeQL check reports a configuration warning; language jobs passed.
-- 18 Nov: Consolidated testing terminology in the README glossary; the client guide links to that source and retains only framework mappings and test entry points.
-- 18 Nov: Added an architecture map for contracts, demo services, native clients, orchestration, configuration, and quality checks.
+- 20 Nov: Enabled main ruleset [27679805](https://github.com/shoman2020/oas-polycontract/settings/rules/27679805) with 20 required checks. Post-merge contract [44635628482](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628482) and security [44635628479](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628479) runs passed. Removed Dependabot Docker updates for retired paths, added the Markdown shell-path audit, and verified the timeout test plus Spectral/oasdiff ERR-level canaries in PR contract [44643172422](https://github.com/shoman2020/oas-polycontract/actions/runs/44643172422) and security [44643172446](https://github.com/shoman2020/oas-polycontract/actions/runs/44643172446). Restricted contract push runs to `main` and separated concurrency by event to prevent cancelled duplicate PR checks. Added bounded retries for WireMock artifact download errors while retaining SHA-256 validation.
+- 19 Nov: Split contract CI into shared gates and isolated jobs for seven language suites plus Playwright. All eight suites and the Trivy scans passed in [run 44573964063](https://github.com/shoman2020/oas-polycontract/actions/runs/44573964063).
+- 19 Nov: Added Gherkin-driven scenarios, generated shared case data, negative canaries, error-path coverage, validator conformance cases, and fail-fast stage summaries. The full contract run [44563995399](https://github.com/shoman2020/oas-polycontract/actions/runs/44563995399) passed.

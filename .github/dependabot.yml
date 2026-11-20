@@ -5,16 +5,6 @@ updates:
     schedule:
       interval: weekly
 
-  - package-ecosystem: docker
-    directory: /demo/app
-    schedule:
-      interval: weekly
-
-  - package-ecosystem: docker
-    directory: /demo/wiremock
-    schedule:
-      interval: weekly
-
   - package-ecosystem: npm
     directory: /pipeline
     schedule:
@@ -64,44 +54,3 @@ updates:
     directory: /clients/csharp
     schedule:
       interval: weekly
-
-  - package-ecosystem: docker
-    directory: /clients/rust
-    schedule:
-      interval: weekly
-
-  - package-ecosystem: docker
-    directory: /clients/go
-    schedule:
-      interval: weekly
-
-  - package-ecosystem: docker
-    directory: /clients/python
-    schedule:
-      interval: weekly
-
-  - package-ecosystem: docker
-    directory: /clients/js
-    schedule:
-      interval: weekly
-
-  - package-ecosystem: docker
-    directory: /clients/ts
-    schedule:
-      interval: weekly
-
-  - package-ecosystem: docker
-    directory: /clients/playwright
-    schedule:
-      interval: weekly
-
-  - package-ecosystem: docker
-    directory: /clients/java
-    schedule:
-      interval: weekly
-
-  - package-ecosystem: docker
-    directory: /clients/csharp
-    schedule:
-      interval: weekly
-

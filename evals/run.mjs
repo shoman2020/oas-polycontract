@@ -2,6 +2,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { auditMarkdownShellPaths } from './markdown-shell-paths.mjs';
 
 const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 const { parseDocument } = createRequire(resolve(repositoryRoot, 'pipeline/package.json'))('yaml');
@@ -421,7 +422,7 @@ function checkCompatibilityBaselines(services) {
       failures.push(`compatibility-baselines: ${service.name} is not checked by the runner`);
     }
   }
-  if (!pipeline.includes("['breaking', baseline, candidate]")) {
+  if (!pipeline.includes("['breaking', '--fail-on', 'ERR', baseline, candidate]")) {
     failures.push('compatibility-baselines: compatibility checks must invoke oasdiff breaking for each provider baseline');
   }
 
@@ -451,8 +452,14 @@ function checkApiBehavior() {
   const statefulTests = readRepositoryFile('demo/stateful/server.test.mjs');
   const productSource = readRepositoryFile('demo/app/server.mjs');
   const pipeline = readRepositoryFile('pipeline/run.mjs');
+  const manualOasdiffGate = readRepositoryFile('gates/breaking-change/check.sh');
   const csharpValidator = readRepositoryFile('clients/csharp/OpenApiResponseValidator.cs');
   const csharpConformance = readRepositoryFile('clients/csharp/OpenApiResponseValidatorConformanceTests.cs');
+  const wiremockIntegration = readRepositoryFile('demo/app/tests/wiremock.integration.mjs');
+  const timeoutMapping = JSON.parse(readRepositoryFile('demo/downstream/wiremock/mappings/inventory-timeout.json'));
+  const spectralFixture = readOpenApiDocument('gates/lint/fixtures/missing-operation-id.openapi.yaml');
+  const breakingBaseline = readOpenApiDocument('gates/breaking-change/fixtures/baseline.yaml');
+  const breakingCandidate = readOpenApiDocument('gates/breaking-change/fixtures/candidate.yaml');
   const orderMethods = [
     ['/healthz', 'get'],
     ['/orders', 'post'],
@@ -474,14 +481,42 @@ function checkApiBehavior() {
   if (!product.paths['/products/{sku}']?.get?.responses?.['502']) {
     failures.push('api-behavior: Product OAS must declare the malformed/unavailable dependency response');
   }
+  if (!(timeoutMapping.response?.fixedDelayMilliseconds > 5000)
+    || !wiremockIntegration.includes('timeout-sku')
+    || !wiremockIntegration.includes('timed out inventory dependency must map to 502')) {
+    failures.push('api-behavior: delayed WireMock response must exercise the Product API timeout and map it to 502');
+  }
   if (!pipeline.includes('async runExpectedFailure(')
     || !pipeline.includes("['Negative contract canaries'")) {
     failures.push('api-behavior: expected-failure canaries must run as a pipeline stage');
+  }
+  const compatibilityGate = pipeline.slice(
+    pipeline.indexOf('async runOasDiff()'),
+    pipeline.indexOf('async runNegativeCanaries()'),
+  );
+  if (!compatibilityGate.includes("'--fail-on', 'ERR'")) {
+    failures.push('api-behavior: OAS compatibility checks must fail on ERR-level breaking changes');
+  }
+  if (!manualOasdiffGate.includes('oasdiff breaking --fail-on ERR')) {
+    failures.push('api-behavior: local compatibility helper must fail on ERR-level breaking changes');
   }
   const canaryPipeline = pipeline.slice(
     pipeline.indexOf('async runNegativeCanaries()'),
     pipeline.indexOf('async runProviderTests()'),
   );
+  const removedOperation = Object.entries(breakingBaseline.paths)
+    .some(([path, operations]) => operations.get && !breakingCandidate.paths[path]?.get);
+  if (!canaryPipeline.includes('Spectral rejects missing operationId fixture')
+    || !canaryPipeline.includes('/repo/gates/lint/fixtures/missing-operation-id.openapi.yaml')
+    || spectralFixture.paths['/healthz']?.get?.operationId) {
+    failures.push('api-behavior: Spectral canary must prove the operationId rule rejects its invalid fixture');
+  }
+  if (!canaryPipeline.includes('oasdiff rejects removed operation fixture')
+    || !canaryPipeline.includes('oasdiff breaking --fail-on ERR')
+    || !canaryPipeline.includes('/repo/gates/breaking-change/fixtures/baseline.yaml')
+    || !removedOperation) {
+    failures.push('api-behavior: oasdiff canary must prove a deliberate operation removal is breaking');
+  }
   if (!canaryPipeline.includes("FEATURE_CASES_PATH: '/repo/clients/shared/acceptance-cases.json'")
     || !canaryPipeline.includes("readOnlyMount('clients/shared')")) {
     failures.push('api-behavior: JavaScript failure canary must receive the shared feature cases used by its suite');
@@ -531,7 +566,7 @@ function checkApiBehavior() {
       failures.push(`api-behavior: ${language} suite does not consume all Order feature cases`);
     }
   }
-  return orderMethods.length + 10 + nativeSuites.length * (productCases.length + orderCases.length);
+  return orderMethods.length + 15 + nativeSuites.length * (productCases.length + orderCases.length);
 }
 
 function checkTestcontainersSafety() {
@@ -544,6 +579,12 @@ function checkTestcontainersSafety() {
   const javaProductTests = readRepositoryFile('clients/java/src/test/java/nl/shiftleft/ProductApiIntegrationTest.java');
   const javaOrderTests = readRepositoryFile('clients/java/src/test/java/nl/shiftleft/StatefulOrderApiIntegrationTest.java');
   const csharpOrderTests = readRepositoryFile('clients/csharp/StatefulOrderApiIntegrationTests.cs');
+  const dependabot = parseDocument(readRepositoryFile('.github/dependabot.yml'), { uniqueKeys: true }).toJS();
+  const dockerUpdates = (dependabot.updates ?? []).filter((update) => update['package-ecosystem'] === 'docker');
+  const invalidDockerUpdates = dockerUpdates.filter(({ directory }) => {
+    if (typeof directory !== 'string' || !directory.startsWith('/')) return true;
+    return !existsSync(resolve(repositoryRoot, directory.slice(1), 'Dockerfile'));
+  });
   const composeExists = existsSync(resolve(repositoryRoot, 'docker-compose.yml'));
   const projectDockerfiles = [
     'demo/app/Dockerfile',
@@ -562,6 +603,7 @@ function checkTestcontainersSafety() {
   const required = [
     [!composeExists, 'Docker Compose orchestration should be removed'],
     [projectDockerfiles.every((path) => !existsSync(resolve(repositoryRoot, path))), 'project-specific Dockerfiles should be replaced with pinned Testcontainers runtimes'],
+    [invalidDockerUpdates.length === 0, 'Dependabot Docker updates must target directories that contain a Dockerfile'],
     [pipeline.includes('const readOnlyMount') && pipeline.includes("mode: 'ro'") && !pipeline.includes("source: repositoryRoot") && !pipeline.includes("target: '/repo'"), 'only selected source paths may be mounted read-only'],
     [pipeline.includes("readOnlyMount('demo')") && pipeline.includes("readOnlyMount('openapi')"), 'contract and fixture mounts must be explicit'],
     [(consumerPipeline.match(/NPM_VERSION: versions\.NPM_VERSION/g) ?? []).length === 2, 'JavaScript and Playwright consumer suites must receive the pinned npm version'],
@@ -679,9 +721,10 @@ function checkWorkflowVisuals() {
       path: '.github/workflows/contract.yml',
       markers: [
         '  push:',
+        '    branches: [main]',
         '  pull_request:',
         '  workflow_dispatch:',
-        'group: contract-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event.pull_request.head.ref || github.ref_name }}',
+        'group: contract-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event.pull_request.head.ref || github.ref_name }}-${{ github.event_name }}',
         "cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}",
         'uses: ./.github/actions/prepare-contract-runner',
         'POLYCONTRACT_PIPELINE_PROFILE: core',
@@ -696,6 +739,7 @@ function checkWorkflowVisuals() {
         'NODE_TEST_IMAGE_ARCHIVE: ${{ runner.temp }}/oas-polycontract/node-test.tar',
         'input: ${{ runner.temp }}/oas-polycontract/node-test.tar',
         'image-ref: ${{ env.WIREMOCK_RUNTIME_IMAGE }}',
+        '--retry-all-errors',
         'scan-ref: ${{ runner.temp }}/oas-polycontract/wiremock-standalone-${{ env.WIREMOCK_VERSION }}.jar',
       ],
     },
@@ -732,11 +776,11 @@ function checkWorkflowVisuals() {
   const workflowNames = ['contract.yml', 'security.yml', 'showcase.yml', 'performance.yml'];
   const concepts = ['Dependency Review', 'Dependabot', 'Trivy image scans', 'OWASP GenAI scan', 'SecureAI-Scan', 'Semgrep'];
   const readmeTriggers = [
-    'Contract CI runs on pushes, pull requests, and manual dispatch.',
+    'Contract CI runs on pushes to `main`, pull requests, and manual dispatch.',
     'Security CI runs on pushes to `main`, pull requests, a weekly schedule, and manual dispatch.',
     'manual performance benchmark',
   ];
-  const showcaseTriggers = ['Push · pull request · manual run', 'Main push · pull request · weekly · manual', 'Main push to showcase files · manual run', 'Manual benchmark · Ubuntu 24.04 and 26.04'];
+  const showcaseTriggers = ['Main push · pull request · manual run', 'Main push · pull request · weekly · manual', 'Main push to showcase files · manual run', 'Manual benchmark · Ubuntu 24.04 and 26.04'];
 
   for (const path of workflowFiles) assertRepositoryPath(path, 'workflow-visuals');
   for (const policy of sourcePolicies) {
@@ -892,7 +936,14 @@ function checkWorkflowVisuals() {
   return workflowFiles.length + sourcePolicies.length + concepts.length + readmeTriggers.length + showcaseTriggers.length + sceneCount + laneCount + acceptanceFlowSources.length;
 }
 
+function checkMarkdownShellPaths() {
+  const audit = auditMarkdownShellPaths(repositoryRoot);
+  for (const issue of audit.issues) failures.push('markdown-shell-paths: ' + issue);
+  return audit.pathReferencesChecked;
+}
+
 const evaluators = {
+  'markdown-shell-paths': () => checkMarkdownShellPaths(),
   'readme-links': () => checkReadmeLinks(),
   'readme-tree': () => checkReadmeTree(),
   'architecture-map': () => checkArchitectureMap(),

@@ -421,13 +421,37 @@ class ContractPipeline {
     ];
     for (const [service, baseline, candidate] of baselineChecks) {
       await this.runTask(`OpenAPI compatibility: ${service}`, `tufin/oasdiff:v${versions.OASDIFF_VERSION}`, {
-        command: ['breaking', baseline, candidate],
+        command: ['breaking', '--fail-on', 'ERR', baseline, candidate],
         mounts: [readOnlyMount('contracts/baselines'), readOnlyMount('demo')],
       });
     }
   }
 
   async runNegativeCanaries() {
+    await this.runExpectedFailure(
+      'Spectral rejects missing operationId fixture',
+      `stoplight/spectral:${versions.SPECTRAL_VERSION}`,
+      {
+        mounts: [readOnlyMount('gates/lint')],
+      },
+      {
+        command: 'sh /repo/gates/lint/run-spectral.sh lint --ruleset /repo/gates/lint/.spectral.yaml /repo/gates/lint/fixtures/missing-operation-id.openapi.yaml',
+        outputPattern: 'house-operation-must-have-operationId',
+      },
+    );
+
+    await this.runExpectedFailure(
+      'oasdiff rejects removed operation fixture',
+      `tufin/oasdiff:v${versions.OASDIFF_VERSION}`,
+      {
+        mounts: [readOnlyMount('gates/breaking-change/fixtures')],
+      },
+      {
+        command: 'oasdiff breaking --fail-on ERR /repo/gates/breaking-change/fixtures/baseline.yaml /repo/gates/breaking-change/fixtures/candidate.yaml',
+        outputPattern: 'breaking|removed|endpoint',
+      },
+    );
+
     await this.startService(runtimeImages.app, 'broken-provider', {
       entrypoint: ['node', '/repo/demo/canary/broken-provider.mjs'],
       command: [],
