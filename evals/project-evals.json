@@ -140,7 +140,7 @@
     },
     {
       "id": "testcontainers-safety",
-      "description": "Testcontainers use pinned runtimes and read-only mounts; Dependabot Docker entries require Dockerfiles",
+      "description": "Testcontainers use pinned runtimes, retry WireMock fetch errors, and require Dependabot Docker entries to target Dockerfiles",
       "type": "testcontainers-safety"
     },
     {

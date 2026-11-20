@@ -286,7 +286,7 @@ class ContractPipeline {
     try {
       descriptor = openSync(artifactPath, 'wx+', 0o600);
       const download = await runChildProcess('curl', [
-        '--fail', '--silent', '--show-error', '--location', '--retry', '3',
+        '--fail', '--silent', '--show-error', '--location', '--retry', '3', '--retry-all-errors',
         '--proto', '=https', '--proto-redir', '=https', '--connect-timeout', '15', '--max-time', '60', '--retry-max-time', '90', '--max-filesize', '33554432', artifactUrl,
       ], { stdio: ['ignore', descriptor, 'pipe'] });
       if (download.exitCode !== 0) {
