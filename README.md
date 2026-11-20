@@ -219,7 +219,7 @@ Specmatic mock data uses OAS examples, fixtures in `demo/openapi_examples`, and 
 | Gate | Check | Workflow |
 |---|---|---|
 | Contract quality | Spectral lint and OAS compatibility | `contract.yml` |
-| API behavior | Specmatic provider verification, Spectral and oasdiff failure canaries, downstream timeout handling, error-path assertions, WireMock, Schemathesis, and native suites | `contract.yml` |
+| API behavior | Specmatic provider verification, Spectral lint and canary, oasdiff ERR-level compatibility gate and canary, downstream timeout handling, error-path assertions, WireMock, Schemathesis, and native suites | `contract.yml` |
 | Project consistency | Repository evaluations check links, shell paths, contracts, structure, test roles, workflows, and roadmap | `contract.yml` |
 | Source and dependencies | CodeQL, Gitleaks, Trivy filesystem scan, Dependency Review, and Dependabot | `security.yml` |
 | Container and runtime artifacts | Trivy scans the exported Node test runtime, WireMock and Specmatic images, and verified WireMock JAR | `contract.yml` |

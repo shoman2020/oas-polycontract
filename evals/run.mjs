@@ -452,6 +452,7 @@ function checkApiBehavior() {
   const statefulTests = readRepositoryFile('demo/stateful/server.test.mjs');
   const productSource = readRepositoryFile('demo/app/server.mjs');
   const pipeline = readRepositoryFile('pipeline/run.mjs');
+  const manualOasdiffGate = readRepositoryFile('gates/breaking-change/check.sh');
   const csharpValidator = readRepositoryFile('clients/csharp/OpenApiResponseValidator.cs');
   const csharpConformance = readRepositoryFile('clients/csharp/OpenApiResponseValidatorConformanceTests.cs');
   const wiremockIntegration = readRepositoryFile('demo/app/tests/wiremock.integration.mjs');
@@ -489,6 +490,16 @@ function checkApiBehavior() {
     || !pipeline.includes("['Negative contract canaries'")) {
     failures.push('api-behavior: expected-failure canaries must run as a pipeline stage');
   }
+  const compatibilityGate = pipeline.slice(
+    pipeline.indexOf('async runOasDiff()'),
+    pipeline.indexOf('async runNegativeCanaries()'),
+  );
+  if (!compatibilityGate.includes("'--fail-on', 'ERR'")) {
+    failures.push('api-behavior: OAS compatibility checks must fail on ERR-level breaking changes');
+  }
+  if (!manualOasdiffGate.includes('oasdiff breaking --fail-on ERR')) {
+    failures.push('api-behavior: local compatibility helper must fail on ERR-level breaking changes');
+  }
   const canaryPipeline = pipeline.slice(
     pipeline.indexOf('async runNegativeCanaries()'),
     pipeline.indexOf('async runProviderTests()'),
@@ -501,6 +512,7 @@ function checkApiBehavior() {
     failures.push('api-behavior: Spectral canary must prove the operationId rule rejects its invalid fixture');
   }
   if (!canaryPipeline.includes('oasdiff rejects removed operation fixture')
+    || !canaryPipeline.includes('oasdiff breaking --fail-on ERR')
     || !canaryPipeline.includes('/repo/gates/breaking-change/fixtures/baseline.yaml')
     || !removedOperation) {
     failures.push('api-behavior: oasdiff canary must prove a deliberate operation removal is breaking');
@@ -554,7 +566,7 @@ function checkApiBehavior() {
       failures.push(`api-behavior: ${language} suite does not consume all Order feature cases`);
     }
   }
-  return orderMethods.length + 13 + nativeSuites.length * (productCases.length + orderCases.length);
+  return orderMethods.length + 15 + nativeSuites.length * (productCases.length + orderCases.length);
 }
 
 function checkTestcontainersSafety() {

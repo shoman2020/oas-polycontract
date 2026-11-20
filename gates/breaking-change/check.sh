@@ -21,4 +21,4 @@ if ! command -v oasdiff >/dev/null 2>&1; then
   exit 1
 fi
 
-oasdiff breaking "$baseline" "$candidate"
+oasdiff breaking --fail-on ERR "$baseline" "$candidate"

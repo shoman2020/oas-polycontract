@@ -7,7 +7,7 @@ One reviewed specification contract per API boundary. Clear ownership means less
 | Area | Delivered | Remaining |
 |---|---|---|
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | Runtime event tests need a provider or broker |
-| Tests | Specmatic provider verification, Smart Mock development checks, WireMock, stateful and stateless fuzzing, provider/Spectral/oasdiff failure canaries, seven-language error-path suites, and service unit tests; [contract run 44635628482 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628482) | Pilot against representative company APIs |
+| Tests | Specmatic provider verification, Smart Mock development checks, WireMock, stateful and stateless fuzzing, provider/Spectral/oasdiff ERR-level failure canaries, seven-language error-path suites, and service unit tests; [contract run 44635628482 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628482) | Pilot against representative company APIs |
 | Legacy migration | Project-specific Postman and Bruno collections follow Product and Order OAS | Import team-owned history if teams provide their collections |
 | Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, and SecureAI-Scan; [security run 44635628479 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628479) | No SBOM artifact or license policy; GenAI controls are manual demos and no application AI runtime exists |
 | Dependencies | Cargo, Go, NuGet, npm, Python, Maven, and Testcontainers pins or locks; minimatch alert #3 fixed | Replace the Picomatch patch when upstream publishes a fix |
@@ -34,7 +34,7 @@ Open work includes the post-Testcontainers performance matrix (Phase 12), runtim
 ### Phase 2 — Contract governance
 - [x] Lint OAS and AsyncAPI and compare Product, Order, and Inventory against provider-specific compatibility snapshots.
 - [x] Run Specmatic and native-suite canaries that prove a schema-invalid Product provider fails.
-- [x] Run Spectral and oasdiff canaries that prove a lint violation and a removed operation fail their gates.
+- [x] Run Spectral and oasdiff canaries that prove a lint violation and ERR-level breaking change fail their gates.
 - [x] Run provider, consumer Smart Mock, downstream, examples, stateless fuzz, and stateful checks.
 - [x] Track main-branch enforcement in Phase 10.
 
@@ -180,6 +180,6 @@ The latest [main contract run 44635628482](https://github.com/shoman2020/oas-pol
 
 ## Progress
 
-- 20 Nov: Enabled main ruleset [27679805](https://github.com/shoman2020/oas-polycontract/settings/rules/27679805) with 20 required checks. Post-merge contract [44635628482](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628482) and security [44635628479](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628479) runs passed. Replaced removed-Dockerfile collection setup, added a Markdown shell-path audit, removed stale Dependabot Docker entries, and added timeout plus Spectral/oasdiff canaries; PR validation is pending.
+- 20 Nov: Enabled main ruleset [27679805](https://github.com/shoman2020/oas-polycontract/settings/rules/27679805) with 20 required checks. Post-merge contract [44635628482](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628482) and security [44635628479](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628479) runs passed. Replaced removed-Dockerfile collection setup, added a Markdown shell-path audit, removed stale Dependabot Docker entries, and added timeout plus Spectral/oasdiff ERR-level canaries; PR validation is pending.
 - 19 Nov: Split contract CI into shared gates and isolated jobs for seven language suites plus Playwright. All eight suites and the Trivy scans passed in [run 44573964063](https://github.com/shoman2020/oas-polycontract/actions/runs/44573964063).
 - 19 Nov: Added Gherkin-driven scenarios, generated shared case data, negative canaries, error-path coverage, validator conformance cases, and fail-fast stage summaries. The full contract run [44563995399](https://github.com/shoman2020/oas-polycontract/actions/runs/44563995399) passed.

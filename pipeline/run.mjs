@@ -421,7 +421,7 @@ class ContractPipeline {
     ];
     for (const [service, baseline, candidate] of baselineChecks) {
       await this.runTask(`OpenAPI compatibility: ${service}`, `tufin/oasdiff:v${versions.OASDIFF_VERSION}`, {
-        command: ['breaking', baseline, candidate],
+        command: ['breaking', '--fail-on', 'ERR', baseline, candidate],
         mounts: [readOnlyMount('contracts/baselines'), readOnlyMount('demo')],
       });
     }
@@ -447,7 +447,7 @@ class ContractPipeline {
         mounts: [readOnlyMount('gates/breaking-change/fixtures')],
       },
       {
-        command: 'oasdiff breaking /repo/gates/breaking-change/fixtures/baseline.yaml /repo/gates/breaking-change/fixtures/candidate.yaml',
+        command: 'oasdiff breaking --fail-on ERR /repo/gates/breaking-change/fixtures/baseline.yaml /repo/gates/breaking-change/fixtures/candidate.yaml',
         outputPattern: 'breaking|removed|endpoint',
       },
     );

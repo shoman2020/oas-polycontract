@@ -135,7 +135,7 @@
     },
     {
       "id": "api-behavior",
-      "description": "Core behavior and expected failures in provider, Spectral, oasdiff, and API canaries match the contracts",
+      "description": "Core behavior, ERR-level oasdiff enforcement, and expected failures in provider, Spectral, oasdiff, and API canaries match the contracts",
       "type": "api-behavior"
     },
     {
