@@ -2,14 +2,15 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { runChildProcess } from './commands.mjs';
 
-test('awaits a child process and captures piped diagnostics', async () => {
+test('awaits a child process and captures piped output', async () => {
   const result = await runChildProcess(process.execPath, [
     '-e',
-    "process.stderr.write('child diagnostic'); process.exitCode = 7",
-  ], { stdio: ['ignore', 'ignore', 'pipe'] });
+    "process.stdout.write('child output'); process.stderr.write('child diagnostic'); process.exitCode = 7",
+  ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
   assert.equal(result.exitCode, 7);
   assert.equal(result.signal, null);
+  assert.equal(result.stdout, 'child output');
   assert.equal(result.stderr, 'child diagnostic');
 });
 

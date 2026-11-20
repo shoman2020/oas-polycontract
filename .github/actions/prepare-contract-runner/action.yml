@@ -18,6 +18,7 @@ runs:
           echo "WIREMOCK_SHA256=$WIREMOCK_SHA256"
           echo "TRIVY_VERSION=$TRIVY_VERSION"
           echo "SPECMATIC_VERSION=$SPECMATIC_VERSION"
+          echo "SPECMATIC_OPENJDK_VERSION=$SPECMATIC_OPENJDK_VERSION"
         } >> "$GITHUB_ENV"
         echo "node-version=$NODE_VERSION" >> "$GITHUB_OUTPUT"
 

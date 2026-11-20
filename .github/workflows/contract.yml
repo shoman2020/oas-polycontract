@@ -35,14 +35,22 @@ jobs:
         id: wiremock_jar
         run: |
           artifact="$RUNNER_TEMP/oas-polycontract/wiremock-standalone-${WIREMOCK_VERSION}.jar"
+          artifact_path="org/wiremock/wiremock-standalone/${WIREMOCK_VERSION}/wiremock-standalone-${WIREMOCK_VERSION}.jar"
+          primary_url="https://repo.maven.apache.org/maven2/${artifact_path}"
+          fallback_url="https://repo1.maven.org/maven2/${artifact_path}"
+          curl_args=(--fail --location --connect-timeout 15 --max-time 60 --retry 3 --retry-all-errors --retry-delay 2 --retry-max-time 90)
           mkdir -p "$(dirname "$artifact")"
-          curl --fail --location --connect-timeout 15 --max-time 60 --retry 3 --retry-all-errors --retry-delay 2 --retry-max-time 90 --output "$artifact" \
-            "https://repo.maven.apache.org/maven2/org/wiremock/wiremock-standalone/${WIREMOCK_VERSION}/wiremock-standalone-${WIREMOCK_VERSION}.jar"
+          if ! curl "${curl_args[@]}" --output "$artifact" "$primary_url"; then
+            echo "Primary Maven Central host failed; retrying the verified artifact from its mirror."
+            rm -f "$artifact"
+            curl "${curl_args[@]}" --output "$artifact" "$fallback_url"
+          fi
           printf '%s  %s\n' "$WIREMOCK_SHA256" "$artifact" | sha256sum --check
 
       - name: Run shared contract gates
         env:
           NODE_TEST_IMAGE_ARCHIVE: ${{ runner.temp }}/oas-polycontract/node-test.tar
+          SPECMATIC_IMAGE_ARCHIVE: ${{ runner.temp }}/oas-polycontract/specmatic.tar
           POLYCONTRACT_PIPELINE_PROFILE: core
           PIPELINE_TIMINGS_FILE: ${{ runner.temp }}/pipeline-timings-core.csv
         run: bash ./run.sh
@@ -95,11 +103,21 @@ jobs:
           version: v${{ env.TRIVY_VERSION }}
           trivy-config: .github/trivy.yaml
 
-      - name: Scan Specmatic container image
+      - name: Check prepared Specmatic runtime archive
+        id: specmatic_archive
         if: always()
+        run: |
+          if [[ -s "$RUNNER_TEMP/oas-polycontract/specmatic.tar" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Scan prepared Specmatic runtime archive
+        if: always() && steps.specmatic_archive.outputs.ready == 'true'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: specmatic/specmatic:${{ env.SPECMATIC_VERSION }}
+          input: ${{ runner.temp }}/oas-polycontract/specmatic.tar
           format: table
           vuln-type: os,library
           severity: HIGH,CRITICAL

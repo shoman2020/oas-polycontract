@@ -571,6 +571,7 @@ function checkApiBehavior() {
 
 function checkTestcontainersSafety() {
   const pipeline = readRepositoryFile('pipeline/run.mjs');
+  const contractWorkflow = readRepositoryFile('.github/workflows/contract.yml');
   const consumerPipeline = pipeline.slice(pipeline.indexOf('async runConsumerTests()'), pipeline.indexOf('async cleanup()'));
   const clientSuite = readRepositoryFile('pipeline/client-suite.sh');
   const csharpTestRunner = JSON.parse(readRepositoryFile('clients/csharp/global.json')).test?.runner;
@@ -604,7 +605,8 @@ function checkTestcontainersSafety() {
     [!composeExists, 'Docker Compose orchestration should be removed'],
     [projectDockerfiles.every((path) => !existsSync(resolve(repositoryRoot, path))), 'project-specific Dockerfiles should be replaced with pinned Testcontainers runtimes'],
     [invalidDockerUpdates.length === 0, 'Dependabot Docker updates must target directories that contain a Dockerfile'],
-    [pipeline.includes("'--retry-all-errors'") && pipeline.includes('WIREMOCK_SHA256'), 'WireMock artifact downloads must retry errors and verify their pinned digest'],
+    [pipeline.includes("'--retry-all-errors'") && pipeline.includes('repo.maven.apache.org/maven2') && pipeline.includes('repo1.maven.org/maven2') && pipeline.includes('WIREMOCK_SHA256'), 'WireMock downloads must retry across Maven Central hosts and verify their pinned digest'],
+    [pipeline.includes('async prepareSpecmaticImage()') && pipeline.includes('apk add --upgrade --no-cache') && pipeline.includes('openjdk-17-default-jvm') && pipeline.includes('versions.SPECMATIC_OPENJDK_VERSION') && pipeline.includes('ENTRYPOINT ["/usr/local/bin/specmatic"]') && pipeline.includes("runTask('Verify patched Specmatic CLI'") && contractWorkflow.includes('SPECMATIC_IMAGE_ARCHIVE') && contractWorkflow.includes('Scan prepared Specmatic runtime archive'), 'The scanned Specmatic image must use the pinned patched Wolfi OpenJDK runtime'],
     [pipeline.includes('const readOnlyMount') && pipeline.includes("mode: 'ro'") && !pipeline.includes("source: repositoryRoot") && !pipeline.includes("target: '/repo'"), 'only selected source paths may be mounted read-only'],
     [pipeline.includes("readOnlyMount('demo')") && pipeline.includes("readOnlyMount('openapi')"), 'contract and fixture mounts must be explicit'],
     [(consumerPipeline.match(/NPM_VERSION: versions\.NPM_VERSION/g) ?? []).length === 2, 'JavaScript and Playwright consumer suites must receive the pinned npm version'],
@@ -622,13 +624,15 @@ function checkTestcontainersSafety() {
     [typeof packageJson.devDependencies?.testcontainers === 'string', 'Testcontainers dependency must be pinned'],
     [packageJson.engines?.npm === versionPins.match(/^NPM_VERSION=(\S+)$/m)?.[1], 'pipeline npm engine must match the shared npm version pin'],
     [['cpu-features', 'protobufjs', 'ssh2'].every((name) => packageJson.allowScripts?.[name] === false), 'unneeded transitive npm install scripts must be explicitly denied'],
-    [pipeline.includes('mkdtempSync(join(tmpdir()') && pipeline.includes("openSync(artifactPath, 'wx+'"), 'WireMock artifacts must use a private temp directory and exclusive file descriptor'],
+    [pipeline.includes('mkdtempSync(join(tmpdir()') && pipeline.includes("artifactPath = join(cacheDirectory, `wiremock-${index}.jar`)") && pipeline.includes("openSync(artifactPath, 'wx+'") && !pipeline.includes("openSync(artifactPath, 'w+'"), 'WireMock artifacts must use private, unique files and exclusive descriptors for each download attempt'],
     [pipeline.includes("import { runChildProcess } from './commands.mjs'")
       && !pipeline.includes('spawnSync')
       && pipeline.includes('await runChildProcess(process.execPath')
       && pipeline.includes("await runChildProcess('curl'")
       && pipeline.includes("await runChildProcess('docker'")
       && readRepositoryFile('pipeline/commands.mjs').includes("import { spawn }")
+      && readRepositoryFile('pipeline/commands.mjs').includes('child.stdout?.on')
+      && readRepositoryFile('pipeline/commands.test.mjs').includes("assert.equal(result.stdout, 'child output')")
       && readRepositoryFile('pipeline/commands.test.mjs').includes('awaits a child process')
       && pipeline.includes('readSync(descriptor') && pipeline.includes('WIREMOCK_SHA256'),
       'pipeline subprocesses must use tested asynchronous execution while the WireMock artifact stays hash-checked'],
@@ -671,6 +675,7 @@ function checkDependencyLocks() {
     [Boolean(nugetLock.dependencies?.['net10.0']?.NJsonSchema?.resolved), 'NuGet lockfile must record resolved direct dependencies'],
     [csharpProject.includes('<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>') && clientRunner.includes('dotnet restore') && clientRunner.includes('--locked-mode') && clientRunner.includes('--no-restore'), '.NET restore and test must enforce the committed lockfile'],
     [/^NPM_VERSION=\d+\.\d+\.\d+$/m.test(versions), 'NPM_VERSION must be pinned in the shared versions file'],
+    [/^SPECMATIC_OPENJDK_VERSION=\d+\.\d+\.\d+\.\d+-r\d+$/m.test(versions) && pipeline.includes('versions.SPECMATIC_OPENJDK_VERSION'), 'The Specmatic OpenJDK package release must be centrally pinned and consumed'],
     [tsPackage.engines?.npm?.startsWith('>=12') && tsLock.lockfileVersion === 4, 'TypeScript patching must use npm 12 and its supported lockfile format'],
     [clientRunner.includes('npm@${NPM_VERSION') && clientRunner.includes('npm ci --no-audit --no-fund'), 'Node.js suites must install the pinned npm and honor dependency locks'],
     [tsTests.includes('node --test security/picomatch-redos.check.mjs') && !tsTests.includes('picomatch-redos.test.mjs'), 'The Node-only Picomatch check must stay outside Vitest discovery'],
@@ -738,9 +743,17 @@ function checkWorkflowVisuals() {
         'pipeline-timings-${{ matrix.client }}',
         'bash ./run.sh',
         'NODE_TEST_IMAGE_ARCHIVE: ${{ runner.temp }}/oas-polycontract/node-test.tar',
+        'SPECMATIC_IMAGE_ARCHIVE: ${{ runner.temp }}/oas-polycontract/specmatic.tar',
         'input: ${{ runner.temp }}/oas-polycontract/node-test.tar',
+        'input: ${{ runner.temp }}/oas-polycontract/specmatic.tar',
+        'Check prepared Specmatic runtime archive',
+        'id: specmatic_archive',
+        "if: always() && steps.specmatic_archive.outputs.ready == 'true'",
+        'Scan prepared Specmatic runtime archive',
         'image-ref: ${{ env.WIREMOCK_RUNTIME_IMAGE }}',
         '--retry-all-errors',
+        'repo.maven.apache.org/maven2',
+        'repo1.maven.org/maven2',
         'scan-ref: ${{ runner.temp }}/oas-polycontract/wiremock-standalone-${{ env.WIREMOCK_VERSION }}.jar',
       ],
     },

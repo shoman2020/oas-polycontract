@@ -9,7 +9,7 @@ One reviewed specification contract per API boundary. Clear ownership means less
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | Runtime event tests need a provider or broker |
 | Tests | Specmatic provider verification, Smart Mock development checks, WireMock, stateful and stateless fuzzing, provider/Spectral/oasdiff ERR-level failure canaries, seven-language error-path suites, and service unit tests; [contract run 44635628482 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628482) | Pilot against representative company APIs |
 | Legacy migration | Project-specific Postman and Bruno collections follow Product and Order OAS | Import team-owned history if teams provide their collections |
-| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, and SecureAI-Scan; [security run 44635628479 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628479) | No SBOM artifact or license policy; GenAI controls are manual demos and no application AI runtime exists |
+| Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, and SecureAI-Scan. Trivy scans the prepared Specmatic runtime after a pinned Wolfi OpenJDK update. | No SBOM artifact or license policy; GenAI controls are manual demos and no application AI runtime exists |
 | Dependencies | Cargo, Go, NuGet, npm, Python, Maven, and Testcontainers pins or locks; minimatch alert #3 fixed | Replace the Picomatch patch when upstream publishes a fix |
 | Performance | Pre-Testcontainers [five-sample reference](https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941): 304s cold, 201s warm median (200–205s range), build 91s cold and 2s warm | Dispatch the manual Ubuntu 24.04/26.04 matrix after Testcontainers migration |
 | Merge governance | Active [`main` ruleset](https://github.com/shoman2020/oas-polycontract/settings/rules/27679805) requires 20 contract, native-suite, and security checks; latest main runs passed | PR-only merging and required code-owner review are not enabled |
@@ -75,6 +75,7 @@ Open work includes the post-Testcontainers performance matrix (Phase 12), runtim
 - [x] Verify the scanner against a temporary vulnerable TypeScript example; require HIGH AI001 and retain its SARIF artifact.
 - [x] Verify Semgrep prompt-to-system-message rules against temporary Rust, Go, Java, and C# examples; retain their SARIF artifact.
 - [x] Keep image scans in contract CI and filesystem scans in security CI.
+- [x] Upgrade Specmatic's Wolfi OpenJDK packages to the centrally pinned fixed release before use, then scan the prepared image archive.
 
 ### Phase 8 — Documentation and evaluation
 - [x] Use the README as the canonical overview, testing model, and glossary.
