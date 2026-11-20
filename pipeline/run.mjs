@@ -328,7 +328,7 @@ class ContractPipeline {
   async wireMockArtifactPath() {
     const artifactName = `wiremock-standalone-${versions.WIREMOCK_VERSION}.jar`;
     const cacheDirectory = mkdtempSync(join(tmpdir(), 'oas-polycontract-'));
-    const artifactPath = join(cacheDirectory, artifactName);
+    let artifactPath;
     const digest = (content) => createHash('sha256').update(content).digest('hex');
     const artifactUrls = [
       `https://repo.maven.apache.org/maven2/org/wiremock/wiremock-standalone/${versions.WIREMOCK_VERSION}/${artifactName}`,
@@ -337,22 +337,21 @@ class ContractPipeline {
     let descriptor;
     let retainArtifact = false;
     try {
-      descriptor = openSync(artifactPath, 'wx+', 0o600);
       let download;
       for (const [index, artifactUrl] of artifactUrls.entries()) {
-        if (index > 0) {
-          closeSync(descriptor);
-          descriptor = openSync(artifactPath, 'w+', 0o600);
-        }
+        artifactPath = join(cacheDirectory, `wiremock-${index}.jar`);
+        descriptor = openSync(artifactPath, 'wx+', 0o600);
         download = await runChildProcess('curl', [
           '--fail', '--silent', '--show-error', '--location', '--retry', '3', '--retry-all-errors',
           '--proto', '=https', '--proto-redir', '=https', '--connect-timeout', '15', '--max-time', '60', '--retry-max-time', '90', '--max-filesize', '33554432', artifactUrl,
         ], { stdio: ['ignore', descriptor, 'pipe'] });
         if (download.exitCode === 0) break;
+        closeSync(descriptor);
+        descriptor = undefined;
       }
-      if (download.exitCode !== 0) {
-        const detail = download.stderr.trim();
-        const result = download.signal ? `signal ${download.signal}` : `exit code ${download.exitCode}`;
+      if (!download || download.exitCode !== 0) {
+        const detail = download?.stderr.trim();
+        const result = download?.signal ? `signal ${download.signal}` : `exit code ${download?.exitCode ?? 'unknown'}`;
         throw new Error(`WireMock download failed from Maven Central mirrors${detail ? `: ${detail}` : ` with ${result}`}`);
       }
 

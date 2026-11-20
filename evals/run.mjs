@@ -624,7 +624,7 @@ function checkTestcontainersSafety() {
     [typeof packageJson.devDependencies?.testcontainers === 'string', 'Testcontainers dependency must be pinned'],
     [packageJson.engines?.npm === versionPins.match(/^NPM_VERSION=(\S+)$/m)?.[1], 'pipeline npm engine must match the shared npm version pin'],
     [['cpu-features', 'protobufjs', 'ssh2'].every((name) => packageJson.allowScripts?.[name] === false), 'unneeded transitive npm install scripts must be explicitly denied'],
-    [pipeline.includes('mkdtempSync(join(tmpdir()') && pipeline.includes("openSync(artifactPath, 'wx+'"), 'WireMock artifacts must use a private temp directory and exclusive file descriptor'],
+    [pipeline.includes('mkdtempSync(join(tmpdir()') && pipeline.includes("artifactPath = join(cacheDirectory, `wiremock-${index}.jar`)") && pipeline.includes("openSync(artifactPath, 'wx+'") && !pipeline.includes("openSync(artifactPath, 'w+'"), 'WireMock artifacts must use private, unique files and exclusive descriptors for each download attempt'],
     [pipeline.includes("import { runChildProcess } from './commands.mjs'")
       && !pipeline.includes('spawnSync')
       && pipeline.includes('await runChildProcess(process.execPath')
