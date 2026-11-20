@@ -269,7 +269,7 @@ class ContractPipeline {
       environment: { SPECMATIC_OPENJDK_VERSION: versions.SPECMATIC_OPENJDK_VERSION },
       waitStrategy: Wait.forLogMessage(new RegExp(marker), 1),
       command: [
-        'apk upgrade --no-cache "openjdk-17-default-jvm>=${SPECMATIC_OPENJDK_VERSION}" '
+        'apk add --upgrade --no-cache "openjdk-17-default-jvm>=${SPECMATIC_OPENJDK_VERSION}" '
           + '"openjdk-17-jre>=${SPECMATIC_OPENJDK_VERSION}" && java -version '
           + `&& echo ${marker} && sleep infinity`,
       ],

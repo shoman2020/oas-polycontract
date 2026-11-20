@@ -103,8 +103,18 @@ jobs:
           version: v${{ env.TRIVY_VERSION }}
           trivy-config: .github/trivy.yaml
 
-      - name: Scan prepared Specmatic runtime archive
+      - name: Check prepared Specmatic runtime archive
+        id: specmatic_archive
         if: always()
+        run: |
+          if [[ -s "$RUNNER_TEMP/oas-polycontract/specmatic.tar" ]]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Scan prepared Specmatic runtime archive
+        if: always() && steps.specmatic_archive.outputs.ready == 'true'
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           input: ${{ runner.temp }}/oas-polycontract/specmatic.tar
