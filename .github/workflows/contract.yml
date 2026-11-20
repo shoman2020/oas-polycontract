@@ -36,7 +36,7 @@ jobs:
         run: |
           artifact="$RUNNER_TEMP/oas-polycontract/wiremock-standalone-${WIREMOCK_VERSION}.jar"
           mkdir -p "$(dirname "$artifact")"
-          curl --fail --location --retry 3 --output "$artifact" \
+          curl --fail --location --connect-timeout 15 --max-time 60 --retry 3 --retry-all-errors --retry-delay 2 --retry-max-time 90 --output "$artifact" \
             "https://repo.maven.apache.org/maven2/org/wiremock/wiremock-standalone/${WIREMOCK_VERSION}/wiremock-standalone-${WIREMOCK_VERSION}.jar"
           printf '%s  %s\n' "$WIREMOCK_SHA256" "$artifact" | sha256sum --check
 

@@ -739,6 +739,7 @@ function checkWorkflowVisuals() {
         'NODE_TEST_IMAGE_ARCHIVE: ${{ runner.temp }}/oas-polycontract/node-test.tar',
         'input: ${{ runner.temp }}/oas-polycontract/node-test.tar',
         'image-ref: ${{ env.WIREMOCK_RUNTIME_IMAGE }}',
+        '--retry-all-errors',
         'scan-ref: ${{ runner.temp }}/oas-polycontract/wiremock-standalone-${{ env.WIREMOCK_VERSION }}.jar',
       ],
     },
