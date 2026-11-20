@@ -422,7 +422,7 @@ function checkCompatibilityBaselines(services) {
       failures.push(`compatibility-baselines: ${service.name} is not checked by the runner`);
     }
   }
-  if (!pipeline.includes("['breaking', baseline, candidate]")) {
+  if (!pipeline.includes("['breaking', '--fail-on', 'ERR', baseline, candidate]")) {
     failures.push('compatibility-baselines: compatibility checks must invoke oasdiff breaking for each provider baseline');
   }
 
