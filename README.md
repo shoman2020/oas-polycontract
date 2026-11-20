@@ -62,7 +62,7 @@ Native suites are code-based API integration tests: they call the running APIs, 
 
 ```mermaid
 flowchart TB
-  AnyPush[Push to any branch] --> Contract[contract.yml]
+  MainPush[Push to main] --> Contract[contract.yml]
   PullRequest[Pull request] --> Contract
   Manual[Manual workflow dispatch] --> Contract
   Contract --> CoreJob[Shared contract gate job]
@@ -227,7 +227,7 @@ Specmatic mock data uses OAS examples, fixtures in `demo/openapi_examples`, and 
 
 Some repository checks match source markers to guard conventions; they do not prove runtime behavior. Tests and negative canaries provide that evidence.
 
-Dependabot checks package manifests weekly. Contract CI runs on pushes, pull requests, and manual dispatch. Security CI runs on pushes to `main`, pull requests, a weekly schedule, and manual dispatch. See the [interactive workflow map](https://shoman2020.github.io/oas-polycontract/#workflows).
+Dependabot checks package manifests weekly. Contract CI runs on pushes to `main`, pull requests, and manual dispatch. Security CI runs on pushes to `main`, pull requests, a weekly schedule, and manual dispatch. See the [interactive workflow map](https://shoman2020.github.io/oas-polycontract/#workflows).
 
 The [OWASP SecureAI-Scan](https://genai.owasp.org/solution/secureai-scan/) gate scans repository source for AI, LLM, and MCP risks. This project has no runtime AI or MCP integration. Manual `workflow_dispatch` runs can also execute isolated positive controls: the [SecureAI example](gates/security/run-genai-example.mjs) creates a temporary TypeScript chat handler with user input in a system prompt, checks for the expected high `AI001` finding, and saves its SARIF artifact. The temporary source is removed before the repository scan. Manual-only fixtures keep demonstration code out of routine pull-request scans.
 

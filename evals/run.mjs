@@ -721,9 +721,10 @@ function checkWorkflowVisuals() {
       path: '.github/workflows/contract.yml',
       markers: [
         '  push:',
+        '    branches: [main]',
         '  pull_request:',
         '  workflow_dispatch:',
-        'group: contract-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event.pull_request.head.ref || github.ref_name }}',
+        'group: contract-${{ github.event.pull_request.head.repo.full_name || github.repository }}-${{ github.event.pull_request.head.ref || github.ref_name }}-${{ github.event_name }}',
         "cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}",
         'uses: ./.github/actions/prepare-contract-runner',
         'POLYCONTRACT_PIPELINE_PROFILE: core',
@@ -774,11 +775,11 @@ function checkWorkflowVisuals() {
   const workflowNames = ['contract.yml', 'security.yml', 'showcase.yml', 'performance.yml'];
   const concepts = ['Dependency Review', 'Dependabot', 'Trivy image scans', 'OWASP GenAI scan', 'SecureAI-Scan', 'Semgrep'];
   const readmeTriggers = [
-    'Contract CI runs on pushes, pull requests, and manual dispatch.',
+    'Contract CI runs on pushes to `main`, pull requests, and manual dispatch.',
     'Security CI runs on pushes to `main`, pull requests, a weekly schedule, and manual dispatch.',
     'manual performance benchmark',
   ];
-  const showcaseTriggers = ['Push · pull request · manual run', 'Main push · pull request · weekly · manual', 'Main push to showcase files · manual run', 'Manual benchmark · Ubuntu 24.04 and 26.04'];
+  const showcaseTriggers = ['Main push · pull request · manual run', 'Main push · pull request · weekly · manual', 'Main push to showcase files · manual run', 'Manual benchmark · Ubuntu 24.04 and 26.04'];
 
   for (const path of workflowFiles) assertRepositoryPath(path, 'workflow-visuals');
   for (const policy of sourcePolicies) {
