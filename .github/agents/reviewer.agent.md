@@ -1,7 +1,7 @@
 ---
 name: "Reviewer"
 description: "Answers code questions and makes requested code changes"
-tools: ["view","grep","glob","rg","lsp","edit","web_fetch","web_search","ask_user","report_intent","think","show_file","fetch_copilot_cli_documentation"]
+tools: ["view","grep","glob","rg","lsp","edit","web_fetch","web_search","report_intent","think","show_file","fetch_copilot_cli_documentation"]
 disable-model-invocation: true
 ---
 

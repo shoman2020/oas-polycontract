@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { StatefulOrderApiClient, type StatefulApiResponse } from "./order-api-client.js";
 import type { StatefulOrderApi } from "./http-api-client.js";
 import { acceptanceCase, acceptanceCases } from "./feature-cases.js";
+import { logger } from "./logger.js";
 
 interface OrderResponse {
   id: string;
@@ -47,7 +48,7 @@ describe("stateful order API contract", () => {
     const missing = await validate(api.getOrder(created.body.id));
     expect(missing.status).toBe(404);
     expect(missing.body.message).toBe("Order not found");
-    console.log("Stateful OAS validation passed: create -> read -> confirm -> delete -> 404");
+    logger.info("Stateful OAS validation passed: create -> read -> confirm -> delete -> 404");
   });
 
   for (const scenario of acceptanceCases("order").filter(({ caseId }) => caseId !== "order.confirm")) {

@@ -7,19 +7,39 @@ export class StatefulOrderApiClient extends HttpApiClient implements StatefulOrd
     super(baseUrl, fetchImpl, timeoutMs);
   }
 
-  createOrder(sku: string, quantity: number): Promise<StatefulApiResponse> {
-    return this.send("/orders", "POST", { sku, quantity });
+  async createOrder(sku: string, quantity: number): Promise<StatefulApiResponse> {
+    try {
+      return await this.send("/orders", "POST", { sku, quantity });
+    } catch (error) {
+      this.logger.error("Failed to create order", { sku, quantity, error });
+      throw new Error(`Failed to create order for SKU: ${sku}`, { cause: error });
+    }
   }
 
-  getOrder(orderId: string): Promise<StatefulApiResponse> {
-    return this.send(`/orders/${encodeURIComponent(orderId)}`, "GET");
+  async getOrder(orderId: string): Promise<StatefulApiResponse> {
+    try {
+      return await this.send(`/orders/${encodeURIComponent(orderId)}`, "GET");
+    } catch (error) {
+      this.logger.error("Failed to get order", { orderId, error });
+      throw new Error(`Failed to get order: ${orderId}`, { cause: error });
+    }
   }
 
-  updateOrder(orderId: string, status: string): Promise<StatefulApiResponse> {
-    return this.send(`/orders/${encodeURIComponent(orderId)}`, "PATCH", { status });
+  async updateOrder(orderId: string, status: string): Promise<StatefulApiResponse> {
+    try {
+      return await this.send(`/orders/${encodeURIComponent(orderId)}`, "PATCH", { status });
+    } catch (error) {
+      this.logger.error("Failed to update order", { orderId, status, error });
+      throw new Error(`Failed to update order: ${orderId}`, { cause: error });
+    }
   }
 
-  deleteOrder(orderId: string): Promise<StatefulApiResponse> {
-    return this.send(`/orders/${encodeURIComponent(orderId)}`, "DELETE");
+  async deleteOrder(orderId: string): Promise<StatefulApiResponse> {
+    try {
+      return await this.send(`/orders/${encodeURIComponent(orderId)}`, "DELETE");
+    } catch (error) {
+      this.logger.error("Failed to delete order", { orderId, error });
+      throw new Error(`Failed to delete order: ${orderId}`, { cause: error });
+    }
   }
 }
