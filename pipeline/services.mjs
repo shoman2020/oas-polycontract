@@ -1,5 +1,5 @@
 /**
- * Service provisioning, lifecycle management, and readiness probing
+ * Service provisioning, lifecycle management, container factory, and readiness probing
  * for the Testcontainers pipeline runner.
  */
 
@@ -72,3 +72,58 @@ export const serviceHealthCheck = (port) => ({
   retries: 10,
   startPeriod: 2000,
 });
+
+/**
+ * OOP Container Factory for instantiating and configuring Testcontainers instances.
+ * Encapsulates container lifecycle defaults, network binding, wait strategies, and streams.
+ */
+export class ContainerFactory {
+  constructor(GenericContainerClass, WaitHelper, network) {
+    this.GenericContainer = GenericContainerClass;
+    this.Wait = WaitHelper;
+    this.network = network;
+  }
+
+  setNetwork(network) {
+    this.network = network;
+  }
+
+  /**
+   * Factory method to create a fully configured container.
+   */
+  create(image, options = {}) {
+    const { alias } = options;
+    const isService = Boolean(alias);
+    let container = new this.GenericContainer(image)
+      .withNetwork(this.network)
+      .withStartupTimeout(options.timeout ?? (isService ? 120_000 : 60 * 60 * 1000))
+      .withLogConsumer((stream) => {
+        stream.on('data', (line) => process.stdout.write(line));
+        stream.on('err', (line) => process.stderr.write(line));
+      });
+
+    if (alias) container = container.withNetworkAliases(alias);
+
+    if (options.waitStrategy) {
+      container = container.withWaitStrategy(options.waitStrategy);
+    } else if (options.healthCheck) {
+      container = container
+        .withHealthCheck(options.healthCheck)
+        .withWaitStrategy(this.Wait.forHealthCheck());
+    } else if (isService) {
+      container = container.withWaitStrategy(this.Wait.forSuccessfulCommand('true'));
+    } else {
+      container = container.withWaitStrategy(this.Wait.forOneShotStartup());
+    }
+
+    if (options.workingDir) container = container.withWorkingDir(options.workingDir);
+    if (options.entrypoint) container = container.withEntrypoint(options.entrypoint);
+    if (options.environment) container = container.withEnvironment(options.environment);
+    if (options.user) container = container.withUser(options.user);
+    if (options.command) container = container.withCommand(options.command);
+    if (options.mounts) container = container.withBindMounts(options.mounts);
+    if (options.copyFiles) container = container.withCopyFilesToContainer(options.copyFiles);
+
+    return container;
+  }
+}

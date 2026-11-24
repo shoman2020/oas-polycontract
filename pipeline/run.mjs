@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { parseNativeClientSelection, readVersionPins } from './config.mjs';
 import { completeStageReport } from './stage-report.mjs';
 import { runChildProcess } from './commands.mjs';
-import { downloadWireMockArtifact, serviceHealthCheck } from './services.mjs';
+import { ContainerFactory, downloadWireMockArtifact, serviceHealthCheck } from './services.mjs';
 
 const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 
@@ -81,6 +81,7 @@ const serviceHealthCheck = (port) => ({
 class ContractPipeline {
   constructor() {
     this.network = undefined;
+    this.containerFactory = new ContainerFactory(GenericContainer, Wait, undefined);
     this.specmaticImage = `specmatic/specmatic:${versions.SPECMATIC_VERSION}`;
     this.services = [];
     this.stages = [];
@@ -94,6 +95,7 @@ class ContractPipeline {
     const runtimeStages = [
       ['Testcontainers network', async () => {
         this.network = await new Network().start();
+        this.containerFactory.setNetwork(this.network);
       }],
       ['Prepare pinned Node test runtime', () => this.prepareNodeTestImage()],
     ];
@@ -170,38 +172,7 @@ class ContractPipeline {
   }
 
   createContainer(image, options = {}) {
-    const { alias } = options;
-    const isService = Boolean(alias);
-    let container = new GenericContainer(image)
-      .withNetwork(this.network)
-      .withStartupTimeout(options.timeout ?? (isService ? 120_000 : 60 * 60 * 1000))
-      .withLogConsumer((stream) => {
-        stream.on('data', (line) => process.stdout.write(line));
-        stream.on('err', (line) => process.stderr.write(line));
-      });
-
-    if (alias) container = container.withNetworkAliases(alias);
-
-    if (options.waitStrategy) {
-      container = container.withWaitStrategy(options.waitStrategy);
-    } else if (options.healthCheck) {
-      container = container
-        .withHealthCheck(options.healthCheck)
-        .withWaitStrategy(Wait.forHealthCheck());
-    } else if (isService) {
-      container = container.withWaitStrategy(Wait.forSuccessfulCommand('true'));
-    } else {
-      container = container.withWaitStrategy(Wait.forOneShotStartup());
-    }
-
-    if (options.workingDir) container = container.withWorkingDir(options.workingDir);
-    if (options.entrypoint) container = container.withEntrypoint(options.entrypoint);
-    if (options.environment) container = container.withEnvironment(options.environment);
-    if (options.user) container = container.withUser(options.user);
-    if (options.command) container = container.withCommand(options.command);
-    if (options.mounts) container = container.withBindMounts(options.mounts);
-    if (options.copyFiles) container = container.withCopyFilesToContainer(options.copyFiles);
-    return container;
+    return this.containerFactory.create(image, options);
   }
 
   commandContainer(image, options = {}) {

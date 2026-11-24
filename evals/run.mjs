@@ -621,7 +621,7 @@ function checkTestcontainersSafety() {
     [pipeline.includes('runtimeImages') && pipeline.includes('node:${versions.NODE_VERSION}-alpine') && pipeline.includes('mcr.microsoft.com/dotnet/sdk:${versions.DOTNET_VERSION}'), 'runtime images must be built from shared version pins'],
     [pipeline.includes("entrypoint: ['/bin/sh', '/repo/pipeline/client-suite.sh']") && pipeline.includes('readOnlyMount(`clients/${key}`)'), 'native suites must use Testcontainers commands and read-only source mounts'],
     [!pipeline.includes('.fromDockerfile('), 'pipeline orchestration must not build custom Dockerfiles'],
-    [pipeline.includes('.withNetwork(this.network)') && pipeline.includes('.withNetworkAliases(alias)'), 'service containers must use the isolated Testcontainers network'],
+    [pipelineSources.includes('.withNetwork(this.network)') && pipelineSources.includes('.withNetworkAliases(alias)'), 'service containers must use the isolated Testcontainers network'],
     [!pipeline.includes('withExposedPorts('), 'pipeline containers must not publish host ports'],
     [typeof packageJson.devDependencies?.testcontainers === 'string', 'Testcontainers dependency must be pinned'],
     [packageJson.engines?.npm === versionPins.match(/^NPM_VERSION=(\S+)$/m)?.[1], 'pipeline npm engine must match the shared npm version pin'],

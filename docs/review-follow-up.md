@@ -25,7 +25,7 @@ This file turns the supplied review into a change checklist. Findings are not tr
 
 ## Priority 3 — Simplify the project and make local use easier
 
-- [ ] Remove source-marker evaluations and split the pipeline stage plan from orchestration logic. Separate image setup, downloads, service lifecycle, execution, and reporting behind small modules.
+- [x] Remove source-marker evaluations and split the pipeline stage plan from orchestration logic. Separate image setup, downloads, service lifecycle, execution, and reporting behind small modules.
 - [ ] Declare stage prerequisites and manage services through a registry that starts dependencies on demand.
 - [ ] Replace no-op Smart Mock readiness and retry-loop-only startup with a real readiness probe.
 - [ ] Download shared artifacts once per workflow rather than once per stack.
