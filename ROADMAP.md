@@ -54,7 +54,7 @@ Open work includes the post-Testcontainers performance matrix (Phase 12), runtim
 - [x] Harmonize repeat-count assertions in stateful order lifecycle tests across Python and JavaScript suites.
 
 ### Phase 4 — Debug views
-- [x] Add optional Swagger UI and Prism views of the root OAS.
+- [x] ~~Add optional Swagger UI and Prism views of the root OAS.~~ Removed: views were documented but never wired into the pipeline or CI. Use Postman and Bruno collections for manual exploration.
 
 ### Phase 5 — Legacy migration
 - [x] Add project-specific Postman and Bruno collections for Product and Order.

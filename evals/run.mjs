@@ -456,7 +456,7 @@ function checkApiBehavior() {
   const csharpValidator = readRepositoryFile('clients/csharp/OpenApiResponseValidator.cs');
   const csharpConformance = readRepositoryFile('clients/csharp/OpenApiResponseValidatorConformanceTests.cs');
   const wiremockIntegration = readRepositoryFile('demo/app/tests/wiremock.integration.mjs');
-  const timeoutMapping = JSON.parse(readRepositoryFile('demo/downstream/wiremock/mappings/inventory-timeout.json'));
+  const timeoutMapping = JSON.parse(readRepositoryFile('demo/downstream/wiremock/mappings/faults/inventory-timeout.json'));
   const spectralFixture = readOpenApiDocument('gates/lint/fixtures/missing-operation-id.openapi.yaml');
   const breakingBaseline = readOpenApiDocument('gates/breaking-change/fixtures/baseline.yaml');
   const breakingCandidate = readOpenApiDocument('gates/breaking-change/fixtures/candidate.yaml');

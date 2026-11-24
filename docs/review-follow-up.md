@@ -6,12 +6,12 @@ This file turns the supplied review into a change checklist. Findings are not tr
 
 - [ ] Replace source-text and line-marker repository evaluations with behavioral or structural checks. Keep useful link, file-tree, and shell-path checks; represent pipeline stages as data if they need evaluation.
 - [ ] Rename `evals/` to reflect its role as repository consistency checks, or document why the current name is retained.
-- [ ] Make every documented capability traceable to a running command or workflow. Implement or remove unsupported Swagger UI and Prism claims; align Catalog compatibility claims with actual CI coverage.
+- [x] Make every documented capability traceable to a running command or workflow. ~~Implement or remove unsupported Swagger UI and Prism claims~~; align Catalog compatibility claims with actual CI coverage.
 - [ ] Enforce a contract version bump when a contract changes, then review and re-baseline Product and Order versions where appropriate.
 - [ ] Move required CI checks to a supported Ubuntu runner. If Ubuntu 26.04 is still preview, keep it as a non-required canary until it is generally available.
 - [ ] Tighten negative canaries to assert specific rule IDs or structured output. Ensure failures cannot pass because of connection errors or unrelated text.
-- [ ] Separate conformant WireMock mappings from intentional fault fixtures; run contract conformance only against conformant mappings.
-- [ ] Validate every `versions.env` pin is consumed by the workflow or tooling it claims to configure.
+- [x] Separate conformant WireMock mappings from intentional fault fixtures; run contract conformance only against conformant mappings.
+- [x] Validate every `versions.env` pin is consumed by the workflow or tooling it claims to configure.
 
 ## Priority 2 — Correct behavior and contract semantics
 

@@ -2,6 +2,9 @@
   "name": "oas-polycontract-js-client",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "26.x"
+  },
   "scripts": {
     "test": "node --test product-api-integration.test.mjs stateful-order-api-integration.test.mjs",
     "test:consumer": "node --test consumer-contract.test.mjs",

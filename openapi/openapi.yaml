@@ -4,8 +4,7 @@ info:
   version: 1.0.0
   description: >
     Design scaffold for the Product Catalog API. This reviewed contract
-    is checked by Spectral and oasdiff and feeds the optional Swagger UI
-    and Prism views. No provider implements it yet; the runnable demo has
+    is checked by Spectral and oasdiff. No provider implements it yet; the runnable demo has
     a separate contract at demo/openapi.yaml.
   contact:
     name: SHIFT-LEFT.NL and Ahmed Abdelwahab

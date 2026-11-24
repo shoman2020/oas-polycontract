@@ -6,7 +6,7 @@ oas-polycontract is a runnable reference template for specification-led API test
 
 - Keep one reviewed contract for each API boundary and use it to guide provider verification and consumer development against a provider Smart Mock.
 - Validate live behavior with native integration suites. Specmatic verifies the provider and serves a provider-spec mock; Schemathesis covers fuzzing and stateful flows.
-- Use Swagger UI and Prism to inspect the Catalog scaffold; use the Postman and Bruno examples with the runnable Product and Order APIs.
+- Use the Postman and Bruno examples with the runnable Product and Order APIs.
 - Reduce duplicate specs and overlapping tools to lower maintenance and tooling costs.
 - Keep contracts usable across clients, test frameworks, and vendors. One contract owner means less maintenance and more trust.
 
@@ -143,7 +143,7 @@ Specifications are reviewed source files and read-only pipeline inputs. Tests, g
 
 | Boundary | Contract | Implementation and checks |
 |---|---|---|
-| Product Catalog | [Root OAS](openapi/openapi.yaml) | Separate design scaffold; its full Product schema includes a name; Spectral, Swagger UI, Prism |
+| Product Catalog | [Root OAS](openapi/openapi.yaml) | Separate design scaffold; its full Product schema includes a name; Spectral, oasdiff |
 | Product API | [Demo OAS](demo/openapi.yaml) | Separate runnable boundary; returns an availability projection (`sku`, `available`); Node.js, Specmatic, Schemathesis, seven languages, Playwright |
 | Order API | [Stateful OAS](demo/stateful/openapi.yaml) | In-memory Node.js; stateful Schemathesis and seven native suites |
 | Inventory dependency | [Downstream OAS](demo/downstream/openapi.yaml) | WireMock mappings, Specmatic, downstream integration |
