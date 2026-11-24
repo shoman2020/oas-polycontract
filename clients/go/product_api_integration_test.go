@@ -74,11 +74,7 @@ func TestProductAcceptanceErrorScenariosMatchOpenAPIContract(t *testing.T) {
 			var response *http.Response
 			var err error
 			if rawPath, ok := scenario["path"].(string); ok {
-				request, requestErr := http.NewRequestWithContext(ctx, http.MethodGet, os.Getenv("API_BASE_URL")+rawPath, nil)
-				if requestErr != nil {
-					t.Fatal(requestErr)
-				}
-				response, err = http.DefaultClient.Do(request)
+				response, err = api.GetProductPath(ctx, rawPath)
 			} else {
 				response, err = api.GetProduct(ctx, scenario["sku"].(string))
 			}

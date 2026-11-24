@@ -40,6 +40,13 @@ impl ProductApiClient {
             .send()
             .await
     }
+
+    pub async fn get_product_path(&self, path: &str) -> Result<reqwest::Response, reqwest::Error> {
+        self.http
+            .request(reqwest::Method::GET, path)
+            .send()
+            .await
+    }
 }
 
 pub struct StatefulOrderApiClient {
