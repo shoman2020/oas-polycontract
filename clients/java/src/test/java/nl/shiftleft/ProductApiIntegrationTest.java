@@ -10,9 +10,9 @@ import org.junit.jupiter.api.Test;
 
 class ProductApiIntegrationTest {
     @Test
-    void productResponseMatchesOpenApiContract() throws Exception {
+    void productResponseMatchesOpenApiContract() {
         Map<String, Object> scenario = FeatureCases.byId("product.available");
-        String specUrl = Path.of(System.getenv("OPENAPI_SPEC")).toUri().toURL().toString();
+        String specUrl = Path.of(System.getenv("OPENAPI_SPEC")).toUri().toString();
         OpenApiValidationFilter validation = new OpenApiValidationFilter(specUrl);
 
         ProductApi api = new ProductApiClient(System.getenv("API_BASE_URL"), validation);
@@ -42,4 +42,3 @@ class ProductApiIntegrationTest {
         }
     }
 }
-

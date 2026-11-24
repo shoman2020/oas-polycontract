@@ -13,7 +13,7 @@ class StatefulOrderApiIntegrationTest {
     @Test
     void orderLifecycleResponsesMatchOpenApiContract() throws Exception {
         Map<String, Object> scenario = FeatureCases.byId("order.confirm");
-        String specUrl = Path.of(System.getenv("STATEFUL_OPENAPI_SPEC")).toUri().toURL().toString();
+        String specUrl = Path.of(System.getenv("STATEFUL_OPENAPI_SPEC")).toUri().toString();
         OpenApiValidationFilter validation = new OpenApiValidationFilter(specUrl);
         StatefulOrderApi api = new StatefulOrderApiClient(
             System.getenv("STATEFUL_API_BASE_URL"), validation);
@@ -56,7 +56,7 @@ class StatefulOrderApiIntegrationTest {
     @Test
     void orderErrorFeaturesMatchOpenApiContract() throws Exception {
         String baseUri = System.getenv("STATEFUL_API_BASE_URL");
-        String specUrl = Path.of(System.getenv("STATEFUL_OPENAPI_SPEC")).toUri().toURL().toString();
+        String specUrl = Path.of(System.getenv("STATEFUL_OPENAPI_SPEC")).toUri().toString();
         OpenApiValidationFilter validation = new OpenApiValidationFilter(specUrl);
         StatefulOrderApi api = new StatefulOrderApiClient(baseUri, validation);
 

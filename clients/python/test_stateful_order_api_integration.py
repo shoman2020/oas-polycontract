@@ -61,18 +61,16 @@ def test_order_validation_and_conflict_responses_match_openapi_contract(
     validate_response(stateful_openapi_contract, request, response)
     order_id = response.json()["id"]
 
-    request, response = stateful_order_api_client.update_order(order_id, scenario["initialStatus"])
-    validate_response(stateful_openapi_contract, request, response)
-    assert response.status_code == 200
-
-    request, response = stateful_order_api_client.update_order(order_id, scenario["initialStatus"])
-    validate_response(stateful_openapi_contract, request, response)
-    assert response.status_code == 200
-    assert response.json()["status"] == scenario["persistedStatus"]
+    for _ in range(scenario["repeatCount"]):
+        request, response = stateful_order_api_client.update_order(order_id, scenario["initialStatus"])
+        validate_response(stateful_openapi_contract, request, response)
+        assert response.status_code == 200
+        assert response.json()["status"] == scenario["persistedStatus"]
 
     request, response = stateful_order_api_client.update_order(order_id, scenario["requestedStatus"])
     validate_response(stateful_openapi_contract, request, response)
     assert response.status_code == scenario["expectedStatus"]
+    assert isinstance(response.json().get("message"), str)
 
     request, response = stateful_order_api_client.get_order(order_id)
     validate_response(stateful_openapi_contract, request, response)

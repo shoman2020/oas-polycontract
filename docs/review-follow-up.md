@@ -17,7 +17,7 @@ This file turns the supplied review into a change checklist. Findings are not tr
 
 - [ ] Make acceptance scenarios drive behavior. Either use a structured case file as the source of truth, or implement real Gherkin steps that configure scenario data through WireMock's admin API. Remove generated data that can silently diverge from scenarios.
 - [ ] Cover `exclusiveMaximum`, nullable schemas without an explicit type, and `$ref` response schemas in Rust and C# validation. Add focused adapter tests or replace the adapters with validators that support the required OAS semantics.
-- [ ] Fix the Rust client's SKU path encoding and review Product's mapping of upstream 4xx responses.
+- [x] Fix the Rust client's SKU path encoding and review Product's mapping of upstream 4xx responses.
 - [ ] Remove Java validation bypasses and ensure all exercised responses are validated.
 - [ ] Resolve the Product/Inventory fixture mismatch: align the `available` example and WireMock behavior, and keep intentionally malformed responses outside the conformant fixture set.
 - [ ] Keep AsyncAPI examples explicitly labelled lint-only unless runtime coverage and a maintained broker are added.
