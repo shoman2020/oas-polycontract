@@ -571,6 +571,8 @@ function checkApiBehavior() {
 
 function checkTestcontainersSafety() {
   const pipeline = readRepositoryFile('pipeline/run.mjs');
+  const pipelineServices = existsSync(resolve(repositoryRoot, 'pipeline/services.mjs')) ? readRepositoryFile('pipeline/services.mjs') : '';
+  const pipelineSources = `${pipeline}\n${pipelineServices}`;
   const contractWorkflow = readRepositoryFile('.github/workflows/contract.yml');
   const consumerPipeline = pipeline.slice(pipeline.indexOf('async runConsumerTests()'), pipeline.indexOf('async cleanup()'));
   const clientSuite = readRepositoryFile('pipeline/client-suite.sh');
@@ -605,7 +607,7 @@ function checkTestcontainersSafety() {
     [!composeExists, 'Docker Compose orchestration should be removed'],
     [projectDockerfiles.every((path) => !existsSync(resolve(repositoryRoot, path))), 'project-specific Dockerfiles should be replaced with pinned Testcontainers runtimes'],
     [invalidDockerUpdates.length === 0, 'Dependabot Docker updates must target directories that contain a Dockerfile'],
-    [pipeline.includes("'--retry-all-errors'") && pipeline.includes('repo.maven.apache.org/maven2') && pipeline.includes('repo1.maven.org/maven2') && pipeline.includes('WIREMOCK_SHA256'), 'WireMock downloads must retry across Maven Central hosts and verify their pinned digest'],
+    [pipelineSources.includes("'--retry-all-errors'") && pipelineSources.includes('repo.maven.apache.org/maven2') && pipelineSources.includes('repo1.maven.org/maven2') && pipelineSources.includes('WIREMOCK_SHA256'), 'WireMock downloads must retry across Maven Central hosts and verify their pinned digest'],
     [pipeline.includes('async prepareSpecmaticImage()') && pipeline.includes('apk add --upgrade --no-cache') && pipeline.includes('openjdk-17-default-jvm') && pipeline.includes('versions.SPECMATIC_OPENJDK_VERSION') && pipeline.includes('ENTRYPOINT ["/usr/local/bin/specmatic"]') && pipeline.includes("runTask('Verify patched Specmatic CLI'") && contractWorkflow.includes('SPECMATIC_IMAGE_ARCHIVE') && contractWorkflow.includes('Scan prepared Specmatic runtime archive'), 'The scanned Specmatic image must use the pinned patched Wolfi OpenJDK runtime'],
     [pipeline.includes('const readOnlyMount') && pipeline.includes("mode: 'ro'") && !pipeline.includes("source: repositoryRoot") && !pipeline.includes("target: '/repo'"), 'only selected source paths may be mounted read-only'],
     [pipeline.includes("readOnlyMount('demo')") && pipeline.includes("readOnlyMount('openapi')"), 'contract and fixture mounts must be explicit'],
@@ -624,17 +626,17 @@ function checkTestcontainersSafety() {
     [typeof packageJson.devDependencies?.testcontainers === 'string', 'Testcontainers dependency must be pinned'],
     [packageJson.engines?.npm === versionPins.match(/^NPM_VERSION=(\S+)$/m)?.[1], 'pipeline npm engine must match the shared npm version pin'],
     [['cpu-features', 'protobufjs', 'ssh2'].every((name) => packageJson.allowScripts?.[name] === false), 'unneeded transitive npm install scripts must be explicitly denied'],
-    [pipeline.includes('mkdtempSync(join(tmpdir()') && pipeline.includes("artifactPath = join(cacheDirectory, `wiremock-${index}.jar`)") && pipeline.includes("openSync(artifactPath, 'wx+'") && !pipeline.includes("openSync(artifactPath, 'w+'"), 'WireMock artifacts must use private, unique files and exclusive descriptors for each download attempt'],
-    [pipeline.includes("import { runChildProcess } from './commands.mjs'")
-      && !pipeline.includes('spawnSync')
-      && pipeline.includes('await runChildProcess(process.execPath')
-      && pipeline.includes("await runChildProcess('curl'")
-      && pipeline.includes("await runChildProcess('docker'")
+    [pipelineSources.includes('mkdtempSync(join(tmpdir()') && pipelineSources.includes("artifactPath = join(cacheDirectory, `wiremock-${index}.jar`)") && pipelineSources.includes("openSync(artifactPath, 'wx+'") && !pipelineSources.includes("openSync(artifactPath, 'w+'"), 'WireMock artifacts must use private, unique files and exclusive descriptors for each download attempt'],
+    [pipelineSources.includes("import { runChildProcess } from './commands.mjs'")
+      && !pipelineSources.includes('spawnSync')
+      && pipelineSources.includes('await runChildProcess(process.execPath')
+      && pipelineSources.includes("await runChildProcess('curl'")
+      && pipelineSources.includes("await runChildProcess('docker'")
       && readRepositoryFile('pipeline/commands.mjs').includes("import { spawn }")
       && readRepositoryFile('pipeline/commands.mjs').includes('child.stdout?.on')
       && readRepositoryFile('pipeline/commands.test.mjs').includes("assert.equal(result.stdout, 'child output')")
       && readRepositoryFile('pipeline/commands.test.mjs').includes('awaits a child process')
-      && pipeline.includes('readSync(descriptor') && pipeline.includes('WIREMOCK_SHA256'),
+      && pipelineSources.includes('readSync(descriptor') && pipelineSources.includes('WIREMOCK_SHA256'),
       'pipeline subprocesses must use tested asynchronous execution while the WireMock artifact stays hash-checked'],
     [!pipeline.includes('npm cache clean --force') && !pipeline.includes('--force >/dev/null'), 'Node runtime setup must not disable npm protections'],
     [clientSuite.includes('mkdir -p "$workspace/target/classes"') && javaProductTests.includes('getProductPathUnvalidated') && javaOrderTests.includes('createOrderUnvalidated') && javaOrderTests.includes('expectedMessage'), 'Java tests isolate malformed inputs from request validation and check responses against feature data'],

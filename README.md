@@ -121,13 +121,26 @@ The [Product and Order Gherkin features](clients/features/README.md) define acce
 
 ## Enterprise adoption
 
-Treat this repository as a pilot template. Before adopting it across teams, adapt these boundaries to the company’s API portfolio and engineering standards:
+Treat this repository as an **encyclopedic reference template and testing showcase**, not a rigid framework that teams must adopt wholesale. Before adopting it across teams, choose the specific patterns that address your organization's highest points of friction, and adapt these boundaries to the company’s API portfolio and engineering standards:
+
+### Modular adoption patterns
+
+Teams should select only the relevant patterns rather than importing the entire polyglot test harness:
+
+- **Pattern A: Multi-Language Client Synchronization (SDK Teams)**  
+  Adopt Gherkin feature definitions (`clients/features/`) compiled via a case generator into shared JSON test cases (`clients/shared/acceptance-cases.json`). Each client SDK repository consumes this shared JSON to ensure parity in validation rules, route encoding, and error handling across languages without rewriting assertions.
+- **Pattern B: Contract-Driven Provider Verification & Smart Mocks (Backend Teams)**  
+  Adopt Specmatic provider verification against running service containers alongside provider-driven Smart Mocks for consumer teams. Wire negative canary fixtures into CI to verify that invalid provider responses fail automated contract gates.
+- **Pattern C: Hermetic Containerized Gate Orchestration (DevOps / Platform Teams)**  
+  Adopt Testcontainers orchestration with read-only specification bind mounts (`mode: 'ro'`), pinned toolchain versioning (`versions.env`), and ephemeral execution networks to guarantee reproducible contract checks without host contamination.
+
+### Adaptation matrix
 
 | Area | Current example | Adoption step |
 |---|---|---|
 | API coverage | One Product lookup and one Order lifecycle; no authentication scheme or collection endpoint | Pilot with representative APIs, including authentication, collection operations, pagination, versioning, and downstream failure modes. |
 | Consumer ownership | Provider OAS generates the Smart Mock; this example has no consumer-owned contract | Add a versioned contract per consumer and provider verification when teams need to check their own expectations. |
-| Validators | Language validators differ. The Rust and C# adapters translate nullable values, `exclusiveMinimum`, and nested local component-schema references covered by conformance tests; neither claims full OAS 3.0 coverage. C# rejects external and unsupported references before schema resolution. | Agree a supported OAS feature matrix and test each language against it. Add coverage for constructs such as `allOf`, `anyOf`, and discriminators before relying on them. Use the shared Spectral, Specmatic, and Schemathesis gates for contract-wide checks. |
+| Validators | Language validators differ. The Rust and C# adapters translate nullable values, `exclusiveMinimum`, and nested local component-schema references covered by conformance tests; neither claims full OAS 3.0 coverage. C# rejects external and unsupported references before schema resolution. Java isolates intentional error requests using unvalidated dispatch to avoid client-side filter abortion before server errors are received. | Agree a supported OAS feature matrix and test each language against it. Add coverage for constructs such as `allOf`, `anyOf`, and discriminators before relying on them. Use the shared Spectral, Specmatic, and Schemathesis gates for contract-wide checks. |
 | Runtime state | Order data is in memory, scoped to one app instance, and lost on restart | Use isolated test data and a service-backed store for tests that need persistence, parallel environments, or multi-instance behavior. |
 | Runtime versions | CI tests one centrally pinned toolchain | Align pins with approved company versions and add compatibility jobs for the runtimes teams support. |
 | CI cost | The full run pulls pinned runtime images and runs all client suites; client dependencies install into temporary containers | Measure target CI before setting timeouts, cost budgets, or performance thresholds. The active ruleset gates correctness and security, not runtime duration. |

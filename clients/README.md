@@ -31,6 +31,15 @@ Product suites exercise `GET /products/demo-sku` and error paths. Order suites t
 
 All seven suites validate exercised responses against OAS. Rust and C# adapters have focused conformance tests; other languages use their native validator libraries. Define an OAS feature matrix before adopting the adapters for a larger API.
 
+### Validation nuances and language asymmetries
+
+While each native suite validates responses against the OpenAPI specifications, language ecosystems differ significantly in how they handle OpenAPI 3.0 semantics:
+
+- **JavaScript / TypeScript**: Validates directly via `@oaverify/core` and AJV. Requests and responses adhere strictly to declared schema structures with structured logging.
+- **Rust / C#**: Standard ecosystem validators (`jsonschema` crate and `NJsonSchema`) target standard JSON Schema (Draft 7 / 2020-12) rather than OpenAPI 3.0.3 dialect nuances. To bridge this, both suites feature scoped adapters that normalize `nullable: true` into union types (`["<type>", "null"]`), map `exclusiveMinimum` booleans, and resolve local component references (`#/components/schemas/` to `#/$defs/`).
+- **Java**: Uses REST Assured with Atlassian's `OpenApiValidationFilter`. Because Atlassian's filter validates both outgoing requests and incoming responses simultaneously, intentional client-side error tests (such as malformed raw paths or payloads violating request schemas) bypass the request-side filter via explicit unvalidated helpers (`getProductPathUnvalidated`, `createOrderUnvalidated`) so the server's HTTP error response can still be received and validated without client-side filter abortion.
+- **Go / Python**: Native libraries (`kin-openapi` and `openapi-core`) provide standard OpenAPI 3.0 request/response validation out-of-the-box.
+
 ## Migrating request collections
 
 1. Group requests by API boundary and remove credentials.

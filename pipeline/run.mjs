@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { parseNativeClientSelection, readVersionPins } from './config.mjs';
 import { completeStageReport } from './stage-report.mjs';
 import { runChildProcess } from './commands.mjs';
+import { downloadWireMockArtifact, serviceHealthCheck } from './services.mjs';
 
 const repositoryRoot = resolve(fileURLToPath(new URL('..', import.meta.url)));
 
@@ -326,53 +327,7 @@ class ContractPipeline {
   }
 
   async wireMockArtifactPath() {
-    const artifactName = `wiremock-standalone-${versions.WIREMOCK_VERSION}.jar`;
-    const cacheDirectory = mkdtempSync(join(tmpdir(), 'oas-polycontract-'));
-    let artifactPath;
-    const digest = (content) => createHash('sha256').update(content).digest('hex');
-    const artifactUrls = [
-      `https://repo.maven.apache.org/maven2/org/wiremock/wiremock-standalone/${versions.WIREMOCK_VERSION}/${artifactName}`,
-      `https://repo1.maven.org/maven2/org/wiremock/wiremock-standalone/${versions.WIREMOCK_VERSION}/${artifactName}`,
-    ];
-    let descriptor;
-    let retainArtifact = false;
-    try {
-      let download;
-      for (const [index, artifactUrl] of artifactUrls.entries()) {
-        artifactPath = join(cacheDirectory, `wiremock-${index}.jar`);
-        descriptor = openSync(artifactPath, 'wx+', 0o600);
-        download = await runChildProcess('curl', [
-          '--fail', '--silent', '--show-error', '--location', '--retry', '3', '--retry-all-errors',
-          '--proto', '=https', '--proto-redir', '=https', '--connect-timeout', '15', '--max-time', '60', '--retry-max-time', '90', '--max-filesize', '33554432', artifactUrl,
-        ], { stdio: ['ignore', descriptor, 'pipe'] });
-        if (download.exitCode === 0) break;
-        closeSync(descriptor);
-        descriptor = undefined;
-      }
-      if (!download || download.exitCode !== 0) {
-        const detail = download?.stderr.trim();
-        const result = download?.signal ? `signal ${download.signal}` : `exit code ${download?.exitCode ?? 'unknown'}`;
-        throw new Error(`WireMock download failed from Maven Central mirrors${detail ? `: ${detail}` : ` with ${result}`}`);
-      }
-
-      const { size } = fstatSync(descriptor);
-      if (size === 0 || size > 33_554_432) throw new Error(`WireMock artifact size is invalid: ${size} bytes`);
-      const content = Buffer.alloc(size);
-      let offset = 0;
-      while (offset < size) {
-        const bytesRead = readSync(descriptor, content, offset, size - offset, offset);
-        if (bytesRead === 0) throw new Error('WireMock artifact download was incomplete');
-        offset += bytesRead;
-      }
-      if (digest(content) !== versions.WIREMOCK_SHA256) {
-        throw new Error(`WireMock ${versions.WIREMOCK_VERSION} SHA-256 did not match the pinned value`);
-      }
-      retainArtifact = true;
-      return artifactPath;
-    } finally {
-      if (descriptor !== undefined) closeSync(descriptor);
-      if (!retainArtifact) rmSync(cacheDirectory, { recursive: true, force: true });
-    }
+    return downloadWireMockArtifact(versions.WIREMOCK_VERSION, versions.WIREMOCK_SHA256);
   }
 
   async startWireMock() {
