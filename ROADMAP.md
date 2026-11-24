@@ -2,12 +2,12 @@
 
 One reviewed specification contract per API boundary. Clear ownership means less maintenance and more trust.
 
-## Status — 20 November 2026
+## Status — 24 November 2026
 
 | Area | Delivered | Remaining |
 |---|---|---|
 | Contracts | OAS for HTTP; AsyncAPI 3.1 examples for WebSocket and Kafka | Runtime event tests need a provider or broker |
-| Tests | Specmatic provider verification, Smart Mock development checks, WireMock, stateful and stateless fuzzing, provider/Spectral/oasdiff ERR-level failure canaries, seven-language error-path suites, and service unit tests; [contract run 44635628482 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628482) | Pilot against representative company APIs |
+| Tests | Specmatic provider verification, Smart Mock development checks, WireMock, stateful and stateless fuzzing, provider/Spectral/oasdiff ERR-level failure canaries, seven-language error-path suites, and service unit tests; [contract run 44635628482 passed](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628482). Native suites hardened across Rust, TypeScript, Python, JavaScript, and Java. | Pilot against representative company APIs |
 | Legacy migration | Project-specific Postman and Bruno collections follow Product and Order OAS | Import team-owned history if teams provide their collections |
 | Security | CodeQL, Gitleaks, Trivy, Dependency Review, Dependabot, and SecureAI-Scan. Trivy scans the prepared Specmatic runtime after a pinned Wolfi OpenJDK update. | No SBOM artifact or license policy; GenAI controls are manual demos and no application AI runtime exists |
 | Dependencies | Cargo, Go, NuGet, npm, Python, Maven, and Testcontainers pins or locks; minimatch alert #3 fixed | Replace the Picomatch patch when upstream publishes a fix |
@@ -49,6 +49,9 @@ Open work includes the post-Testcontainers performance matrix (Phase 12), runtim
 - [x] Generate shared scenario data from Gherkin and consume it in all seven native language suites.
 - [x] Encapsulate HTTP details in per-API clients and add language-appropriate interfaces or composition.
 - [x] Add matching service unit tests and run them before pipeline contract gates; repository evaluations check scenario-to-unit-test mapping.
+- [x] Harden TypeScript client with structured log levels, explicit constructor timeouts, and async error chaining.
+- [x] URL-encode SKU and order ID path segments in the Rust client using the percent-encoding crate.
+- [x] Harmonize repeat-count assertions in stateful order lifecycle tests across Python and JavaScript suites.
 
 ### Phase 4 — Debug views
 - [x] Add optional Swagger UI and Prism views of the root OAS.
@@ -181,6 +184,7 @@ The latest [main contract run 44635628482](https://github.com/shoman2020/oas-pol
 
 ## Progress
 
+- 24 Nov: Hardened native client implementations and resolved TypeScript compilation errors: fixed circular self-import and stack overflow in `logger.ts` with typed level filtering, fixed async error handling and restored interface implementation in TypeScript API clients, implemented percent-encoding for SKU and order ID paths in the Rust client (`percent-encoding = "=2.3.1"`), aligned stateful lifecycle `repeatCount` loops in Python and JavaScript integration suites, and modernized Java OpenAPI test URI resolution.
 - 20 Nov: Enabled main ruleset [27679805](https://github.com/shoman2020/oas-polycontract/settings/rules/27679805) with 20 required checks. Post-merge contract [44635628482](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628482) and security [44635628479](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628479) runs passed. Removed Dependabot Docker updates for retired paths, added the Markdown shell-path audit, and verified the timeout test plus Spectral/oasdiff ERR-level canaries in PR contract [44643172422](https://github.com/shoman2020/oas-polycontract/actions/runs/44643172422) and security [44643172446](https://github.com/shoman2020/oas-polycontract/actions/runs/44643172446). Restricted contract push runs to `main` and separated concurrency by event to prevent cancelled duplicate PR checks. Added bounded retries to both CI and Testcontainers WireMock downloads while retaining SHA-256 validation.
 - 19 Nov: Split contract CI into shared gates and isolated jobs for seven language suites plus Playwright. All eight suites and the Trivy scans passed in [run 44573964063](https://github.com/shoman2020/oas-polycontract/actions/runs/44573964063).
 - 19 Nov: Added Gherkin-driven scenarios, generated shared case data, negative canaries, error-path coverage, validator conformance cases, and fail-fast stage summaries. The full contract run [44563995399](https://github.com/shoman2020/oas-polycontract/actions/runs/44563995399) passed.
