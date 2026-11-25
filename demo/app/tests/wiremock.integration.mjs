@@ -8,7 +8,7 @@ const SKU = "demo-sku";
 async function waitForOk(url, attempts = 20, delayMs = 500) {
   for (let i = 0; i < attempts; i++) {
     try {
-      const res = await fetch(url);
+      const res = await fetch(url, { signal: AbortSignal.timeout(2000) });
       if (res.ok) return res;
     } catch {
       // not ready yet
@@ -20,12 +20,19 @@ async function waitForOk(url, attempts = 20, delayMs = 500) {
 
 function sendTrace(url) {
   return new Promise((resolve, reject) => {
-    const request = http.request(url, { method: "TRACE" }, (response) => {
+    const request = http.request(url, { method: "TRACE", timeout: 5000 }, (response) => {
       let body = "";
       response.setEncoding("utf8");
       response.on("data", (chunk) => { body += chunk; });
-      response.on("end", () => resolve({ response, body: JSON.parse(body) }));
+      response.on("end", () => {
+        try {
+          resolve({ response, body: JSON.parse(body) });
+        } catch (error) {
+          reject(new Error(`Invalid JSON response from ${url}: ${error.message}`));
+        }
+      });
     });
+    request.on("timeout", () => request.destroy(new Error(`TRACE ${url} timed out`)));
     request.on("error", reject);
     request.end();
   });

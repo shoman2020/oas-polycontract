@@ -31,7 +31,13 @@ function isInventoryResponse(value, expectedSku, contentType) {
 }
 
 async function handleRequest(request, response, dependencies) {
-  const url = new URL(request.url ?? "/", "http://localhost");
+  let url;
+  try {
+    url = new URL(request.url ?? "/", "http://localhost");
+  } catch {
+    sendJson(response, 400, { message: "Invalid request URL" });
+    return;
+  }
   const route = matchRoute(url.pathname);
 
   if (!route) {
@@ -57,6 +63,7 @@ async function handleRequest(request, response, dependencies) {
     return;
   }
 
+  let inventory;
   try {
     const upstream = await dependencies.fetchImpl(
       `${dependencies.inventoryUrl}/inventory/${encodeURIComponent(sku)}`,
@@ -72,18 +79,20 @@ async function handleRequest(request, response, dependencies) {
       return;
     }
 
-    const inventory = await upstream.json();
+    inventory = await upstream.json();
     if (!isInventoryResponse(inventory, sku, upstream.headers.get("content-type"))) {
       sendJson(response, 502, { message: "Inventory service unavailable" });
       return;
     }
-    sendJson(response, 200, {
-      sku: inventory.sku,
-      available: inventory.available,
-    });
   } catch {
     sendJson(response, 502, { message: "Inventory service unavailable" });
+    return;
   }
+
+  sendJson(response, 200, {
+    sku: inventory.sku,
+    available: inventory.available,
+  });
 }
 
 export function createApp({
@@ -107,8 +116,17 @@ const isMainModule = process.argv[1]
   && import.meta.url === pathToFileURL(process.argv[1]).href;
 
 if (isMainModule) {
-  const port = Number(process.env.PORT ?? DEFAULT_PORT);
-  createApp().listen(port, () => {
+  const port = Number(process.env.PORT || DEFAULT_PORT);
+  if (!Number.isInteger(port) || port <= 0) {
+    console.error(`Invalid PORT: ${process.env.PORT}`);
+    process.exit(1);
+  }
+  const server = createApp();
+  server.on("error", (error) => {
+    console.error("Failed to start demo app:", error);
+    process.exit(1);
+  });
+  server.listen(port, "0.0.0.0", () => {
     console.log(`demo app listening on ${port}`);
   });
 }

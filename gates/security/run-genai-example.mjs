@@ -1,5 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -9,7 +10,7 @@ if (!scannerVersion) {
   throw new Error('Set SECUREAI_SCAN_VERSION from .github/versions.env before running this example.');
 }
 
-const demoRoot = mkdtempSync(join(repositoryRoot, 'secureai-genai-example-'));
+const demoRoot = mkdtempSync(join(tmpdir(), 'secureai-genai-example-'));
 const sourcePath = join(demoRoot, 'src', 'chat.ts');
 const reportPath = resolve(
   process.env.SECUREAI_DEMO_REPORT ?? join(demoRoot, 'secureai-genai-example.sarif'),
@@ -42,7 +43,7 @@ function summarizeResult(sarif, demoFolder) {
   );
   const finding = results.find(({ result }) => {
     const uri = result.locations?.[0]?.physicalLocation?.artifactLocation?.uri?.replaceAll('\\', '/');
-    return result.ruleId === 'AI001' && uri?.startsWith(`${demoFolder}/src/chat.ts`);
+    return result.ruleId === 'AI001' && (uri?.endsWith(`${demoFolder}/src/chat.ts`) || uri === 'src/chat.ts');
   });
   if (!finding) {
     const rules = results.map(({ result }) => result.ruleId).join(', ') || 'none';
@@ -93,7 +94,7 @@ try {
     '--yes',
     `secureai-scan@${scannerVersion}`,
     'scan',
-    repositoryRoot,
+    demoRoot,
     '--rules',
     'AI001',
     '--output',

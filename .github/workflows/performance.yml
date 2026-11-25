@@ -65,8 +65,6 @@ jobs:
           done
 
       - name: Summarize the samples
-        env:
-          RUNNER_LABEL: ${{ matrix.runner }}
         run: node evals/summarize-performance.mjs "$RUNNER_TEMP/oas-performance/${{ matrix.runner }}"
 
       - name: Upload timing samples

@@ -63,7 +63,9 @@ internal sealed class OpenApiResponseValidator
 
         var schemaJson = ToJsonNode(schemaNode) as JsonObject
             ?? throw new InvalidOperationException("OpenAPI JSON response schema must be an object");
-        schemaJson["$defs"] = ToJsonNode(NodeAt(_spec, "components", "schemas"));
+        schemaJson["$defs"] = TryNodeAt(_spec, out var componentSchemas, "components", "schemas")
+            ? ToJsonNode(componentSchemas)
+            : new JsonObject();
         schemaJson["$schema"] = "https://json-schema.org/draft/2020-12/schema";
         NormalizeSchema(schemaJson);
         EnsureLocalSchemaReferences(schemaJson);
@@ -71,6 +73,21 @@ internal sealed class OpenApiResponseValidator
         var errors = schema.Validate(body);
         if (errors.Count != 0)
             throw new InvalidOperationException(string.Join(Environment.NewLine, errors));
+    }
+
+    private static bool TryNodeAt(YamlNode root, out YamlNode node, params string[] segments)
+    {
+        var current = root;
+        foreach (var segment in segments)
+        {
+            if (current is not YamlMappingNode mapping || !mapping.Children.TryGetValue(new YamlScalarNode(segment), out current!))
+            {
+                node = default!;
+                return false;
+            }
+        }
+        node = current;
+        return true;
     }
 
     private static YamlNode NodeAt(YamlNode root, params string[] segments)
@@ -106,6 +123,23 @@ internal sealed class OpenApiResponseValidator
         foreach (var value in schema.ToArray()) EnsureLocalSchemaReferences(value.Value);
     }
 
+    private static void NormalizeExclusiveBound(JsonObject schema, string exclusiveKey, string boundKey)
+    {
+        if (schema[exclusiveKey] is JsonValue exclusiveNode
+            && exclusiveNode.TryGetValue<bool>(out var exclusive))
+        {
+            if (exclusive && schema[boundKey] is JsonNode bound)
+            {
+                schema[exclusiveKey] = bound.DeepClone();
+                schema.Remove(boundKey);
+            }
+            else if (!exclusive)
+            {
+                schema.Remove(exclusiveKey);
+            }
+        }
+    }
+
     private static void NormalizeSchema(JsonNode? node)
     {
         if (node is JsonArray array)
@@ -120,26 +154,9 @@ internal sealed class OpenApiResponseValidator
             && nullableValue.TryGetValue<bool>(out var isNullable)
             && isNullable;
         schema.Remove("nullable");
-        if (nullable
-            && schema["type"] is JsonValue typeNode
-            && typeNode.TryGetValue<string>(out var typeName))
-        {
-            schema["type"] = new JsonArray(JsonValue.Create(typeName), JsonValue.Create("null"));
-        }
 
-        if (schema["exclusiveMinimum"] is JsonValue exclusiveNode
-            && exclusiveNode.TryGetValue<bool>(out var exclusive))
-        {
-            if (exclusive && schema["minimum"] is JsonNode minimum)
-            {
-                schema["exclusiveMinimum"] = minimum.DeepClone();
-                schema.Remove("minimum");
-            }
-            else if (!exclusive)
-            {
-                schema.Remove("exclusiveMinimum");
-            }
-        }
+        NormalizeExclusiveBound(schema, "exclusiveMinimum", "minimum");
+        NormalizeExclusiveBound(schema, "exclusiveMaximum", "maximum");
 
         if (schema["$ref"] is JsonValue referenceNode
             && referenceNode.TryGetValue<string>(out var reference)
@@ -149,6 +166,21 @@ internal sealed class OpenApiResponseValidator
         }
 
         foreach (var value in schema.ToArray()) NormalizeSchema(value.Value);
+
+        if (nullable)
+        {
+            if (schema["type"] is JsonValue typeNode
+                && typeNode.TryGetValue<string>(out var typeName))
+            {
+                schema["type"] = new JsonArray(JsonValue.Create(typeName), JsonValue.Create("null"));
+            }
+            else
+            {
+                var nonNullSchema = (JsonObject)schema.DeepClone();
+                schema.Clear();
+                schema["anyOf"] = new JsonArray(nonNullSchema, new JsonObject { ["type"] = "null" });
+            }
+        }
     }
 
     private static JsonNode? ToJsonNode(YamlNode node) => node switch

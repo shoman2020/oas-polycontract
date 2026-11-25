@@ -1,8 +1,14 @@
 import http from "node:http";
 
 const server = http.createServer((request, response) => {
-  const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
   response.setHeader("Content-Type", "application/json");
+  let pathname;
+  try {
+    pathname = new URL(request.url ?? "/", "http://localhost").pathname;
+  } catch {
+    response.writeHead(400).end(JSON.stringify({ message: "Invalid request URL" }));
+    return;
+  }
 
   if (request.method === "GET" && pathname === "/healthz") {
     response.writeHead(200).end(JSON.stringify({ status: "ok" }));

@@ -4,6 +4,11 @@ import { pathToFileURL } from "node:url";
 
 const DEFAULT_PORT = 8082;
 const MAX_REQUEST_BYTES = 64 * 1024;
+const ALLOWED_TRANSITIONS = Object.freeze({
+  created: ["confirmed", "cancelled"],
+  confirmed: ["cancelled"],
+  cancelled: [],
+});
 
 class InMemoryOrderStore {
   #orders = new Map();
@@ -15,11 +20,19 @@ class InMemoryOrderStore {
       status: "created",
     };
     this.#orders.set(order.id, order);
-    return order;
+    return { ...order };
   }
 
   get(orderId) {
-    return this.#orders.get(orderId);
+    const order = this.#orders.get(orderId);
+    return order ? { ...order } : undefined;
+  }
+
+  updateStatus(orderId, status) {
+    const order = this.#orders.get(orderId);
+    if (!order) return undefined;
+    order.status = status;
+    return { ...order };
   }
 
   delete(orderId) {
@@ -72,8 +85,23 @@ function parseOrderId(pathname) {
   }
 }
 
+async function tryReadJson(request, response) {
+  try {
+    return { ok: true, value: await readJson(request) };
+  } catch {
+    sendError(response, 400, "Request body must be valid JSON under 64 KiB");
+    return { ok: false };
+  }
+}
+
 async function handleRequest(request, response, orders) {
-  const url = new URL(request.url ?? "/", "http://localhost");
+  let url;
+  try {
+    url = new URL(request.url ?? "/", "http://localhost");
+  } catch {
+    sendError(response, 400, "Invalid request URL");
+    return;
+  }
 
   if (url.pathname === "/healthz") {
     if (request.method !== "GET") {
@@ -90,13 +118,9 @@ async function handleRequest(request, response, orders) {
       return;
     }
 
-    let input;
-    try {
-      input = await readJson(request);
-    } catch {
-      sendError(response, 400, "Request body must be valid JSON under 64 KiB");
-      return;
-    }
+    const parsed = await tryReadJson(request, response);
+    if (!parsed.ok) return;
+    const input = parsed.value;
 
     const skuLength = typeof input?.sku === "string" ? [...input.sku].length : 0;
     if (!hasOnlyFields(input, ["sku", "quantity"])
@@ -135,13 +159,9 @@ async function handleRequest(request, response, orders) {
       return;
     }
 
-    let input;
-    try {
-      input = await readJson(request);
-    } catch {
-      sendError(response, 400, "Request body must be valid JSON under 64 KiB");
-      return;
-    }
+    const parsed = await tryReadJson(request, response);
+    if (!parsed.ok) return;
+    const input = parsed.value;
 
     if (!hasOnlyFields(input, ["status"])
       || !["confirmed", "cancelled"].includes(input.status)) {
@@ -149,18 +169,13 @@ async function handleRequest(request, response, orders) {
       return;
     }
 
-    const allowedTransitions = {
-      created: ["confirmed", "cancelled"],
-      confirmed: ["cancelled"],
-      cancelled: [],
-    };
-    if (input.status !== order.status && !allowedTransitions[order.status].includes(input.status)) {
+    if (input.status !== order.status && !ALLOWED_TRANSITIONS[order.status].includes(input.status)) {
       sendError(response, 409, `Cannot change order from ${order.status} to ${input.status}`);
       return;
     }
 
-    order.status = input.status;
-    sendJson(response, 200, order);
+    const updated = orders.updateStatus(orderId, input.status);
+    sendJson(response, 200, updated);
     return;
   }
 

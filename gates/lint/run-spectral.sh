@@ -1,10 +1,14 @@
 #!/bin/sh
+set -eu
 
 output_file=$(mktemp)
-trap 'rm -f "$output_file"' EXIT
+trap 'rm -f "$output_file"' EXIT INT TERM
 
-spectral "$@" >"$output_file" 2>&1
-spectral_status=$?
+if spectral "$@" >"$output_file" 2>&1; then
+  spectral_status=0
+else
+  spectral_status=$?
+fi
 
 # Filter only Spectral's known Node DEP0040 punycode notice and its help line.
 awk '

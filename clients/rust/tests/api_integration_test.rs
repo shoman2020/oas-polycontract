@@ -10,6 +10,24 @@ struct OpenApiResponseValidator {
 }
 
 fn normalize_openapi_schema(schema: &Value, document: &Value) -> Value {
+    fn normalize_exclusive_bound(
+        object: &mut serde_json::Map<String, Value>,
+        exclusive_key: &str,
+        bound_key: &str,
+    ) {
+        match object.get(exclusive_key).and_then(Value::as_bool) {
+            Some(true) => {
+                if let Some(bound) = object.remove(bound_key) {
+                    object.insert(exclusive_key.to_owned(), bound);
+                }
+            }
+            Some(false) => {
+                object.remove(exclusive_key);
+            }
+            None => {}
+        }
+    }
+
     fn normalize_node(node: &mut Value) {
         match node {
             Value::Object(object) => {
@@ -17,26 +35,9 @@ fn normalize_openapi_schema(schema: &Value, document: &Value) -> Value {
                     .remove("nullable")
                     .and_then(|value| value.as_bool())
                     .unwrap_or(false);
-                if nullable {
-                    if let Some(Value::String(schema_type)) = object.get("type").cloned() {
-                        object.insert(
-                            "type".to_owned(),
-                            Value::Array(vec![Value::String(schema_type), Value::String("null".to_owned())]),
-                        );
-                    }
-                }
 
-                match object.get("exclusiveMinimum").and_then(Value::as_bool) {
-                    Some(true) => {
-                        if let Some(minimum) = object.remove("minimum") {
-                            object.insert("exclusiveMinimum".to_owned(), minimum);
-                        }
-                    }
-                    Some(false) => {
-                        object.remove("exclusiveMinimum");
-                    }
-                    None => {}
-                }
+                normalize_exclusive_bound(object, "exclusiveMinimum", "minimum");
+                normalize_exclusive_bound(object, "exclusiveMaximum", "maximum");
 
                 if let Some(Value::String(reference)) = object.get_mut("$ref") {
                     if let Some(name) = reference.strip_prefix("#/components/schemas/") {
@@ -45,6 +46,19 @@ fn normalize_openapi_schema(schema: &Value, document: &Value) -> Value {
                 }
                 for value in object.values_mut() {
                     normalize_node(value);
+                }
+
+                if nullable {
+                    if let Some(Value::String(schema_type)) = object.get("type").cloned() {
+                        object.insert(
+                            "type".to_owned(),
+                            Value::Array(vec![Value::String(schema_type), Value::String("null".to_owned())]),
+                        );
+                    } else {
+                        let non_null = Value::Object(std::mem::take(object));
+                        let null_schema = serde_json::json!({ "type": "null" });
+                        object.insert("anyOf".to_owned(), Value::Array(vec![non_null, null_schema]));
+                    }
                 }
             }
             Value::Array(items) => {
@@ -57,11 +71,10 @@ fn normalize_openapi_schema(schema: &Value, document: &Value) -> Value {
     }
 
     let mut normalized = schema.clone();
-    if let (Some(root), Some(definitions)) = (
-        normalized.as_object_mut(),
-        document.pointer("/components/schemas").and_then(Value::as_object),
-    ) {
-        root.insert("$defs".to_owned(), Value::Object(definitions.clone()));
+    if let Some(root) = normalized.as_object_mut() {
+        if let Some(definitions) = document.pointer("/components/schemas").and_then(Value::as_object) {
+            root.insert("$defs".to_owned(), Value::Object(definitions.clone()));
+        }
         root.insert(
             "$schema".to_owned(),
             Value::String("https://json-schema.org/draft/2020-12/schema".to_owned()),
