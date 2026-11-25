@@ -1,7 +1,5 @@
-import { createHash } from 'node:crypto';
-import { closeSync, fstatSync, mkdirSync, mkdtempSync, openSync, readSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
-import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { parseNativeClientSelection, readVersionPins } from './config.mjs';
 import { completeStageReport } from './stage-report.mjs';
@@ -167,13 +165,9 @@ class ContractPipeline {
     return this.containerFactory.create(image, options);
   }
 
-  commandContainer(image, options = {}) {
-    return this.createContainer(image, options);
-  }
-
   async runTask(name, image, options = {}) {
     console.log(`  -> ${name}`);
-    const container = this.commandContainer(image, options);
+    const container = this.createContainer(image, options);
     const completed = await container.start();
     await completed.stop().catch((error) => console.warn(`Container cleanup for ${name}: ${error.message}`));
   }
@@ -289,12 +283,8 @@ class ContractPipeline {
     return started;
   }
 
-  async wireMockArtifactPath() {
-    return downloadWireMockArtifact(versions.WIREMOCK_VERSION, versions.WIREMOCK_SHA256);
-  }
-
   async startWireMock() {
-    const artifactPath = await this.wireMockArtifactPath();
+    const artifactPath = await downloadWireMockArtifact(versions.WIREMOCK_VERSION, versions.WIREMOCK_SHA256);
     try {
       const wireMock = await this.startService(runtimeImages.wiremock, 'wiremock', {
         command: ['/tmp/wiremock-standalone.jar', '--root-dir', '/home/wiremock', '--global-response-templating'],
