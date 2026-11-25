@@ -7,11 +7,8 @@ internal sealed class ProductApiClient : HttpApiClient, IProductApiClient
     {
     }
 
-    public Task<HttpResponseMessage> GetProductAsync(string sku, CancellationToken cancellationToken = default)
-    {
-        var escapedSku = Uri.EscapeDataString(sku);
-        return GetAsync($"/products/{escapedSku}", cancellationToken);
-    }
+    public Task<HttpResponseMessage> GetProductAsync(string sku, CancellationToken cancellationToken = default) =>
+        GetAsync($"/products/{Uri.EscapeDataString(sku)}", cancellationToken);
 
     public Task<HttpResponseMessage> GetProductPathAsync(string path, CancellationToken cancellationToken = default) =>
         GetAsync(path, cancellationToken);

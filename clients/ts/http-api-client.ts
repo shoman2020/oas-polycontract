@@ -22,7 +22,7 @@ export abstract class HttpApiClient {
   protected readonly logger: Logger;
   private readonly timeoutMs: number;
 
-  protected constructor(
+  constructor(
     baseUrl: string,
     private readonly fetchImpl: typeof fetch = globalThis.fetch,
     timeoutMs = 10_000,

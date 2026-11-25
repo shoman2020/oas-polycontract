@@ -3,10 +3,6 @@ import { HttpApiClient, type ApiResponse, type StatefulOrderApi } from "./http-a
 export type StatefulApiResponse = ApiResponse;
 
 export class StatefulOrderApiClient extends HttpApiClient implements StatefulOrderApi {
-  constructor(baseUrl: string, fetchImpl: typeof fetch = globalThis.fetch, timeoutMs = 10_000) {
-    super(baseUrl, fetchImpl, timeoutMs);
-  }
-
   async createOrder(sku: string, quantity: number): Promise<StatefulApiResponse> {
     try {
       return await this.send("/orders", "POST", { sku, quantity });

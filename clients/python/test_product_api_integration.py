@@ -1,7 +1,4 @@
-import os
-
 import pytest
-import requests
 from openapi_core.contrib.requests import RequestsOpenAPIRequest, RequestsOpenAPIResponse
 
 

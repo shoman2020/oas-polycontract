@@ -1,7 +1,7 @@
 ---
 name: "Structure Review and Fix"
 description: "Reviews repo structure and applies small validated fixes"
-tools: ["view", "edit", "grep", "glob"]
+tools: [vscode, execute, read, agent, vscode.mermaid-markdown-features/renderMermaidDiagram, ms-azuretools.vscode-containers/containerToolsConfig, ms-dotnettools.vscode-dotnet-runtime/installDotNetSdk, ms-dotnettools.vscode-dotnet-runtime/listDotNetVersions, ms-dotnettools.vscode-dotnet-runtime/recommendedDotNetSdkVersion, ms-dotnettools.vscode-dotnet-runtime/findDotNetPath, ms-dotnettools.vscode-dotnet-runtime/uninstallSystemDotNetSdk, ms-dotnettools.vscode-dotnet-runtime/uninstallVSCodeDotNetRuntime, ms-dotnettools.vscode-dotnet-runtime/getDotNetSettingsInfo, ms-dotnettools.vscode-dotnet-runtime/listInstalledDotNetVersions, ms-python.python/getPythonEnvironmentInfo, ms-python.python/getPythonExecutableCommand, ms-python.python/installPythonPackage, ms-python.python/configurePythonEnvironment, vscjava.vscode-java-debug/debugJavaApplication, vscjava.vscode-java-debug/setJavaBreakpoint, vscjava.vscode-java-debug/removeJavaBreakpoints, vscjava.vscode-java-debug/getDebugSessionInfo, edit, search, web, browser, 'gitkraken/*', 'nuget/*', todo]
 ---
 
 You review this repository and apply small, focused fixes. Verify each issue in the code before changing it. Do not commit or push.

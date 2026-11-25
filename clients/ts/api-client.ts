@@ -3,10 +3,6 @@ import { HttpApiClient, type ApiResponse, type ProductApi } from "./http-api-cli
 export type ProductApiResponse = ApiResponse;
 
 export class ProductApiClient extends HttpApiClient implements ProductApi {
-  constructor(baseUrl: string, fetchImpl: typeof fetch = globalThis.fetch, timeoutMs = 10_000) {
-    super(baseUrl, fetchImpl, timeoutMs);
-  }
-
   async getProduct(sku: string): Promise<ProductApiResponse> {
     try {
       return await this.send(`/products/${encodeURIComponent(sku)}`);
