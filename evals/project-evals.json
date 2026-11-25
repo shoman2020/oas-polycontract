@@ -7,6 +7,11 @@
       "type": "markdown-shell-paths"
     },
     {
+      "id": "pipeline-syntax",
+      "description": "Pipeline entry-points (run.mjs, services.mjs, config.mjs, commands.mjs, stage-report.mjs) and evals/run.mjs parse cleanly under node --check",
+      "type": "pipeline-syntax"
+    },
+    {
       "id": "readme-links",
       "description": "README and client guide relative links resolve from their own locations",
       "type": "readme-links"

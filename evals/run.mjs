@@ -1,6 +1,7 @@
 import { readFileSync, existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, relative, resolve } from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { auditMarkdownShellPaths } from './markdown-shell-paths.mjs';
 
@@ -683,7 +684,7 @@ function checkDependencyLocks() {
     [tsTests.includes('node --test security/picomatch-redos.check.mjs') && !tsTests.includes('picomatch-redos.test.mjs'), 'The Node-only Picomatch check must stay outside Vitest discovery'],
     [pipelinePackage.devDependencies?.testcontainers === pipelineLock.packages?.['node_modules/testcontainers']?.version, 'Testcontainers version must be exact and locked'],
     [pipelinePackage.devDependencies?.yaml === pipelineLock.packages?.['node_modules/yaml']?.version, 'YAML parser must be declared directly and locked for structural OAS evaluation'],
-    [pipelinePackage.scripts?.test?.includes('config.test.mjs') && pipelinePackage.scripts?.test?.includes('stage-report.test.mjs') && pipelinePackage.scripts?.test?.includes('feature-cases.test.mjs') && pipeline.includes("readVersionPins(") && readRepositoryFile('run.sh').includes('npm --prefix pipeline test'), 'The local runner must test strict pin parsing, stage reporting, and feature-data generation before starting containers'],
+    [pipelinePackage.scripts?.test?.includes('config.test.mjs') && pipelinePackage.scripts?.test?.includes('stage-report.test.mjs') && pipelinePackage.scripts?.test?.includes('feature-cases.test.mjs') && pipelinePackage.scripts?.test?.includes('node --check run.mjs') && pipelinePackage.scripts?.test?.includes('node --check services.mjs') && pipeline.includes("readVersionPins(") && readRepositoryFile('run.sh').includes('npm --prefix pipeline test'), 'The local runner must syntax-check run.mjs and services.mjs, test strict pin parsing, stage reporting, and feature-data generation before starting containers'],
     [nvmrc === versions.match(/^NODE_VERSION=(\S+)$/m)?.[1], '.nvmrc must match the centrally pinned Node.js version'],
     [/^TESTCONTAINERS_RYUK_VERSION=\S+$/m.test(versions) && pipeline.includes('versions.TESTCONTAINERS_RYUK_VERSION'), 'Ryuk version must come from the shared versions file'],
     [['RUST_VERSION', 'GO_VERSION', 'PYTHON_VERSION', 'NODE_VERSION', 'NPM_VERSION', 'MAVEN_VERSION', 'JAVA_VERSION', 'DOTNET_VERSION'].every((version) => new RegExp(`^${version}=\\S+$`, 'm').test(versions)) && ['versions.RUST_VERSION', 'versions.GO_VERSION', 'versions.PYTHON_VERSION', 'versions.NODE_VERSION', 'versions.MAVEN_VERSION', 'versions.JAVA_VERSION', 'versions.DOTNET_VERSION'].every((version) => pipeline.includes(version)), 'Native runtime container tags must use shared version pins'],
@@ -769,6 +770,7 @@ function checkWorkflowVisuals() {
         'npm install --global npm@${NPM_VERSION}',
         'bash -n run.sh pipeline/client-suite.sh',
         'node --check pipeline/run.mjs',
+        'node --check pipeline/services.mjs',
         'node --check evals/run.mjs',
       ],
     },
@@ -958,8 +960,41 @@ function checkMarkdownShellPaths() {
   return audit.pathReferencesChecked;
 }
 
+/**
+ * Execution-based syntax check: runs `node --check` on every pipeline entry-point
+ * so duplicate identifiers, broken imports, and parse errors surface immediately
+ * rather than being caught only by CI's prepare-contract-runner step.
+ *
+ * This is a behavioral check (runs the Node.js parser) rather than a text match,
+ * so it correctly catches errors that elude substring-based evals.
+ */
+function checkPipelineSyntax() {
+  const files = [
+    'pipeline/run.mjs',
+    'pipeline/services.mjs',
+    'pipeline/config.mjs',
+    'pipeline/commands.mjs',
+    'pipeline/stage-report.mjs',
+    'evals/run.mjs',
+  ];
+  for (const file of files) {
+    const absolutePath = resolve(repositoryRoot, file);
+    if (!existsSync(absolutePath)) {
+      failures.push(`pipeline-syntax: ${file} does not exist`);
+      continue;
+    }
+    const result = spawnSync(process.execPath, ['--check', absolutePath], { encoding: 'utf8' });
+    if (result.status !== 0) {
+      const detail = (result.stderr ?? '').trim().split('\n')[0];
+      failures.push(`pipeline-syntax: node --check ${file} failed: ${detail}`);
+    }
+  }
+  return files.length;
+}
+
 const evaluators = {
   'markdown-shell-paths': () => checkMarkdownShellPaths(),
+  'pipeline-syntax': () => checkPipelineSyntax(),
   'readme-links': () => checkReadmeLinks(),
   'readme-tree': () => checkReadmeTree(),
   'architecture-map': () => checkArchitectureMap(),
