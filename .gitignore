@@ -16,3 +16,27 @@ clients/*/bin/
 .env.*
 !.env.example
 
+# AI and agent configurations
+.claude/
+.continue/
+.github/agents/
+.github/hooks/
+agents/
+**/.agents/
+
+# IDE, editor, and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Log and diagnostic artifacts
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+

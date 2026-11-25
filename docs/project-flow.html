@@ -40,7 +40,8 @@
     .lead { max-width: 740px; margin: 0; color: var(--muted); font-size: clamp(1rem, 2vw, 1.18rem); line-height: 1.65; }
     .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 34px; }
     .grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .card { min-height: 155px; padding: 22px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); }
+    .card { min-height: 155px; padding: 22px; border: 1px solid var(--line); border-radius: 16px; background: var(--panel); transition: border-color .2s ease, transform .2s ease; }
+    .card:hover { border-color: #3d5175; transform: translateY(-2px); }
     .card strong { display: block; margin-bottom: 10px; color: var(--text); font-size: 1rem; }
     .card p { margin: 0; color: var(--muted); line-height: 1.55; }
     .tag { display: inline-flex; margin-bottom: 14px; padding: 5px 9px; border: 1px solid #ffffff20; border-radius: 999px; color: var(--teal); font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
@@ -54,7 +55,8 @@
     .step { padding: 12px 14px; border: 1px solid var(--line); border-radius: 11px; background: var(--panel); color: var(--muted); }
     .step b { color: var(--text); }
     .workflow-map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-top: 24px; }
-    .workflow-lane { padding: 18px; border: 1px solid var(--line); border-radius: 15px; background: var(--panel); }
+    .workflow-lane { padding: 18px; border: 1px solid var(--line); border-radius: 15px; background: var(--panel); transition: border-color .2s ease; }
+    .workflow-lane:hover { border-color: #3d5175; }
     .workflow-lane h3 { margin: 0 0 7px; color: var(--text); font-size: 1rem; }
     .workflow-trigger { min-height: 48px; margin: 0 0 12px; color: var(--muted); font-size: .84rem; line-height: 1.45; }
     .workflow-chain { display: grid; gap: 7px; }
@@ -63,7 +65,8 @@
     .workflow-step:not(:last-child)::after { display: block; margin-top: 6px; color: var(--teal); content: "↓"; }
     .workflow-foot { margin: 14px 0 0; color: var(--muted); font-size: .8rem; line-height: 1.45; }
     .test-flow-map { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 26px; }
-    .test-flow-lane { padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
+    .test-flow-lane { padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); transition: border-color .2s ease; }
+    .test-flow-lane:hover { border-color: #3d5175; }
     .test-flow-lane h3 { margin: 0 0 10px; color: var(--teal); font-size: .92rem; }
     .test-flow-chain { display: grid; gap: 7px; }
     .test-flow-step { padding: 10px 11px; border: 1px solid #ffffff18; border-radius: 9px; color: var(--muted); font-size: .82rem; line-height: 1.4; }
@@ -309,11 +312,11 @@
           <h2 id="scene-title-8" tabindex="-1">Compare stage timings before setting thresholds.</h2>
           <p class="lead">The <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941">five-sample baseline</a> measured 304s cold and a 201s warm median (200–205s range). It predates Testcontainers, so rerun the Ubuntu matrix before comparing current performance.</p>
           <div class="grid">
-            <article class="card metric"><strong>Verified Testcontainers run</strong><span class="value">Passed</span><p>Contract run 44349546211; see the CSV artifact for stage timings.</p></article>
+            <article class="card metric"><strong>Verified Testcontainers run</strong><span class="value">Passed</span><p>Contract run 44635628482; see the CSV artifact for stage timings.</p></article>
             <article class="card metric"><strong>Fuzz diagnostic</strong><span class="value">115 · 2.07s</span><p>Cases generated and fuzzing duration.</p></article>
             <article class="card metric"><strong>Cold / warm median</strong><span class="value">304s / 201s</span><p>Warm range 200–205s; build 91s cold and 2s warm.</p></article>
           </div>
-          <p style="margin-top:18px"><a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44349546211">Verified Testcontainers contract run</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941">Pre-migration performance baseline</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/workflows/contract.yml">Contract timing artifacts</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/workflows/performance.yml">Run the benchmark again</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603">Fuzz diagnostic</a> · <a href="https://github.com/shoman2020/oas-polycontract/blob/main/ROADMAP.md">Roadmap</a></p>
+          <p style="margin-top:18px"><a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44635628482">Verified Testcontainers contract run</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/44146642941">Pre-migration performance baseline</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/workflows/contract.yml">Contract timing artifacts</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/workflows/performance.yml">Run the benchmark again</a> · <a href="https://github.com/shoman2020/oas-polycontract/actions/runs/43935878603">Fuzz diagnostic</a> · <a href="https://github.com/shoman2020/oas-polycontract/blob/main/ROADMAP.md">Roadmap</a></p>
         </section>
       </div>
       <nav class="controls" aria-label="Showcase controls">

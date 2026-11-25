@@ -44,6 +44,7 @@ flowchart LR
     CSharpSuite["C#<br/>xUnit · HttpClient · scoped NJsonSchema adapter"]
   end
   NativeSuites --> ProductAPI
+  NativeSuites --> OrderAPI
   ProductOAS --> Playwright[Playwright APIRequestContext + @oaverify/core]
   Playwright --> ProductAPI
   ProductOAS --> ProductFuzzing[Schemathesis stateless fuzzing]
