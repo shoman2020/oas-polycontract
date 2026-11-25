@@ -40,6 +40,13 @@ While each native suite validates responses against the OpenAPI specifications, 
 - **Java**: Uses REST Assured with Atlassian's `OpenApiValidationFilter`. Because Atlassian's filter validates both outgoing requests and incoming responses simultaneously, intentional client-side error tests (such as malformed raw paths or payloads violating request schemas) bypass the request-side filter via explicit unvalidated helpers (`getProductPathUnvalidated`, `createOrderUnvalidated`) so the server's HTTP error response can still be received and validated without client-side filter abortion.
 - **Go / Python**: Native libraries (`kin-openapi` and `openapi-core`) provide standard OpenAPI 3.0 request/response validation out-of-the-box.
 
+### Production repository topology (Monorepo vs. Multi-Repo SDKs)
+
+In this reference repository, all seven native suites live side-by-side in `clients/` to demonstrate polyglot parity within one test run. In production:
+- **Client SDKs**: Each client typically lives in its own dedicated language repository (e.g., `company-sdk-python`, `company-sdk-go`).
+- **Contract Distribution**: Client repositories consume the specification as an immutable published artifact (npm package, git tag, or schema registry) rather than sharing a local filesystem mount.
+- **CI Scaling**: Each SDK repository executes only its native suite against the provider Smart Mock or containerized mock service, avoiding the multi-runtime CI overhead of building seven language ecosystems simultaneously.
+
 ## Migrating request collections
 
 1. Group requests by API boundary and remove credentials.
