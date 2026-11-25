@@ -70,14 +70,6 @@ const runtimeImages = {
   csharp: `mcr.microsoft.com/dotnet/sdk:${versions.DOTNET_VERSION}`,
 };
 
-const serviceHealthCheck = (port) => ({
-  test: ['CMD', 'node', '-e', `fetch('http://127.0.0.1:${port}/healthz').then(response => process.exit(response.ok ? 0 : 1)).catch(() => process.exit(1))`],
-  interval: 5000,
-  timeout: 3000,
-  retries: 10,
-  startPeriod: 2000,
-});
-
 class ContractPipeline {
   constructor() {
     this.network = undefined;
