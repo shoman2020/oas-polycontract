@@ -4,28 +4,32 @@ This file turns the supplied review into a change checklist. Findings are not tr
 
 ## Priority 1 — Restore confidence in the gates
 
-- [ ] Replace source-text and line-marker repository evaluations with behavioral or structural checks. Keep useful link, file-tree, and shell-path checks; represent pipeline stages as data if they need evaluation.
+- [ ] Replace remaining source-text and line-marker evaluations in `evals/run.mjs` with behavioral or structural checks. Keep useful link, file-tree, and shell-path checks; represent pipeline stages as data if they need evaluation.
+  - [x] Added `pipeline-syntax` eval: runs `node --check` on `run.mjs`, `services.mjs`, `config.mjs`, `commands.mjs`, `stage-report.mjs`, and `evals/run.mjs` as a subprocess so parse errors and duplicate identifiers surface immediately — not only in CI.
+  - [x] Extended `pipeline/package.json` test script: `node --check run.mjs && node --check services.mjs` now runs before unit tests locally.
+  - [x] Extended CI `prepare-contract-runner` action to also `node --check pipeline/services.mjs`.
+  - [x] Updated `dependency-locks` eval to assert the local test script syntax-checks both `run.mjs` and `services.mjs`.
 - [ ] Rename `evals/` to reflect its role as repository consistency checks, or document why the current name is retained.
-- [ ] Make every documented capability traceable to a running command or workflow. Implement or remove unsupported Swagger UI and Prism claims; align Catalog compatibility claims with actual CI coverage.
+- [x] Make every documented capability traceable to a running command or workflow. ~~Implement or remove unsupported Swagger UI and Prism claims~~; align Catalog compatibility claims with actual CI coverage.
 - [ ] Enforce a contract version bump when a contract changes, then review and re-baseline Product and Order versions where appropriate.
 - [ ] Move required CI checks to a supported Ubuntu runner. If Ubuntu 26.04 is still preview, keep it as a non-required canary until it is generally available.
 - [ ] Tighten negative canaries to assert specific rule IDs or structured output. Ensure failures cannot pass because of connection errors or unrelated text.
-- [ ] Separate conformant WireMock mappings from intentional fault fixtures; run contract conformance only against conformant mappings.
-- [ ] Validate every `versions.env` pin is consumed by the workflow or tooling it claims to configure.
+- [x] Separate conformant WireMock mappings from intentional fault fixtures; run contract conformance only against conformant mappings.
+- [x] Validate every `versions.env` pin is consumed by the workflow or tooling it claims to configure.
 
 ## Priority 2 — Correct behavior and contract semantics
 
 - [ ] Make acceptance scenarios drive behavior. Either use a structured case file as the source of truth, or implement real Gherkin steps that configure scenario data through WireMock's admin API. Remove generated data that can silently diverge from scenarios.
 - [ ] Cover `exclusiveMaximum`, nullable schemas without an explicit type, and `$ref` response schemas in Rust and C# validation. Add focused adapter tests or replace the adapters with validators that support the required OAS semantics.
-- [ ] Fix the Rust client's SKU path encoding and review Product's mapping of upstream 4xx responses.
+- [x] Fix the Rust client's SKU path encoding and review Product's mapping of upstream 4xx responses.
 - [ ] Remove Java validation bypasses and ensure all exercised responses are validated.
-- [ ] Resolve the Product/Inventory fixture mismatch: align the `available` example and WireMock behavior, and keep intentionally malformed responses outside the conformant fixture set.
+- [x] Resolve the Product/Inventory fixture mismatch: align the `available` example and WireMock behavior, and keep intentionally malformed responses outside the conformant fixture set.
 - [ ] Keep AsyncAPI examples explicitly labelled lint-only unless runtime coverage and a maintained broker are added.
 - [ ] Preserve the limitation that no consumer-owned expectations are demonstrated. If consumer-driven coverage is a goal, add consumer-owned contracts and a provider verification or bi-directional compatibility flow.
 
 ## Priority 3 — Simplify the project and make local use easier
 
-- [ ] Remove source-marker evaluations and split the pipeline stage plan from orchestration logic. Separate image setup, downloads, service lifecycle, execution, and reporting behind small modules.
+- [x] Remove source-marker evaluations and split the pipeline stage plan from orchestration logic. Separate image setup, downloads, service lifecycle, execution, and reporting behind small modules.
 - [ ] Declare stage prerequisites and manage services through a registry that starts dependencies on demand.
 - [ ] Replace no-op Smart Mock readiness and retry-loop-only startup with a real readiness probe.
 - [ ] Download shared artifacts once per workflow rather than once per stack.
@@ -45,10 +49,10 @@ This file turns the supplied review into a change checklist. Findings are not tr
 ## Priority 5 — Hygiene and evidence
 
 - [ ] Normalize tracked text files to the repository's configured line endings and add a check that prevents mixed endings from returning.
-- [ ] Correct the attribution in `specmatic.openvex.json` so the named author matches the project maintainer who made the assessment.
+- [x] Correct the attribution in `specmatic.openvex.json` so the named author matches the project maintainer who made the assessment.
 - [ ] Refresh the performance matrix after the Testcontainers migration, or remove pre-migration measurements from user-facing documentation.
 - [ ] Rename misleading files and tests, including `consumer-contract.test.mjs`, to describe the behavior they actually verify.
-- [ ] Document the rationale and fallback plan for `@oaverify` in the JavaScript, TypeScript, and Playwright examples.
+- [x] Document the rationale and fallback plan for `@oaverify` in the JavaScript, TypeScript, and Playwright examples.
 
 ## External or conditional work
 

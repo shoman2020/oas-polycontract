@@ -18,6 +18,7 @@ type HTTPDoer interface {
 
 type ProductAPI interface {
 	GetProduct(context.Context, string) (*http.Response, error)
+	GetProductPath(context.Context, string) (*http.Response, error)
 }
 
 type StatefulOrderAPI interface {
@@ -97,5 +98,9 @@ func NewProductAPIClient(baseURL string) (*ProductAPIClient, error) {
 
 func (client *ProductAPIClient) GetProduct(ctx context.Context, sku string) (*http.Response, error) {
 	return client.send(ctx, http.MethodGet, "/products/"+url.PathEscape(sku), nil)
+}
+
+func (client *ProductAPIClient) GetProductPath(ctx context.Context, path string) (*http.Response, error) {
+	return client.send(ctx, http.MethodGet, path, nil)
 }
 

@@ -6,7 +6,7 @@ oas-polycontract is a runnable reference template for specification-led API test
 
 - Keep one reviewed contract for each API boundary and use it to guide provider verification and consumer development against a provider Smart Mock.
 - Validate live behavior with native integration suites. Specmatic verifies the provider and serves a provider-spec mock; Schemathesis covers fuzzing and stateful flows.
-- Use Swagger UI and Prism to inspect the Catalog scaffold; use the Postman and Bruno examples with the runnable Product and Order APIs.
+- Use the Postman and Bruno examples with the runnable Product and Order APIs.
 - Reduce duplicate specs and overlapping tools to lower maintenance and tooling costs.
 - Keep contracts usable across clients, test frameworks, and vendors. One contract owner means less maintenance and more trust.
 
@@ -44,6 +44,7 @@ flowchart LR
     CSharpSuite["C#<br/>xUnit · HttpClient · scoped NJsonSchema adapter"]
   end
   NativeSuites --> ProductAPI
+  NativeSuites --> OrderAPI
   ProductOAS --> Playwright[Playwright APIRequestContext + @oaverify/core]
   Playwright --> ProductAPI
   ProductOAS --> ProductFuzzing[Schemathesis stateless fuzzing]
@@ -121,21 +122,27 @@ The [Product and Order Gherkin features](clients/features/README.md) define acce
 
 ## Enterprise adoption
 
-Treat this repository as a pilot template. Before adopting it across teams, adapt these boundaries to the company’s API portfolio and engineering standards:
+Treat this repository as an **encyclopedic reference template and testing showcase**, not an all-or-nothing framework. Teams should adopt specific patterns based on their primary integration challenges.
 
-| Area | Current example | Adoption step |
+### Modular adoption patterns
+
+- **Pattern A: Multi-Language Client Synchronization (SDK Teams)**  
+  Gherkin feature definitions (`clients/features/`) compile to structured JSON (`clients/shared/acceptance-cases.json`). Each client SDK consumes this shared data, guaranteeing parity in validation rules, route encoding, and error handling without duplicate assertion logic.
+- **Pattern B: Contract-Driven Provider Verification & Smart Mocks (Backend Teams)**  
+  Specmatic provider verification tests live containers while provider-derived Smart Mocks unblock consumers. Negative canary fixtures in CI ensure schema regressions fail fast.
+- **Pattern C: Hermetic Containerized Gate Orchestration (Platform Teams)**  
+  Testcontainers orchestrates gates with read-only specification bind mounts (`mode: 'ro'`), centrally pinned toolchains (`versions.env`), and ephemeral execution networks, eliminating host contamination.
+
+### Production architectural considerations
+
+| Area | Showcase implementation | Production engineering practice |
 |---|---|---|
-| API coverage | One Product lookup and one Order lifecycle; no authentication scheme or collection endpoint | Pilot with representative APIs, including authentication, collection operations, pagination, versioning, and downstream failure modes. |
-| Consumer ownership | Provider OAS generates the Smart Mock; this example has no consumer-owned contract | Add a versioned contract per consumer and provider verification when teams need to check their own expectations. |
-| Validators | Language validators differ. The Rust and C# adapters translate nullable values, `exclusiveMinimum`, and nested local component-schema references covered by conformance tests; neither claims full OAS 3.0 coverage. C# rejects external and unsupported references before schema resolution. | Agree a supported OAS feature matrix and test each language against it. Add coverage for constructs such as `allOf`, `anyOf`, and discriminators before relying on them. Use the shared Spectral, Specmatic, and Schemathesis gates for contract-wide checks. |
-| Runtime state | Order data is in memory, scoped to one app instance, and lost on restart | Use isolated test data and a service-backed store for tests that need persistence, parallel environments, or multi-instance behavior. |
-| Runtime versions | CI tests one centrally pinned toolchain | Align pins with approved company versions and add compatibility jobs for the runtimes teams support. |
-| CI cost | The full run pulls pinned runtime images and runs all client suites; client dependencies install into temporary containers | Measure target CI before setting timeouts, cost budgets, or performance thresholds. The active ruleset gates correctness and security, not runtime duration. |
-| Merge governance | The active [`main` ruleset](https://github.com/shoman2020/oas-polycontract/settings/rules/27679805) requires 20 status checks. PR-only merging and required code-owner review are not enabled; CODEOWNERS assigns the same owner set across all paths. | Set PR, review, and path ownership rules to match the adopting repository's policy. |
-
-The Order service remains a stateful test fixture, not a production implementation. It uses random UUIDs to avoid collisions between concurrent app instances, and tests confirm that each app instance has isolated data. Its in-memory store does not provide persistence or coordination between replicas, so a request routed to another replica may return 404. The pinned toolchain is a tested reference set, not a promise of compatibility with every company runtime.
-
-For a multi-team rollout, assign an accountable owner to each API boundary instead of routing all contract changes through a central test team. Providers version and verify their specifications; consumers maintain separate expectations when their integrations need them verified. Share approved templates and CI policies while letting each service choose its test environment and supported runtime matrix.
+| Domain complexity | Minimal endpoints (`GET /products/{sku}`, in-memory Order CRUD) | Layer real enterprise requirements: OAuth2/OIDC auth flows, cursor/offset pagination, multi-tenant headers, and distributed persistence. |
+| Repository topology | Monorepo hosting all seven client suites | Distribute SDKs into dedicated language repositories consuming published, versioned OAS artifacts. Run only native suites in each SDK's CI. |
+| OAS validation | Language validators vary (Rust/C# adapt JSON Schema; Java bypasses client-side filter on intentional error tests) | Agree on an organization-wide supported OAS dialect matrix (e.g., handling of `nullable`, `exclusiveMinimum`, and `$ref`) before deploying client validators. |
+| Evals system | Project-internal consistency runner (`evals/run.mjs`) | Do not copy `evals/run.mjs`. Use standard linters (ESLint, Spectral, ShellCheck), type checking, and native integration tests. |
+| State persistence | In-memory instance-scoped state with random UUIDs | Use isolated test datasets and managed backing stores for tests requiring parallel or multi-replica coordination. |
+| CI scaling | Dual CI profile (`core` gates vs `native` matrix) | Run shared contract gates in the provider repository; trigger client SDK builds independently via release events or matrix packages. |
 
 ## Contracts
 
@@ -143,7 +150,7 @@ Specifications are reviewed source files and read-only pipeline inputs. Tests, g
 
 | Boundary | Contract | Implementation and checks |
 |---|---|---|
-| Product Catalog | [Root OAS](openapi/openapi.yaml) | Separate design scaffold; its full Product schema includes a name; Spectral, Swagger UI, Prism |
+| Product Catalog | [Root OAS](openapi/openapi.yaml) | Separate design scaffold; its full Product schema includes a name; Spectral, oasdiff |
 | Product API | [Demo OAS](demo/openapi.yaml) | Separate runnable boundary; returns an availability projection (`sku`, `available`); Node.js, Specmatic, Schemathesis, seven languages, Playwright |
 | Order API | [Stateful OAS](demo/stateful/openapi.yaml) | In-memory Node.js; stateful Schemathesis and seven native suites |
 | Inventory dependency | [Downstream OAS](demo/downstream/openapi.yaml) | WireMock mappings, Specmatic, downstream integration |
@@ -159,6 +166,7 @@ The Catalog scaffold and Product API intentionally model different boundaries, n
 | Demo services | Implement Product, Order, and WireMock-backed Inventory examples | `demo/` |
 | Native clients | Encapsulate HTTP calls; language validators check exercised responses and tests assert behavior | `clients/`, `clients/features/`, `clients/shared/` |
 | Orchestration | Full local, shared core, and per-stack native profiles use one Testcontainers builder with explicit service and task readiness | `pipeline/run.mjs`, `pipeline/client-suite.sh`, `.github/workflows/contract.yml` |
+| Container factory & services | OOP factory for container creation, wait-strategy configuration, and downstream service downloads | `pipeline/services.mjs` |
 | Shared configuration | Parse and validate required runtime pins before container startup | `pipeline/config.mjs`, `.github/versions.env` |
 | Quality checks | Validate contracts, project wiring, security, and dependencies | `gates/`, `evals/`, `.github/workflows/` |
 

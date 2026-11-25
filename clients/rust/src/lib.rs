@@ -1,3 +1,5 @@
+use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
+
 struct HttpApiClient {
     base_url: String,
     http: reqwest::Client,
@@ -19,6 +21,10 @@ impl HttpApiClient {
     }
 }
 
+fn encode_path_segment(s: &str) -> String {
+    utf8_percent_encode(s, NON_ALPHANUMERIC).to_string()
+}
+
 pub struct ProductApiClient {
     http: HttpApiClient,
 }
@@ -30,7 +36,14 @@ impl ProductApiClient {
 
     pub async fn get_product(&self, sku: &str) -> Result<reqwest::Response, reqwest::Error> {
         self.http
-            .request(reqwest::Method::GET, &format!("/products/{sku}"))
+            .request(reqwest::Method::GET, &format!("/products/{}", encode_path_segment(sku)))
+            .send()
+            .await
+    }
+
+    pub async fn get_product_path(&self, path: &str) -> Result<reqwest::Response, reqwest::Error> {
+        self.http
+            .request(reqwest::Method::GET, path)
             .send()
             .await
     }
@@ -59,7 +72,7 @@ impl StatefulOrderApiClient {
 
     pub async fn get_order(&self, order_id: &str) -> Result<reqwest::Response, reqwest::Error> {
         self.http
-            .request(reqwest::Method::GET, &format!("/orders/{order_id}"))
+            .request(reqwest::Method::GET, &format!("/orders/{}", encode_path_segment(order_id)))
             .send()
             .await
     }
@@ -70,7 +83,7 @@ impl StatefulOrderApiClient {
         status: &str,
     ) -> Result<reqwest::Response, reqwest::Error> {
         self.http
-            .request(reqwest::Method::PATCH, &format!("/orders/{order_id}"))
+            .request(reqwest::Method::PATCH, &format!("/orders/{}", encode_path_segment(order_id)))
             .json(&serde_json::json!({ "status": status }))
             .send()
             .await
@@ -78,7 +91,7 @@ impl StatefulOrderApiClient {
 
     pub async fn delete_order(&self, order_id: &str) -> Result<reqwest::Response, reqwest::Error> {
         self.http
-            .request(reqwest::Method::DELETE, &format!("/orders/{order_id}"))
+            .request(reqwest::Method::DELETE, &format!("/orders/{}", encode_path_segment(order_id)))
             .send()
             .await
     }

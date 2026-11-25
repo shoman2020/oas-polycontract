@@ -55,13 +55,11 @@ test("stateful order validation and conflict responses match the OpenAPI contrac
   assert.equal(created.status, 201);
   const orderId = created.result.body.id;
 
-  const cancelled = await validate(api.updateOrder(orderId, scenario.initialStatus));
-  assert.equal(cancelled.status, 200);
-  assert.equal(cancelled.result.body.status, scenario.persistedStatus);
-
-  const repeated = await validate(api.updateOrder(orderId, scenario.initialStatus));
-  assert.equal(repeated.status, 200);
-  assert.equal(repeated.result.body.status, scenario.persistedStatus);
+  for (let attempt = 0; attempt < scenario.repeatCount; attempt += 1) {
+    const cancelled = await validate(api.updateOrder(orderId, scenario.initialStatus));
+    assert.equal(cancelled.status, 200);
+    assert.equal(cancelled.result.body.status, scenario.persistedStatus);
+  }
 
   const conflict = await validate(api.updateOrder(orderId, scenario.requestedStatus));
   assert.equal(conflict.status, scenario.expectedStatus);

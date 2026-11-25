@@ -960,6 +960,7 @@ name = "oas-polycontract-rust-client"
 version = "0.1.0"
 dependencies = [
  "jsonschema",
+ "percent-encoding",
  "reqwest",
  "serde_json",
  "serde_yaml_ng",

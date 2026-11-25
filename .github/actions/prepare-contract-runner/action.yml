@@ -39,4 +39,5 @@ runs:
       shell: bash
       run: |
         node --check pipeline/run.mjs
+        node --check pipeline/services.mjs
         node --check evals/run.mjs

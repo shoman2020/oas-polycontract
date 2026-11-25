@@ -298,8 +298,8 @@ async fn product_error_scenarios_match_openapi_contract() -> Result<(), Box<dyn 
     }
 
     let scenario = feature_cases::acceptance_case("product.malformed-path")?;
-    let url = format!("{}{}", env::var("API_BASE_URL")?.trim_end_matches('/'), scenario["path"].as_str().ok_or("feature data has no path")?);
-    let response = reqwest::Client::new().get(url).send().await?;
+    let path = scenario["path"].as_str().ok_or("feature data has no path")?;
+    let response = api.get_product_path(path).await?;
     let (status, body) = validate_response(response, &contract, "/products/{sku}", "get").await?;
     assert_eq!(status, scenario["expectedStatus"].as_u64().ok_or("feature data has no status")? as u16);
     assert_eq!(body["message"], scenario["expectedMessage"]);

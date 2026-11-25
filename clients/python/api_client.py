@@ -11,6 +11,8 @@ ApiResponse = tuple[requests.PreparedRequest, requests.Response]
 class ProductApi(Protocol):
     def get_product(self, sku: str) -> ApiResponse: ...
 
+    def get_product_path(self, path: str) -> ApiResponse: ...
+
 
 class StatefulOrderApi(Protocol):
     def create_order(self, sku: str, quantity: int) -> ApiResponse: ...
@@ -50,4 +52,7 @@ class HttpApiClient:
 class ProductApiClient(HttpApiClient):
     def get_product(self, sku: str) -> ApiResponse:
         return self.send("GET", f"/products/{quote(sku, safe='')}")
+
+    def get_product_path(self, path: str) -> ApiResponse:
+        return self.send("GET", path)
 

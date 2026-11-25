@@ -6,6 +6,6 @@
     "strict": true,
     "types": ["node"]
   },
-  "include": ["product-api-integration.test.ts", "stateful-order-api-integration.test.ts"]
+  "include": ["*.ts"]
 }
 

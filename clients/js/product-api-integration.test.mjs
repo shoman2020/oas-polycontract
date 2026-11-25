@@ -37,9 +37,9 @@ for (const scenario of acceptanceCases("product").filter(({ caseId }) => ["produ
 const malformedPathScenario = acceptanceCase("product.malformed-path");
 
 test(malformedPathScenario.scenario, async () => {
+  const api = createProductApi();
   const scenario = malformedPathScenario;
-  const request = new Request(new URL(scenario.path, process.env.API_BASE_URL));
-  const response = await fetch(request);
+  const { request, response } = await api.getProductPath(scenario.path);
   const result = await validator.validateFetchResponse(request, response);
 
   assert.equal(result.ok, true, JSON.stringify(result));

@@ -1,13 +1,22 @@
 import { readFileSync } from "node:fs";
 
-const cases = JSON.parse(readFileSync(process.env.FEATURE_CASES_PATH, "utf8"));
+let cachedCases;
+
+function getCases() {
+  if (!cachedCases) {
+    const path = process.env.FEATURE_CASES_PATH;
+    if (!path) throw new Error("FEATURE_CASES_PATH environment variable is required");
+    cachedCases = JSON.parse(readFileSync(path, "utf8"));
+  }
+  return cachedCases;
+}
 
 export function acceptanceCase(caseId) {
-  const scenario = cases.find((testCase) => testCase.caseId === caseId);
+  const scenario = getCases().find((testCase) => testCase.caseId === caseId);
   if (!scenario) throw new Error(`Acceptance feature case not found: ${caseId}`);
   return scenario;
 }
 
 export function acceptanceCases(prefix) {
-  return cases.filter(({ caseId }) => caseId.startsWith(`${prefix}.`));
+  return getCases().filter(({ caseId }) => caseId.startsWith(`${prefix}.`));
 }
