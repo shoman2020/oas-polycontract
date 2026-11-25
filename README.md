@@ -57,7 +57,7 @@ flowchart LR
   OrderOAS --> Collections
 ```
 
-Native suites are code-based API integration tests: they call the running APIs, validate exercised responses with language-specific tools, and assert behavior in each test framework. Specmatic provider verification targets the live Product API. Consumer-side checks run against a Smart Mock generated from the provider OAS, giving consumer teams an early integration target. They do not publish consumer-owned contracts or validate consumer-specific expectations. Schemathesis generates Product fuzz cases and stateful Order flows. Playwright uses APIRequestContext, not browser UI automation.
+Native suites are code-based API integration tests: they call the running APIs, validate exercised responses with language-specific tools, and assert behavior in each test framework. The seven language suites are **optional, independent choices**—pick only what is native to your team's stack rather than adopting all of them. Specmatic provider verification targets the live Product API. Consumer-side checks run against a Smart Mock generated from the provider OAS, giving consumer teams an early integration target. They do not publish consumer-owned contracts or validate consumer-specific expectations. Schemathesis generates Product fuzz cases and stateful Order flows. Playwright uses APIRequestContext, not browser UI automation.
 
 ### CI workflow
 
@@ -114,7 +114,7 @@ The script checks runtime pins, runs pipeline unit checks, verifies generated fe
 POLYCONTRACT_NATIVE_CLIENTS=rust,python bash ./run.sh
 ```
 
-Set `POLYCONTRACT_PIPELINE_PROFILE` to `core` or `native` to run that CI section locally. The languages and tools are examples, not requirements; use the [client guide](clients/README.md) to adapt tests to your team's native stack and repository.
+Set `POLYCONTRACT_PIPELINE_PROFILE` to `core` or `native` to run that CI section locally. The seven native language suites are **options to choose from based on what is native for your team**—you do not need to run or adopt all of them. Use the [client guide](clients/README.md) to pick and adapt tests for your team's stack and repository.
 
 ## Behavior scenarios and test-driven changes
 
