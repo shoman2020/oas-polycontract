@@ -125,7 +125,11 @@ class ContractPipeline {
       console.error(error);
     } finally {
       await this.cleanup();
-      this.writeTimingReport(failure ? 'failed' : 'passed');
+      try {
+        this.writeTimingReport(failure ? 'failed' : 'passed');
+      } catch (reportError) {
+        console.warn(`Failed to write timing report: ${reportError.message}`);
+      }
     }
 
     if (failure) throw failure;
@@ -266,10 +270,14 @@ class ContractPipeline {
       'printf "%s\\n" "$output"',
       'printf "__POLYCONTRACT_EXIT_CODE=%s\\n" "$status"',
       'if [ "$status" -eq 0 ]; then exit 97; fi',
-      `printf "%s" "$output" | grep -Eiq '${outputPattern}'`,
+      'printf "%s" "$output" | grep -Eiq -- "$EXPECTED_PATTERN"',
     ].join('\n');
     await this.runTask(name, image, {
       ...options,
+      environment: {
+        ...options.environment,
+        EXPECTED_PATTERN: outputPattern,
+      },
       entrypoint: ['/bin/sh', '-c'],
       command: [script],
     });
@@ -352,8 +360,8 @@ class ContractPipeline {
   async runContractLint() {
     const spectralImage = `stoplight/spectral:${versions.SPECTRAL_VERSION}`;
     const lint = (files, ruleset, mounts) => this.runTask('Spectral lint', spectralImage, {
-      entrypoint: ['/bin/sh', '-c'],
-      command: [`sh /repo/gates/lint/run-spectral.sh lint --ruleset /repo/gates/lint/${ruleset} ${files.map((file) => `/repo/${file}`).join(' ')}`],
+      entrypoint: ['sh', '/repo/gates/lint/run-spectral.sh'],
+      command: ['lint', '--ruleset', `/repo/gates/lint/${ruleset}`, ...files.map((file) => `/repo/${file}`)],
       mounts,
     });
 
@@ -599,13 +607,11 @@ class ContractPipeline {
 
   async runConsumerTests() {
     const image = this.specmaticImage;
-    const mock = await this.startService(image, 'specmatic-mock', {
+    await this.startService(image, 'specmatic-mock', {
       workingDir: '/tmp',
       command: ['mock', '/repo/demo/openapi.yaml'],
       mounts: [readOnlyMount('demo')],
     });
-
-    if (!mock) throw new Error('Specmatic Smart Mock failed to start');
 
     const mockEnvironment = {
       MOCK_URL: 'http://specmatic-mock:9000',
@@ -647,7 +653,7 @@ class ContractPipeline {
   }
 
   async cleanup() {
-    for (const service of this.services.reverse()) {
+    for (const service of [...this.services].reverse()) {
       await service.stop().catch((error) => console.warn(`Service cleanup failed: ${error.message}`));
     }
     if (this.network) {
@@ -661,7 +667,7 @@ class ContractPipeline {
 
     const csv = [
       'stage,seconds,result',
-      ...stages.map((stage) => `"${stage.name}",${stage.seconds},${stage.result}`),
+      ...stages.map((stage) => `"${stage.name.replaceAll('"', '""')}",${stage.seconds},${stage.result}`),
       `total,${totalSeconds},${status}`,
       '',
     ].join('\n');
@@ -680,7 +686,7 @@ class ContractPipeline {
     ].join('\n');
     console.log(table);
     if (process.env.GITHUB_STEP_SUMMARY) {
-      writeFileSync(process.env.GITHUB_STEP_SUMMARY, table, { flag: 'a' });
+      writeFileSync(process.env.GITHUB_STEP_SUMMARY, `\n${table}`, { flag: 'a' });
     }
   }
 }
@@ -688,6 +694,7 @@ class ContractPipeline {
 const pipeline = new ContractPipeline();
 try {
   await pipeline.run();
-} catch {
+} catch (error) {
+  console.error(error);
   process.exitCode = 1;
 }

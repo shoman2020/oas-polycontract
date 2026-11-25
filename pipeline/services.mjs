@@ -5,7 +5,7 @@
 
 import { createHash } from 'node:crypto';
 import { closeSync, fstatSync, mkdtempSync, openSync, readSync, rmSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { runChildProcess } from './commands.mjs';
 
@@ -95,12 +95,13 @@ export class ContainerFactory {
     const { alias } = options;
     const isService = Boolean(alias);
     let container = new this.GenericContainer(image)
-      .withNetwork(this.network)
       .withStartupTimeout(options.timeout ?? (isService ? 120_000 : 60 * 60 * 1000))
       .withLogConsumer((stream) => {
         stream.on('data', (line) => process.stdout.write(line));
         stream.on('err', (line) => process.stderr.write(line));
       });
+
+    if (this.network) container = container.withNetwork(this.network);
 
     if (alias) container = container.withNetworkAliases(alias);
 

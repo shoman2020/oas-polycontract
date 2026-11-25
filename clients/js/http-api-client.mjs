@@ -17,10 +17,13 @@ export class HttpApiClient {
   }
 
   async _send(path, method = "GET", payload) {
-    const request = new Request(new URL(path, this.#baseUrl), {
+    const base = this.#baseUrl.href.endsWith("/") ? this.#baseUrl.href.slice(0, -1) : this.#baseUrl.href;
+    const suffix = path.startsWith("/") ? path : `/${path}`;
+    const hasPayload = payload !== undefined;
+    const request = new Request(new URL(`${base}${suffix}`), {
       method,
-      headers: payload ? { "content-type": "application/json" } : undefined,
-      body: payload ? JSON.stringify(payload) : undefined,
+      headers: hasPayload ? { "content-type": "application/json" } : undefined,
+      body: hasPayload ? JSON.stringify(payload) : undefined,
       signal: AbortSignal.timeout(this.#timeoutMs),
     });
     const response = await this.#fetchImpl(request);

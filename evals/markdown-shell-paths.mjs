@@ -49,7 +49,10 @@ function localPath(value, root) {
   else if (candidate.startsWith('$PWD/')) candidate = candidate.slice(5);
   if (!candidate || candidate.includes('$') || candidate.includes('`') || /[*?]/.test(candidate)) return null;
   if (isAbsolute(candidate) || /^[a-z]:[\\/]/i.test(candidate)) return null;
-  return resolve(root, candidate.replace(/^\.\//, ''));
+  const resolved = resolve(root, candidate.replace(/^\.\//, ''));
+  const rel = relative(root, resolved);
+  if (rel.startsWith('..') || isAbsolute(rel)) return null;
+  return resolved;
 }
 
 function addPathIssue(issues, docPath, blockNumber, command, candidate, kind, root) {
@@ -67,8 +70,17 @@ function addPathIssue(issues, docPath, blockNumber, command, candidate, kind, ro
 
 function checkDockerBuild(tokens, root, docPath, blockNumber, issues) {
   const args = tokens.slice(2);
-  const context = args.at(-1);
-  if (!context || context.startsWith('-')) return 0;
+  let context = null;
+  for (let i = 0; i < args.length; i += 1) {
+    const arg = args[i];
+    if (arg === '-f' || arg === '--file' || arg === '-t' || arg === '--tag' || arg === '--target' || arg === '--platform' || arg === '--build-arg') {
+      i += 1;
+      continue;
+    }
+    if (arg.startsWith('-')) continue;
+    context = arg;
+  }
+  if (!context) return 0;
   const contextPath = localPath(context, root);
   if (contextPath === null) return 0;
   let checked = 1;
@@ -93,13 +105,11 @@ function checkDockerMounts(tokens, root, docPath, blockNumber, issues) {
       specification = tokens[index + 1];
     } else if (tokens[index].startsWith('--volume=')) {
       specification = tokens[index].slice('--volume='.length);
-    } else if (tokens[index] === '--mount') {
-      specification = tokens[index + 1];
-      const source = specification?.split(',').find((part) => part.startsWith('source='))?.slice('source='.length);
-      if (source) checked += addPathIssue(issues, docPath, blockNumber, 'docker run --mount', source, 'path', root);
-      continue;
-    } else if (tokens[index].startsWith('--mount=')) {
-      const source = tokens[index].slice('--mount='.length).split(',').find((part) => part.startsWith('source='))?.slice('source='.length);
+    } else if (tokens[index] === '--mount' || tokens[index].startsWith('--mount=')) {
+      const mountSpec = tokens[index] === '--mount'
+        ? tokens[index + 1]
+        : tokens[index].slice('--mount='.length);
+      const source = mountSpec?.split(',').find((part) => part.startsWith('source='))?.slice('source='.length);
       if (source) checked += addPathIssue(issues, docPath, blockNumber, 'docker run --mount', source, 'path', root);
       continue;
     }

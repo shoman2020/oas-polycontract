@@ -12,8 +12,10 @@ export async function validateResponse(apiResponse, path) {
   if (!baseUrl) throw new Error("API_BASE_URL must point to the provider or Specmatic mock");
 
   const request = new Request(new URL(path, baseUrl));
-  const response = new Response(await apiResponse.body(), {
-    status: apiResponse.status(),
+  const status = apiResponse.status();
+  const body = status === 204 || status === 304 ? null : await apiResponse.body();
+  const response = new Response(body, {
+    status,
     headers: apiResponse.headers(),
   });
 

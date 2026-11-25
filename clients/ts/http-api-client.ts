@@ -39,19 +39,17 @@ export abstract class HttpApiClient {
     this.logger = createLogger(this.constructor.name, { level: "info" });
   }
 
-  protected async send(path: string, method = "GET", payload?: object): Promise<ApiResponse> {
-    try {
-      const request = new Request(new URL(path, this.baseUrl), {
-        method,
-        headers: payload ? { "content-type": "application/json" } : undefined,
-        body: payload ? JSON.stringify(payload) : undefined,
-        signal: AbortSignal.timeout(this.timeoutMs),
-      });
-      const response = await this.fetchImpl(request);
-      return { request, response };
-    } catch (error) {
-      this.logger.error(`${method} ${path} failed`, error);
-      throw error;
-    }
+  protected async send(path: string, method = "GET", payload?: unknown): Promise<ApiResponse> {
+    const base = this.baseUrl.href.endsWith("/") ? this.baseUrl.href.slice(0, -1) : this.baseUrl.href;
+    const suffix = path.startsWith("/") ? path : `/${path}`;
+    const hasPayload = payload !== undefined;
+    const request = new Request(new URL(`${base}${suffix}`), {
+      method,
+      headers: hasPayload ? { "content-type": "application/json" } : undefined,
+      body: hasPayload ? JSON.stringify(payload) : undefined,
+      signal: AbortSignal.timeout(this.timeoutMs),
+    });
+    const response = await this.fetchImpl(request);
+    return { request, response };
   }
 }

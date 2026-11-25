@@ -37,14 +37,16 @@ async function getWithRetry(path) {
   let lastError;
   for (let attempt = 0; attempt < 30; attempt += 1) {
     try {
-      return await fetch(requestUrl, {
+      const response = await fetch(requestUrl, {
         redirect: "error",
         signal: AbortSignal.timeout(3000),
       });
+      if (response.status < 500) return response;
+      lastError = new Error(`Specmatic mock returned ${response.status} for ${path}`);
     } catch (error) {
       lastError = error;
-      await new Promise((resolve) => setTimeout(resolve, 1000));
     }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
   throw lastError ?? new Error("Specmatic mock did not become ready");
 }

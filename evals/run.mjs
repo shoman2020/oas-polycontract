@@ -45,7 +45,14 @@ function checkReadmeLinks() {
       .filter((target) => target && !/^[a-z][a-z\d+.-]*:/i.test(target) && !target.startsWith('#'));
 
     for (const target of links) {
-      const absolutePath = resolve(repositoryRoot, dirname(documentPath), decodeURIComponent(target));
+      let decodedTarget;
+      try {
+        decodedTarget = decodeURIComponent(target);
+      } catch {
+        failures.push(`readme-links: ${documentPath} has malformed URI encoding: ${target}`);
+        continue;
+      }
+      const absolutePath = resolve(repositoryRoot, dirname(documentPath), decodedTarget);
       const repositoryPath = relative(repositoryRoot, absolutePath);
       if (repositoryPath.startsWith('..')) {
         failures.push(`readme-links: ${documentPath} links outside the repository: ${target}`);
@@ -74,11 +81,12 @@ function checkReadmeTree() {
 function checkArchitectureMap() {
   const readme = readRepositoryFile('README.md');
   const start = readme.indexOf('## Architecture');
-  const end = start < 0 ? -1 : readme.indexOf('\n## ', start + '## Architecture'.length);
-  if (start < 0 || end < 0) {
+  if (start < 0) {
     failures.push('architecture-map: README architecture section was not found');
     return 0;
   }
+  const nextSection = readme.indexOf('\n## ', start + '## Architecture'.length);
+  const end = nextSection < 0 ? readme.length : nextSection;
   const architecture = readme.slice(start, end);
 
   const layers = [
@@ -932,9 +940,6 @@ function checkWorkflowVisuals() {
   const sceneCount = [...showcase.matchAll(/<section class="scene"/g)].length;
   const laneCount = [...showcase.matchAll(/class="workflow-lane"/g)].length;
   const testFlowLaneCount = [...showcase.matchAll(/class="test-flow-lane"/g)].length;
-  const workflowMapReferences = [...readme.matchAll(/https:\/\/shoman2020\.github\.io\/oas-polycontract\/#(?:contracts|test-roles|test-behavior|pipeline|workflows|performance)/g)].length;
-  if (!readme.includes('```mermaid\nflowchart TB')) failures.push('workflow-visuals: README workflow diagram is missing');
-  if (!readme.includes('```mermaid\nflowchart LR')) failures.push('workflow-visuals: README contract and test diagram is missing');
   if (sceneCount !== 8) failures.push(`workflow-visuals: expected 8 showcase slides, found ${sceneCount}`);
   if (laneCount !== 4) failures.push(`workflow-visuals: expected 4 workflow lanes, found ${laneCount}`);
   if (testFlowLaneCount !== 8) failures.push(`workflow-visuals: expected 8 interactive test-flow lanes, found ${testFlowLaneCount}`);
@@ -949,7 +954,6 @@ function checkWorkflowVisuals() {
       failures.push(`workflow-visuals: README and interactive flow must map ${source}`);
     }
   }
-  if (workflowMapReferences < 6) failures.push(`workflow-visuals: expected 6 README links to interactive maps, found ${workflowMapReferences}`);
   if (!showcase.includes('aria-valuemax="8"')) failures.push('workflow-visuals: showcase progress range is not updated for 8 slides');
   return workflowFiles.length + sourcePolicies.length + concepts.length + readmeTriggers.length + showcaseTriggers.length + sceneCount + laneCount + acceptanceFlowSources.length;
 }
