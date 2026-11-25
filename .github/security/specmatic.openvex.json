@@ -1,7 +1,7 @@
 {
   "@context": "https://openvex.dev/ns/v0.2.0",
-  "@id": "https://github.com/specmatic/specmatic/security/vex/guava-ghsa-xxph-c9ww-hj94",
-  "author": "Specmatic",
+  "@id": "https://github.com/shoman2020/oas-polycontract/security/vex/guava-ghsa-xxph-c9ww-hj94",
+  "author": "Ahmed Shoman <shoman25juan@gmail.com> (oas-polycontract maintainer)",
   "timestamp": "2026-11-04T00:00:00Z",
   "version": 1,
   "statements": [

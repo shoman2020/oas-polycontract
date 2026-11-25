@@ -23,7 +23,7 @@ This file turns the supplied review into a change checklist. Findings are not tr
 - [ ] Cover `exclusiveMaximum`, nullable schemas without an explicit type, and `$ref` response schemas in Rust and C# validation. Add focused adapter tests or replace the adapters with validators that support the required OAS semantics.
 - [x] Fix the Rust client's SKU path encoding and review Product's mapping of upstream 4xx responses.
 - [ ] Remove Java validation bypasses and ensure all exercised responses are validated.
-- [ ] Resolve the Product/Inventory fixture mismatch: align the `available` example and WireMock behavior, and keep intentionally malformed responses outside the conformant fixture set.
+- [x] Resolve the Product/Inventory fixture mismatch: align the `available` example and WireMock behavior, and keep intentionally malformed responses outside the conformant fixture set.
 - [ ] Keep AsyncAPI examples explicitly labelled lint-only unless runtime coverage and a maintained broker are added.
 - [ ] Preserve the limitation that no consumer-owned expectations are demonstrated. If consumer-driven coverage is a goal, add consumer-owned contracts and a provider verification or bi-directional compatibility flow.
 
@@ -49,10 +49,10 @@ This file turns the supplied review into a change checklist. Findings are not tr
 ## Priority 5 — Hygiene and evidence
 
 - [ ] Normalize tracked text files to the repository's configured line endings and add a check that prevents mixed endings from returning.
-- [ ] Correct the attribution in `specmatic.openvex.json` so the named author matches the project maintainer who made the assessment.
+- [x] Correct the attribution in `specmatic.openvex.json` so the named author matches the project maintainer who made the assessment.
 - [ ] Refresh the performance matrix after the Testcontainers migration, or remove pre-migration measurements from user-facing documentation.
 - [ ] Rename misleading files and tests, including `consumer-contract.test.mjs`, to describe the behavior they actually verify.
-- [ ] Document the rationale and fallback plan for `@oaverify` in the JavaScript, TypeScript, and Playwright examples.
+- [x] Document the rationale and fallback plan for `@oaverify` in the JavaScript, TypeScript, and Playwright examples.
 
 ## External or conditional work
 

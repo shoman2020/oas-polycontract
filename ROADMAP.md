@@ -2,7 +2,7 @@
 
 One reviewed specification contract per API boundary. Clear ownership means less maintenance and more trust.
 
-## Status — 24 November 2026
+## Status — 25 November 2026
 
 | Area | Delivered | Remaining |
 |---|---|---|
@@ -184,6 +184,7 @@ The latest [main contract run 44635628482](https://github.com/shoman2020/oas-pol
 
 ## Progress
 
+- 25 Nov: Enhanced repository quality gates and software engineering baselines: added behavioral execution-based `pipeline-syntax` check to `evals/run.mjs` and `evals/project-evals.json` using subprocess `node --check` across all orchestrator files (`run.mjs`, `services.mjs`, `config.mjs`, etc.), preventing syntax and re-declaration failures. Hardened `pipeline/package.json` test script with `node --check run.mjs && node --check services.mjs`. Updated OpenVEX security advisory attribution in `.github/security/specmatic.openvex.json`, documented `@oaverify` fallback plan in `clients/README.md`, and reconciled review follow-up checklist.
 - 24 Nov: Defined modular adoption patterns in the README (Pattern A: Multi-Language SDK synchronization via Gherkin/JSON, Pattern B: Specmatic Provider Verification and Smart Mocks with negative canaries, Pattern C: Hermetic Testcontainers orchestration with read-only spec mounts) to clarify the repository as an encyclopedic reference rather than a monolithic all-or-nothing framework. Aligned Rust client percent-encoding lockfile entry to `percent-encoding = "=2.3.2"`.
 - 24 Nov: Hardened native client implementations and resolved TypeScript compilation errors: fixed circular self-import and stack overflow in `logger.ts` with typed level filtering, fixed async error handling and restored interface implementation in TypeScript API clients, implemented percent-encoding for SKU and order ID paths in the Rust client (`percent-encoding = "=2.3.2"`), aligned stateful lifecycle `repeatCount` loops in Python and JavaScript integration suites, and modernized Java OpenAPI test URI resolution.
 - 20 Nov: Enabled main ruleset [27679805](https://github.com/shoman2020/oas-polycontract/settings/rules/27679805) with 20 required checks. Post-merge contract [44635628482](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628482) and security [44635628479](https://github.com/shoman2020/oas-polycontract/actions/runs/44635628479) runs passed. Removed Dependabot Docker updates for retired paths, added the Markdown shell-path audit, and verified the timeout test plus Spectral/oasdiff ERR-level canaries in PR contract [44643172422](https://github.com/shoman2020/oas-polycontract/actions/runs/44643172422) and security [44643172446](https://github.com/shoman2020/oas-polycontract/actions/runs/44643172446). Restricted contract push runs to `main` and separated concurrency by event to prevent cancelled duplicate PR checks. Added bounded retries to both CI and Testcontainers WireMock downloads while retaining SHA-256 validation.
